@@ -1,0 +1,13 @@
+node_modules
+dist
+build
+target
+**/target
+coverage
+.env
+.env.*
+.DS_Store
+.vscode
+.idea
+!.env.example
+!**/.env.example

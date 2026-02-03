@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Hỏi nhanh / trao đổi
+    url: https://github.com
+    about: Dùng comment trong issue/PR hiện có hoặc chat nhóm để thống nhất trước khi tạo issue mới.

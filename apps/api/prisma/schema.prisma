@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  RECEPTIONIST
+  CASHIER
+  DOCTOR
+  PATIENT
+}
+
+enum AccountStatus {
+  ACTIVE
+  LOCKED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  phone        String        @unique
+  passwordHash String
+  role         UserRole
+  status       AccountStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  doctorProfile  Doctor?
+  patientProfile Patient?
+
+  auditLogs AuditLog[]
+}
+
+model Doctor {
+  id          String @id @default(cuid())
+  userId      String @unique
+  displayName String
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialties DoctorSpecialty[]
+  shifts      Shift[]
+}
+
+model Patient {
+  id         String   @id @default(cuid())
+  userId     String?  @unique
+  fullName   String
+  phone      String   @unique
+  nationalId String?
+  createdAt  DateTime @default(now())
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  bookings Booking[]
+}
+
+model Specialty {
+  id   String @id @default(cuid())
+  name String @unique
+
+  doctors DoctorSpecialty[]
+}
+
+model DoctorSpecialty {
+  doctorId    String
+  specialtyId String
+
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  specialty Specialty @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  @@id([doctorId, specialtyId])
+}
+
+model Service {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  durationMin Int
+  priceCents  Int
+  isActive    Boolean @default(true)
+}
+
+enum ShiftType {
+  MORNING
+  AFTERNOON
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+model Shift {
+  id        String      @id @default(cuid())
+  doctorId  String
+  date      DateTime    @db.Date
+  type      ShiftType
+  startTime DateTime
+  endTime   DateTime
+  status    ShiftStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+
+  doctor   Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  slots    Slot[]
+  bookings Booking[]
+
+  @@unique([doctorId, date, type])
+}
+
+enum SlotPool {
+  COMMON
+  RESERVE
+  OVERRIDE
+}
+
+enum SlotStatus {
+  OPEN
+  LOCKED
+}
+
+model Slot {
+  id       String     @id @default(cuid())
+  shiftId  String
+  sequence Int
+  pool     SlotPool
+  status   SlotStatus @default(OPEN)
+
+  shift   Shift   @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  booking Booking?
+
+  @@unique([shiftId, sequence])
+  @@index([shiftId, pool])
+}
+
+enum BookingChannel {
+  WEB
+  WALK_IN
+}
+
+enum BookingStatus {
+  BOOKED
+  CHECKED_IN
+  WAITING
+  IN_CONSULTATION
+  PENDING_LAB
+  RESULTS_READY
+  COMPLETED
+  NO_SHOW
+  CANCELED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  VOID
+}
+
+model Booking {
+  id            String         @id @default(cuid())
+  shiftId       String
+  slotId        String         @unique
+  patientId     String
+  channel       BookingChannel
+  status        BookingStatus
+  paymentStatus PaymentStatus  @default(UNPAID)
+  checkInAt     DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  skipCount     Int            @default(0)
+  createdAt     DateTime       @default(now())
+
+  shift   Shift   @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  slot    Slot    @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  prescription Prescription?
+}
+
+model Medication {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  unit        String
+  usage       String?
+  defaultDose String?
+  priceCents  Int
+  stockReal   Int     @default(0)
+  stockHold   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  prescriptionItems PrescriptionItem[]
+
+  @@index([isActive])
+}
+
+enum PrescriptionStatus {
+  HELD
+  PAID
+  CANCELED
+  EXPIRED
+}
+
+model Prescription {
+  id        String             @id @default(cuid())
+  bookingId String             @unique
+  status    PrescriptionStatus @default(HELD)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  booking Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  items   PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id             String @id @default(cuid())
+  prescriptionId String
+  medicationId   String
+  qty            Int
+  unitPriceCents Int
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication   Medication   @relation(fields: [medicationId], references: [id], onDelete: Restrict)
+
+  @@unique([prescriptionId, medicationId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  metaJson    Json?
+  createdAt   DateTime @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

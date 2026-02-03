@@ -1,0 +1,10 @@
+{
+  "name": "@clinic/backend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "mvn spring-boot:run",
+    "build": "mvn -DskipTests package",
+    "test": "mvn test"
+  }
+}
