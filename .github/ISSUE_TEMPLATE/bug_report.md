@@ -1,16 +1,16 @@
 ---
 name: Bug report
 about: Báo lỗi để team fix
-title: "bug: "
+title: 'bug: '
 labels: bug
-assignees: ""
+assignees: ''
 ---
 
 ## Mô tả lỗi
 
 ## Bước để reproduce
 
-1. 
+1.
 
 ## Kết quả mong đợi
 

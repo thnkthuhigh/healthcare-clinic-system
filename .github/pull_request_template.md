@@ -4,7 +4,7 @@
 
 ## Thay đổi chính
 
-- 
+-
 
 ## Cách test (bắt buộc)
 

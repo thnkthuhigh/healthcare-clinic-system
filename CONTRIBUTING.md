@@ -7,20 +7,20 @@
 
 ## Bộ role trong nhóm (đề xuất)
 
-- 1) Tech lead / Maintainer (bạn):
+- 1. Tech lead / Maintainer (bạn):
   - merge vào `main`
   - duyệt PR, giữ kiến trúc và chất lượng
   - chia task, chốt scope
-- 2) Backend owner:
+- 2. Backend owner:
   - thiết kế API + migrations (Flyway)
   - đảm bảo không phá schema
-- 3) Frontend owner:
+- 3. Frontend owner:
   - pages/components, routing
   - gọi API đúng base url + xử lý loading/error
-- 4) QA / Tester:
+- 4. QA / Tester:
   - test theo checklist (manual)
   - verify `npm run check` trước khi PR được merge
-- 5) Docs / PM:
+- 5. Docs / PM:
   - viết issue rõ ràng (mục tiêu, AC)
   - cập nhật README/ARCHITECTURE khi thay đổi lớn
 
