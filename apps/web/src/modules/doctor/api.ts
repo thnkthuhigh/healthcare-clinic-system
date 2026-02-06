@@ -11,7 +11,7 @@ import type {
   SavePrescriptionRequest,
 } from './types';
 
-const API_BASE = 'http://localhost:8080/api/doctor';
+const API_BASE = 'http://localhost:4000/api/doctor';
 
 async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {

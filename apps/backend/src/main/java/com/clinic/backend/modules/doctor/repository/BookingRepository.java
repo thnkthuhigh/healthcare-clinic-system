@@ -1,7 +1,6 @@
 package com.clinic.backend.modules.doctor.repository;
 
 import com.clinic.backend.modules.doctor.entity.Booking;
-import com.clinic.backend.modules.doctor.entity.Booking.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,85 +12,87 @@ import java.util.UUID;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
-    
-    /**
-     * Get patient queue for a shift, ordered by priority (Logic B)
-     * Priority: RESULTS_READY (100) > WEB checked in on time (50) > WALK_IN (0) - skip_count
-     */
-    @Query("""
-        SELECT b FROM Booking b 
-        JOIN FETCH b.patient 
-        LEFT JOIN FETCH b.service
-        WHERE b.shift.id = :shiftId 
-        AND b.status IN :statuses
-        ORDER BY b.priorityScore DESC, b.checkInAt ASC
-        """)
-    List<Booking> findQueueByShiftId(
-        @Param("shiftId") UUID shiftId,
-        @Param("statuses") List<BookingStatus> statuses
-    );
-    
-    /**
-     * Get all bookings for a shift
-     */
-    @Query("""
-        SELECT b FROM Booking b 
-        JOIN FETCH b.patient 
-        LEFT JOIN FETCH b.service
-        WHERE b.shift.id = :shiftId
-        ORDER BY b.queueNumber ASC
-        """)
-    List<Booking> findAllByShiftId(@Param("shiftId") UUID shiftId);
-    
-    /**
-     * Count bookings by status for a shift
-     */
-    @Query("SELECT COUNT(b) FROM Booking b WHERE b.shift.id = :shiftId AND b.status = :status")
-    long countByShiftIdAndStatus(@Param("shiftId") UUID shiftId, @Param("status") BookingStatus status);
-    
-    /**
-     * Count total bookings for a shift
-     */
-    @Query("SELECT COUNT(b) FROM Booking b WHERE b.shift.id = :shiftId")
-    long countByShiftId(@Param("shiftId") UUID shiftId);
-    
-    /**
-     * Find booking with patient details
-     */
-    @Query("""
-        SELECT b FROM Booking b 
-        JOIN FETCH b.patient 
-        JOIN FETCH b.shift s
-        JOIN FETCH s.doctor
-        LEFT JOIN FETCH b.service
-        WHERE b.id = :bookingId
-        """)
-    Optional<Booking> findByIdWithDetails(@Param("bookingId") UUID bookingId);
-    
-    /**
-     * Get next patient in queue (first WAITING or CHECKED_IN patient)
-     */
-    @Query("""
-        SELECT b FROM Booking b 
-        JOIN FETCH b.patient 
-        WHERE b.shift.id = :shiftId 
-        AND b.status IN ('CHECKED_IN', 'WAITING', 'RESULTS_READY')
-        ORDER BY b.priorityScore DESC, b.checkInAt ASC
-        LIMIT 1
-        """)
-    Optional<Booking> findNextInQueue(@Param("shiftId") UUID shiftId);
-    
-    /**
-     * Get patient's booking history
-     */
-    @Query("""
-        SELECT b FROM Booking b 
-        JOIN FETCH b.shift s
-        JOIN FETCH s.doctor d
-        LEFT JOIN FETCH b.service
-        WHERE b.patient.id = :patientId
-        AND b.status = 'COMPLETED'
-        ORDER BY b.completedAt DESC
-        """)
-    List<Booking> findPatientHistory(@Param("patientId") UUID patientId);
+
+        /**
+         * Get patient queue for a shift, ordered by priority (Logic B)
+         * Priority: RESULTS_READY (100) > WEB checked in on time (50) > WALK_IN (0) -
+         * skip_count
+         * Note: Using JPQL CAST function for PostgreSQL enum compatibility
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.patient p
+                        LEFT JOIN FETCH b.service s
+                        WHERE b.shift.id = :shiftId
+                        AND CAST(b.status AS string) IN :statuses
+                        ORDER BY b.priorityScore DESC, b.checkInAt ASC
+                        """)
+        List<Booking> findQueueByShiftId(
+                        @Param("shiftId") UUID shiftId,
+                        @Param("statuses") List<String> statuses);
+
+        /**
+         * Get all bookings for a shift
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.patient
+                        LEFT JOIN FETCH b.service
+                        WHERE b.shift.id = :shiftId
+                        ORDER BY b.queueNumber ASC
+                        """)
+        List<Booking> findAllByShiftId(@Param("shiftId") UUID shiftId);
+
+        /**
+         * Count bookings by status for a shift
+         */
+        @Query(value = "SELECT COUNT(*) FROM bookings WHERE shift_id = :shiftId AND status = CAST(:status AS booking_status)", nativeQuery = true)
+        long countByShiftIdAndStatus(@Param("shiftId") UUID shiftId, @Param("status") String status);
+
+        /**
+         * Count total bookings for a shift
+         */
+        @Query("SELECT COUNT(b) FROM Booking b WHERE b.shift.id = :shiftId")
+        long countByShiftId(@Param("shiftId") UUID shiftId);
+
+        /**
+         * Find booking with patient details
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.patient
+                        JOIN FETCH b.shift s
+                        JOIN FETCH s.doctor d
+                        JOIN FETCH d.user
+                        LEFT JOIN FETCH b.service
+                        WHERE b.id = :bookingId
+                        """)
+        Optional<Booking> findByIdWithDetails(@Param("bookingId") UUID bookingId);
+
+        /**
+         * Get next patient in queue (first WAITING or CHECKED_IN patient)
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.patient p
+                        WHERE b.shift.id = :shiftId
+                        AND CAST(b.status AS string) IN ('CHECKED_IN', 'WAITING', 'RESULTS_READY')
+                        ORDER BY b.priorityScore DESC, b.checkInAt ASC
+                        LIMIT 1
+                        """)
+        Optional<Booking> findNextInQueue(@Param("shiftId") UUID shiftId);
+
+        /**
+         * Get patient's booking history
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.shift s
+                        JOIN FETCH s.doctor d
+                        LEFT JOIN FETCH b.service sv
+                        WHERE b.patient.id = :patientId
+                        AND CAST(b.status AS string) = 'COMPLETED'
+                        ORDER BY b.completedAt DESC
+                        """)
+        List<Booking> findPatientHistory(@Param("patientId") UUID patientId);
 }

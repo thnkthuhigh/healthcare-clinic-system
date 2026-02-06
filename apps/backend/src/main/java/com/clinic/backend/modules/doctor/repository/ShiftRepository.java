@@ -12,17 +12,16 @@ import java.util.UUID;
 
 @Repository
 public interface ShiftRepository extends JpaRepository<Shift, UUID> {
-    
-    @Query("SELECT s FROM Shift s WHERE s.doctor.id = :doctorId AND s.date = :date ORDER BY s.startTime")
+
+    @Query("SELECT s FROM Shift s JOIN FETCH s.doctor WHERE s.doctor.id = :doctorId AND s.date = :date ORDER BY s.startTime")
     List<Shift> findByDoctorIdAndDate(@Param("doctorId") UUID doctorId, @Param("date") LocalDate date);
-    
+
     @Query("SELECT s FROM Shift s WHERE s.doctor.id = :doctorId AND s.date BETWEEN :startDate AND :endDate ORDER BY s.date, s.startTime")
     List<Shift> findByDoctorIdAndDateBetween(
-        @Param("doctorId") UUID doctorId, 
-        @Param("startDate") LocalDate startDate,
-        @Param("endDate") LocalDate endDate
-    );
-    
+            @Param("doctorId") UUID doctorId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
     @Query("SELECT s FROM Shift s JOIN FETCH s.doctor WHERE s.id = :shiftId")
     java.util.Optional<Shift> findByIdWithDoctor(@Param("shiftId") UUID shiftId);
 }

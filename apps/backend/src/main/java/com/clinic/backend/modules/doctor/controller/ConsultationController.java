@@ -13,7 +13,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/doctor/consultation")
-@CrossOrigin(origins = "*")
 public class ConsultationController {
 
     private final ConsultationService consultationService;
