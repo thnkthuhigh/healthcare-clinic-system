@@ -58,20 +58,19 @@ public class DoctorService {
      * Get patient queue for a shift (sorted by priority - Logic B)
      */
     public List<QueueItemDto> getQueueByShift(UUID shiftId, String statusFilter) {
-        List<Booking.BookingStatus> statuses;
-        
+        List<String> statuses;
+
         if (statusFilter == null || statusFilter.equalsIgnoreCase("ALL")) {
             statuses = Arrays.asList(
-                Booking.BookingStatus.CHECKED_IN,
-                Booking.BookingStatus.WAITING,
-                Booking.BookingStatus.IN_CONSULTATION,
-                Booking.BookingStatus.RESULTS_READY,
-                Booking.BookingStatus.COMPLETED
-            );
+                    "CHECKED_IN",
+                    "WAITING",
+                    "IN_CONSULTATION",
+                    "RESULTS_READY",
+                    "COMPLETED");
         } else {
-            statuses = List.of(Booking.BookingStatus.valueOf(statusFilter.toUpperCase()));
+            statuses = List.of(statusFilter.toUpperCase());
         }
-        
+
         List<Booking> bookings = bookingRepository.findQueueByShiftId(shiftId, statuses);
         return bookings.stream().map(this::toQueueItemDto).toList();
     }
@@ -85,69 +84,65 @@ public class DoctorService {
     }
 
     // ========== Mappers ==========
-    
+
     private DoctorDto toDto(Doctor doctor) {
         return new DoctorDto(
-            doctor.getId(),
-            doctor.getDisplayName(),
-            doctor.getSpecialty(),
-            doctor.getAvatarUrl(),
-            doctor.getUser().getPhone()
-        );
+                doctor.getId(),
+                doctor.getDisplayName(),
+                doctor.getSpecialty(),
+                doctor.getAvatarUrl(),
+                doctor.getUser().getPhone());
     }
 
     private ShiftDto toShiftDto(Shift shift) {
         UUID shiftId = shift.getId();
-        
+
         long total = bookingRepository.countByShiftId(shiftId);
-        long waiting = bookingRepository.countByShiftIdAndStatus(shiftId, Booking.BookingStatus.WAITING) +
-                       bookingRepository.countByShiftIdAndStatus(shiftId, Booking.BookingStatus.CHECKED_IN);
-        long checkedIn = bookingRepository.countByShiftIdAndStatus(shiftId, Booking.BookingStatus.CHECKED_IN);
-        long inConsultation = bookingRepository.countByShiftIdAndStatus(shiftId, Booking.BookingStatus.IN_CONSULTATION);
-        long completed = bookingRepository.countByShiftIdAndStatus(shiftId, Booking.BookingStatus.COMPLETED);
-        
+        long waiting = bookingRepository.countByShiftIdAndStatus(shiftId, "WAITING") +
+                bookingRepository.countByShiftIdAndStatus(shiftId, "CHECKED_IN");
+        long checkedIn = bookingRepository.countByShiftIdAndStatus(shiftId, "CHECKED_IN");
+        long inConsultation = bookingRepository.countByShiftIdAndStatus(shiftId, "IN_CONSULTATION");
+        long completed = bookingRepository.countByShiftIdAndStatus(shiftId, "COMPLETED");
+
         return new ShiftDto(
-            shift.getId(),
-            shift.getDate(),
-            shift.getType(),
-            shift.getStartTime(),
-            shift.getEndTime(),
-            shift.getTimeRange(),
-            shift.getStatus(),
-            total,
-            waiting,
-            checkedIn,
-            inConsultation,
-            completed
-        );
+                shift.getId(),
+                shift.getDate(),
+                shift.getType(),
+                shift.getStartTime(),
+                shift.getEndTime(),
+                shift.getTimeRange(),
+                shift.getStatus(),
+                total,
+                waiting,
+                checkedIn,
+                inConsultation,
+                completed);
     }
 
     private QueueItemDto toQueueItemDto(Booking booking) {
         Patient patient = booking.getPatient();
         PatientDto patientDto = new PatientDto(
-            patient.getId(),
-            patient.getFullName(),
-            patient.getPhone(),
-            patient.getNationalId(),
-            patient.getDateOfBirth(),
-            patient.getAge(),
-            patient.getGender(),
-            patient.getWeightKg(),
-            patient.getHeightCm(),
-            patient.getAllergies(),
-            patient.getAddress()
-        );
-        
+                patient.getId(),
+                patient.getFullName(),
+                patient.getPhone(),
+                patient.getNationalId(),
+                patient.getDateOfBirth(),
+                patient.getAge(),
+                patient.getGender(),
+                patient.getWeightKg(),
+                patient.getHeightCm(),
+                patient.getAllergies(),
+                patient.getAddress());
+
         return new QueueItemDto(
-            booking.getId(),
-            booking.getQueueNumber(),
-            patientDto,
-            booking.getService() != null ? booking.getService().getName() : null,
-            booking.getStatus(),
-            booking.getChannel(),
-            booking.getCheckInAt(),
-            booking.getPriorityScore(),
-            booking.getSkipCount()
-        );
+                booking.getId(),
+                booking.getQueueNumber(),
+                patientDto,
+                booking.getService() != null ? booking.getService().getName() : null,
+                booking.getStatus(),
+                booking.getChannel(),
+                booking.getCheckInAt(),
+                booking.getPriorityScore(),
+                booking.getSkipCount());
     }
 }
