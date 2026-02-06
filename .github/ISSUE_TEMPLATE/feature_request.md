@@ -1,16 +1,16 @@
 ---
 name: Feature request
 about: Đề xuất tính năng mới
-title: "feat: "
+title: 'feat: '
 labels: enhancement
-assignees: ""
+assignees: ''
 ---
 
 ## Mục tiêu
 
 ## Acceptance criteria (bắt buộc)
 
-- [ ] 
+- [ ]
 
 ## UI/Flow (nếu có)
 

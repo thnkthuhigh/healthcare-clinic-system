@@ -62,10 +62,7 @@ module.exports = {
       plugins: ['react-hooks', 'react-refresh'],
       extends: ['plugin:react-hooks/recommended'],
       rules: {
-        'react-refresh/only-export-components': [
-          'warn',
-          { allowConstantExport: true },
-        ],
+        'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       },
     },
   ],
