@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
+import { RequireAuth } from '../components/RequireAuth';
 import { LoginPage } from '../modules/auth/login.page';
 import { NotFoundPage } from '../modules/common/NotFound.page';
 import { DoctorLayout } from '../modules/doctor/components';
@@ -24,10 +25,14 @@ export const router = createBrowserRouter([
     element: <LoginPage />,
   },
 
-  // Doctor routes - Protected (TODO: Add auth guard)
+  // Doctor routes - Protected
   {
     path: '/doctor',
-    element: <DoctorLayout />,
+    element: (
+      <RequireAuth allowedRoles={['DOCTOR', 'ADMIN', 'OWNER']}>
+        <DoctorLayout />
+      </RequireAuth>
+    ),
     children: [
       {
         index: true,

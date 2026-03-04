@@ -33,7 +33,7 @@ public class User {
     private Instant updatedAt = Instant.now();
     
     public enum UserRole {
-        ADMIN, RECEPTIONIST, CASHIER, DOCTOR, PATIENT
+        OWNER, ADMIN, RECEPTIONIST, CASHIER, DOCTOR, PATIENT
     }
     
     public enum AccountStatus {

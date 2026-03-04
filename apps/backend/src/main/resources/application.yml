@@ -4,6 +4,12 @@ server:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:hc-clinic-super-secret-key-must-be-at-least-64-bytes-long-for-hs512!!}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  owner:
+    phone: ${OWNER_PHONE:0900000000}
+    password: ${OWNER_PASSWORD:owner123}
 
 spring:
   application:

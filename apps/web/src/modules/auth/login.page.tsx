@@ -1,45 +1,40 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-type UserRole = 'doctor' | 'receptionist' | 'pharmacist' | 'admin';
+import { useAuth } from './useAuth';
 
 export function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('doctor');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isAuthenticated, user } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // If already authenticated, redirect
+  if (isAuthenticated && user) {
+    const redirectTo = getRedirectPath(user.role);
+    navigate(redirectTo, { replace: true });
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual authentication
-    // For now, just navigate based on role
-    if (phone && password) {
-      switch (role) {
-        case 'doctor':
-          navigate('/doctor/dashboard');
-          break;
-        case 'receptionist':
-          // navigate('/receptionist/dashboard');
-          alert('Receptionist module coming soon!');
-          break;
-        case 'pharmacist':
-          // navigate('/pharmacist/dashboard');
-          alert('Pharmacist module coming soon!');
-          break;
-        case 'admin':
-          // navigate('/admin/dashboard');
-          alert('Admin module coming soon!');
-          break;
-      }
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await login({ phone, password });
+
+      // Redirect to the page user was trying to access, or default by role
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      navigate(from || '/doctor/dashboard', { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const roles: { value: UserRole; label: string; icon: string }[] = [
-    { value: 'doctor', label: 'Doctor', icon: 'medical_information' },
-    { value: 'receptionist', label: 'Receptionist', icon: 'calendar_month' },
-    { value: 'pharmacist', label: 'Pharmacist', icon: 'medication' },
-    { value: 'admin', label: 'Admin', icon: 'admin_panel_settings' },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center px-4">
@@ -50,67 +45,58 @@ export function LoginPage() {
             <span className="material-symbols-outlined text-3xl text-white">local_hospital</span>
           </div>
           <h1 className="text-3xl font-bold text-slate-900">Healthcare Clinic</h1>
-          <p className="text-slate-600 mt-2">Sign in to your account</p>
+          <p className="text-slate-600 mt-2">Đăng nhập vào hệ thống</p>
         </div>
 
         {/* Login Card */}
         <div className="bg-white rounded-lg shadow-lg p-8">
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">I am a</label>
-              <div className="grid grid-cols-2 gap-2">
-                {roles.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRole(r.value)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                      role === r.value
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-lg">{r.icon}</span>
-                    <span className="text-sm">{r.label}</span>
-                  </button>
-                ))}
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="flex gap-2 items-center">
+                  <span className="material-symbols-outlined text-red-600 text-sm">error</span>
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Phone Input */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Số điện thoại</label>
               <input
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="0901234567"
+                placeholder="0900000000"
                 value={phone}
                 type="tel"
+                autoComplete="tel"
+                disabled={isSubmitting}
               />
             </div>
 
             {/* Password Input */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Mật khẩu</label>
               <input
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
                 placeholder="••••••••"
                 value={password}
+                autoComplete="current-password"
+                disabled={isSubmitting}
               />
             </div>
 
-            {/* Demo Notice */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            {/* Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex gap-2">
-                <span className="material-symbols-outlined text-amber-600 text-sm">info</span>
+                <span className="material-symbols-outlined text-blue-600 text-sm">info</span>
                 <div className="flex-1">
-                  <p className="text-xs text-amber-800 font-medium">Demo Mode</p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Use any phone/password to access {role} portal
-                  </p>
+                  <p className="text-xs text-blue-800 font-medium">Tài khoản mặc định</p>
+                  <p className="text-xs text-blue-700 mt-1">Owner: 0900000000 / owner123</p>
+                  <p className="text-xs text-blue-700">BS. Lê Văn Minh: 0901234567 / password123</p>
                 </div>
               </div>
             </div>
@@ -118,42 +104,44 @@ export function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!phone || !password}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={!phone || !password || isSubmitting}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
-              Sign In as {roles.find((r) => r.value === role)?.label}
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                'Đăng nhập'
+              )}
             </button>
           </form>
 
           {/* Footer Links */}
           <div className="mt-6 text-center text-sm">
             <Link to="/" className="text-blue-600 hover:underline">
-              ← Back to Home
+              ← Về trang chủ
             </Link>
-          </div>
-        </div>
-
-        {/* Quick Access for Development */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-slate-600 mb-3">Quick Access (Development):</p>
-          <div className="flex gap-2 justify-center flex-wrap">
-            <Link
-              to="/doctor/dashboard"
-              className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded hover:border-blue-400 transition-colors"
-            >
-              Doctor Dashboard
-            </Link>
-            <a
-              href="http://localhost:4000/swagger-ui"
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded hover:border-blue-400 transition-colors"
-            >
-              API Docs
-            </a>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function getRedirectPath(role: string): string {
+  switch (role) {
+    case 'OWNER':
+    case 'ADMIN':
+      return '/doctor/dashboard'; // TODO: admin dashboard
+    case 'DOCTOR':
+      return '/doctor/dashboard';
+    case 'RECEPTIONIST':
+      return '/doctor/dashboard'; // TODO: receptionist dashboard
+    case 'PHARMACIST':
+      return '/doctor/dashboard'; // TODO: pharmacist dashboard
+    default:
+      return '/doctor/dashboard';
+  }
 }
