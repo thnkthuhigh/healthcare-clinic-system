@@ -15,7 +15,7 @@ export function DoctorLayout() {
       <DoctorSidebar doctorName={mockDoctor.name} specialty={mockDoctor.specialty} />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <DoctorHeader title="Doctor Portal" />
+        <DoctorHeader />
 
         <div className="flex-1 overflow-y-auto">
           <Outlet />

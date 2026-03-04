@@ -1,8 +1,4 @@
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-
-interface HeaderProps {
-  title: string;
-}
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // Route breadcrumb mapping
 const routeBreadcrumbs: Record<string, { label: string; icon: string }[]> = {
@@ -21,7 +17,7 @@ const routeBreadcrumbs: Record<string, { label: string; icon: string }[]> = {
   '/doctor/settings': [{ label: 'Settings', icon: 'settings' }],
 };
 
-export function DoctorHeader({ title }: HeaderProps) {
+export function DoctorHeader() {
   const location = useLocation();
   const navigate = useNavigate();
 
