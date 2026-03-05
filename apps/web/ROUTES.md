@@ -4,10 +4,18 @@
 
 ### Public Routes
 
-| Path     | Component | Description                              |
-| -------- | --------- | ---------------------------------------- |
-| `/`      | HomePage  | Landing page với role selection          |
-| `/login` | LoginPage | Login page với role-based authentication |
+| Path               | Component          | Description                                             |
+| ------------------ | ------------------ | ------------------------------------------------------- |
+| `/`                | HomePage           | Landing page với role selection (redirect nếu đã login) |
+| `/login`           | LoginPage          | Login page với role-based authentication                |
+| `/register`        | RegisterPage       | Đăng ký tài khoản bệnh nhân                             |
+| `/forgot-password` | ForgotPasswordPage | 3-bước khôi phục mật khẩu qua OTP                       |
+
+### Patient Routes (Protected)
+
+| Path        | Component       | Description                                      |
+| ----------- | --------------- | ------------------------------------------------ |
+| `/mainpage` | PatientHomePage | Trang chủ sau đăng nhập (mọi role được phép vào) |
 
 ### Doctor Routes (Protected)
 
@@ -73,9 +81,27 @@ Base path: `/admin`
 
 ```
 HomePage (/)
+  ├─ Đã đăng nhập? → /mainpage (auto-redirect)
   ├─ Click "Login" → LoginPage (/login)
   ├─ Click "Doctor Portal" → /doctor → /doctor/dashboard
   └─ Click "API Health/Docs" → External links
+```
+
+### Patient Flow
+
+```
+LoginPage (/login)
+  └─ Login as PATIENT → /mainpage
+
+PatientHomePage (/mainpage)
+  ├─ Navbar Navigation:
+  │   ├─ Trang chủ → /mainpage
+  │   ├─ Bác sĩ → /doctors
+  │   ├─ Dịch vụ → /services
+  │   ├─ Đặt lịch khám → /booking
+  │   └─ Lịch khám của tôi → /appointments
+  │
+  └─ Đăng xuất → HomePage (/)
 ```
 
 ### Doctor Flow

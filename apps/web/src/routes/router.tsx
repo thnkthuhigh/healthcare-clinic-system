@@ -1,7 +1,9 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { RequireAuth } from '../components/RequireAuth';
+import { ForgotPasswordPage } from '../modules/auth/forgot-password.page';
 import { LoginPage } from '../modules/auth/login.page';
+import { RegisterPage } from '../modules/auth/register.page';
 import { NotFoundPage } from '../modules/common/NotFound.page';
 import { DoctorLayout } from '../modules/doctor/components';
 import {
@@ -13,6 +15,7 @@ import {
   DoctorSettingsPage,
 } from '../modules/doctor/pages';
 import { HomePage } from '../modules/home/home.page';
+import { PatientHomePage } from '../modules/patient/pages/PatientHomePage';
 
 export const router = createBrowserRouter([
   // Public routes
@@ -23,6 +26,26 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/register',
+    element: <RegisterPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
+  },
+
+  // Authenticated patient home
+  {
+    path: '/mainpage',
+    element: (
+      <RequireAuth
+        allowedRoles={['PATIENT', 'OWNER', 'ADMIN', 'DOCTOR', 'RECEPTIONIST', 'CASHIER']}
+      >
+        <PatientHomePage />
+      </RequireAuth>
+    ),
   },
 
   // Doctor routes - Protected

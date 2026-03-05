@@ -64,7 +64,8 @@ function MyComponent() {
 
 **Available methods:**
 
-- `goToHome()` - Navigate to `/`
+- `goToHome()` - Navigate to `/` (trang chủ công khai)
+- `goToPatientHome()` - Navigate to `/mainpage` (trang chủ sau đăng nhập)
 - `goToLogin()` - Navigate to `/login`
 - `goToDoctorPortal()` - Navigate to `/doctor`
 - `goToReceptionistPortal()` - Navigate to `/receptionist`

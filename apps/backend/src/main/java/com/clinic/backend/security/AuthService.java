@@ -21,6 +21,22 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
+    @Transactional
+    public void register(String fullName, String phone, String password) {
+        if (userRepository.existsByPhone(phone)) {
+            throw new IllegalArgumentException("Số điện thoại đã được đăng ký");
+        }
+
+        User user = new User();
+        user.setFullName(fullName);
+        user.setPhone(phone);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setRole(User.UserRole.PATIENT);
+        user.setStatus(User.AccountStatus.ACTIVE);
+
+        userRepository.save(user);
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> login(String phone, String password) {
         User user = userRepository.findByPhone(phone)

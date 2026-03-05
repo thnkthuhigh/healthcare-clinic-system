@@ -13,11 +13,11 @@ app:
 
 spring:
   application:
-    name: clinic-backend
+    name: clinic
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/clinic_dev}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5444/clinic
+    username: enterprisedb
+    password: 123456
     hikari:
       connection-init-sql: SET TIME ZONE 'UTC'
   jpa:

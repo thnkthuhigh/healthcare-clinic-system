@@ -80,6 +80,10 @@ export function useAppNavigation() {
     navigate('/');
   }, [navigate]);
 
+  const goToPatientHome = useCallback(() => {
+    navigate('/mainpage');
+  }, [navigate]);
+
   const goToLogin = useCallback(() => {
     navigate('/login');
   }, [navigate]);
@@ -102,6 +106,7 @@ export function useAppNavigation() {
 
   return {
     goToHome,
+    goToPatientHome,
     goToLogin,
     goToDoctorPortal,
     goToReceptionistPortal,

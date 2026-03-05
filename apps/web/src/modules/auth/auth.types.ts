@@ -16,3 +16,9 @@ export interface LoginCredentials {
   phone: string;
   password: string;
 }
+
+export interface RegisterCredentials {
+  fullName: string;
+  phone: string;
+  password: string;
+}

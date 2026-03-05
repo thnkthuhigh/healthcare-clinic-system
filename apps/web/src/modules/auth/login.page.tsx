@@ -24,11 +24,11 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login({ phone, password });
+      const loggedInUser = await login({ phone, password });
 
       // Redirect to the page user was trying to access, or default by role
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
-      navigate(from || '/doctor/dashboard', { replace: true });
+      navigate(from || getRedirectPath(loggedInUser.role), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
     } finally {
@@ -119,8 +119,22 @@ export function LoginPage() {
           </form>
 
           {/* Footer Links */}
-          <div className="mt-6 text-center text-sm">
-            <Link to="/" className="text-blue-600 hover:underline">
+          <div className="mt-6 text-center text-sm space-y-2">
+            <p className="text-slate-600">
+              Chưa có tài khoản?{' '}
+              <Link to="/register" className="text-blue-600 hover:underline font-medium">
+                Đăng ký ngay
+              </Link>
+            </p>
+            <p>
+              <Link
+                to="/forgot-password"
+                className="text-slate-500 hover:text-blue-600 hover:underline transition-colors"
+              >
+                Quên mật khẩu?
+              </Link>
+            </p>
+            <Link to="/" className="text-blue-600 hover:underline block">
               ← Về trang chủ
             </Link>
           </div>
@@ -134,14 +148,16 @@ function getRedirectPath(role: string): string {
   switch (role) {
     case 'OWNER':
     case 'ADMIN':
-      return '/doctor/dashboard'; // TODO: admin dashboard
+      return '/doctor/dashboard';
     case 'DOCTOR':
       return '/doctor/dashboard';
     case 'RECEPTIONIST':
       return '/doctor/dashboard'; // TODO: receptionist dashboard
-    case 'PHARMACIST':
-      return '/doctor/dashboard'; // TODO: pharmacist dashboard
+    case 'CASHIER':
+      return '/doctor/dashboard'; // TODO: cashier dashboard
+    case 'PATIENT':
+      return '/mainpage';
     default:
-      return '/doctor/dashboard';
+      return '/mainpage';
   }
 }

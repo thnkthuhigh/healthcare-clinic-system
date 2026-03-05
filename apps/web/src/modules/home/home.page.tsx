@@ -1,6 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+
+import { useAuth } from '../auth/useAuth';
 
 export function HomePage() {
+  const { isAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to="/mainpage" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-4xl p-6">

@@ -7,7 +7,7 @@ export interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<import('./auth.types').AuthUser>;
   logout: () => void;
 }
 

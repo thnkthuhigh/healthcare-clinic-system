@@ -1,9 +1,11 @@
 package com.clinic.backend.security;
 
 import com.clinic.backend.modules.doctor.dto.request.LoginRequest;
+import com.clinic.backend.modules.doctor.dto.request.RegisterRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +20,13 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    @Operation(summary = "Register", description = "Đăng ký tài khoản bệnh nhân mới")
+    @PostMapping("/register")
+    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request.fullName(), request.phone(), request.password());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(summary = "Login", description = "Đăng nhập bằng số điện thoại và mật khẩu")
