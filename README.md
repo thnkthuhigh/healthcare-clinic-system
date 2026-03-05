@@ -2,42 +2,57 @@
 
 ## ✅ Quick Start Summary
 
-**Lần đầu setup (one-time):**
+### Prerequisites (cài 1 lần)
+
+| Tool       | Version | Download                                          |
+| ---------- | ------- | ------------------------------------------------- |
+| **Java**   | 17+     | https://adoptium.net/temurin/releases/?version=17 |
+| **Maven**  | 3.8+    | https://maven.apache.org/download.cgi             |
+| **Docker** | Desktop | https://www.docker.com/products/docker-desktop/   |
+| **Node**   | 20+ LTS | https://nodejs.org/                               |
 
 ```powershell
-# 1. Verify prerequisites
-java -version      # Phải có Java 17+
-mvn -version       # Phải có Maven 3.8+
-docker --version   # Phải có Docker
-node -v            # Phải có Node 20+
+# Kiểm tra nhanh
+java -version; mvn -version; docker --version; node -v
+```
 
-# 2. Clone & install
+### Lần đầu clone về
+
+```powershell
 git clone https://github.com/thnkthuhigh/healthcare-clinic-system.git
 cd healthcare-clinic-system
-npm install
-
-# 3. Start database
-npm run db:up
-
-# 4. Run application
-npm run dev
+npm install          # Cài tất cả dependencies (root + apps + packages)
+docker compose up -d # Khởi PostgreSQL container
+npm run dev          # Chạy Backend (port 4000) + Frontend (port 3000)
 ```
 
-**Lần sau (quick start):**
+### Lần sau (đã clone rồi)
 
 ```powershell
-# 1. Start database (nếu đã tắt)
-npm run db:up
-
-# 2. Run application
-npm run dev
+cd healthcare-clinic-system
+git pull                 # Kéo code mới
+npm install              # Cài thêm dependencies nếu có thay đổi
+docker compose up -d     # Đảm bảo PostgreSQL đang chạy
+npm run dev              # Chạy ứng dụng
 ```
 
-**Access:**
+### Tài khoản đăng nhập mặc định
+
+| Vai trò    | Số điện thoại | Mật khẩu    |
+| ---------- | ------------- | ----------- |
+| **Owner**  | 0900000000    | owner123    |
+| **Doctor** | 0901234567    | password123 |
+| **Doctor** | 0902345678    | password123 |
+| **Admin**  | 0903456789    | password123 |
+
+> Owner được tạo tự động khi backend khởi động lần đầu. Các tài khoản khác là seed data từ migration V3.
+
+### Access
 
 - 🌐 Frontend: http://localhost:3000
 - 🔧 Backend API: http://localhost:4000/api/v1/health
 - 📚 Swagger UI: http://localhost:4000/swagger-ui
+- 🗄 PostgreSQL: `localhost:5432` — db: `clinic_dev`, user: `postgres`, pass: `postgres`
 
 ---
 
@@ -392,40 +407,21 @@ Lệnh này sẽ:
 
 ### Bước 4: Cấu Hình Environment Variables
 
-#### 4.1. Backend (Spring Boot)
+> **Không cần config gì** nếu dùng Docker Compose mặc định. Tất cả default values trong `application.yml` đã khớp với `docker-compose.yml`.
 
-Spring Boot **không** tự động load file `.env`. Có 2 cách config:
+Chỉ cần set biến môi trường nếu muốn **override** giá trị mặc định:
 
-**Option A: Sử dụng environment variables thực**
-
-```powershell
-# Windows PowerShell
-$env:DB_URL="jdbc:postgresql://localhost:5432/clinic_dev"
-$env:DB_USERNAME="postgres"
-$env:DB_PASSWORD="postgres"
-$env:SERVER_PORT="4000"
-$env:CORS_ALLOWED_ORIGINS="http://localhost:3000"
-```
-
-**Option B: Sử dụng Run Configuration trong IDE**
-
-- IntelliJ IDEA: Edit Configurations → Environment Variables
-- VS Code: Tạo launch.json với env
-
-**Default values** (nếu không set env):
-
-- DB_URL: `jdbc:postgresql://localhost:5432/clinic_dev`
-- DB_USERNAME: `postgres`
-- DB_PASSWORD: `postgres`
-- SERVER_PORT: `4000`
-
-#### 4.2. Frontend (React)
-
-Không cần config đặc biệt. API base URL được set trong code:
-
-- `apps/web/src/modules/doctor/api.ts`: `http://localhost:4000`
-
-#### 4.3. Legacy API (Node.js) - Optional
+| Biến             | Default              | Mô tả                |
+| ---------------- | -------------------- | -------------------- |
+| `DB_HOST`        | `localhost`          | PostgreSQL host      |
+| `DB_PORT`        | `5432`               | PostgreSQL port      |
+| `DB_NAME`        | `clinic_dev`         | Database name        |
+| `DB_USER`        | `postgres`           | Database user        |
+| `DB_PASSWORD`    | `postgres`           | Database password    |
+| `SERVER_PORT`    | `4000`               | Backend port         |
+| `JWT_SECRET`     | _(built-in default)_ | JWT signing key      |
+| `OWNER_PHONE`    | `0900000000`         | Owner login phone    |
+| `OWNER_PASSWORD` | `owner123`           | Owner login password |
 
 ```powershell
 # Tạo file apps/api/.env
