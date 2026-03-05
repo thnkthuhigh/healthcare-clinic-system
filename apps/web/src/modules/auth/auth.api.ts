@@ -1,4 +1,4 @@
-import type { LoginCredentials, LoginResponse, AuthUser } from './auth.types';
+import type { LoginCredentials, LoginResponse, AuthUser, RegisterCredentials } from './auth.types';
 
 const API_BASE = 'http://localhost:4000/api/v1/auth';
 
@@ -16,6 +16,19 @@ export const authApi = {
     }
 
     return response.json();
+  },
+
+  register: async (credentials: RegisterCredentials): Promise<void> => {
+    const response = await fetch(`${API_BASE}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Lỗi đăng ký' }));
+      throw new Error(error.message || 'Lỗi đăng ký');
+    }
   },
 
   me: async (token: string): Promise<AuthUser> => {
