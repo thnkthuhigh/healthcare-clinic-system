@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
-import { customerApi } from '../api';
 
 const AVATAR_COLORS = [
   'bg-blue-500',

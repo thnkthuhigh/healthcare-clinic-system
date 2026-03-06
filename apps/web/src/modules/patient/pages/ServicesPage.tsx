@@ -1,14 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
-import { customerApi } from '../api';
 import type { ClinicService } from '../types';
-
-const SERVICE_ICONS: Record<string, { icon: string; bgColor: string; iconColor: string }> = {
-  default: { icon: 'medical_services', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
-};
 
 const ICON_PALETTE = [
   { icon: 'stethoscope', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },

@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
+import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
-import { customerApi } from '../api';
 import type { PatientBooking } from '../types';
 
 // ─── Status config ───────────────────────────────────────────────────────────
