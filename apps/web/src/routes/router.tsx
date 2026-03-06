@@ -1,6 +1,21 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { RequireAuth } from '../components/RequireAuth';
+import { AdminLayout } from '../modules/admin/components';
+import {
+  AdminDashboardPage,
+  ReceptionPage,
+  CashierPage,
+  DoctorManagementPage,
+  PatientManagementPage,
+  PatientRecordsPage,
+  ShiftManagementPage,
+  ServiceManagementPage,
+  MedicationManagementPage,
+  PrescriptionTemplatePage,
+  ReportsPage,
+  DepartmentManagementPage,
+} from '../modules/admin/pages';
 import { ForgotPasswordPage } from '../modules/auth/forgot-password.page';
 import { LoginPage } from '../modules/auth/login.page';
 import { RegisterPage } from '../modules/auth/register.page';
@@ -119,19 +134,30 @@ export const router = createBrowserRouter([
   //   ],
   // },
 
-  // Admin routes - Coming soon (TODO)
-  // {
-  //   path: '/admin',
-  //   element: <AdminLayout />,
-  //   children: [
-  //     { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-  //     { path: 'dashboard', element: <AdminDashboardPage /> },
-  //     { path: 'users', element: <UsersPage /> },
-  //     { path: 'doctors', element: <DoctorsPage /> },
-  //     { path: 'services', element: <ServicesPage /> },
-  //     { path: 'settings', element: <SettingsPage /> },
-  //   ],
-  // },
+  // Admin routes - Protected (ADMIN + OWNER)
+  {
+    path: '/admin',
+    element: (
+      <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+        <AdminLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { path: 'dashboard', element: <AdminDashboardPage /> },
+      { path: 'reception', element: <ReceptionPage /> },
+      { path: 'cashier', element: <CashierPage /> },
+      { path: 'doctors', element: <DoctorManagementPage /> },
+      { path: 'patients', element: <PatientManagementPage /> },
+      { path: 'records', element: <PatientRecordsPage /> },
+      { path: 'shifts', element: <ShiftManagementPage /> },
+      { path: 'services', element: <ServiceManagementPage /> },
+      { path: 'medications', element: <MedicationManagementPage /> },
+      { path: 'templates', element: <PrescriptionTemplatePage /> },
+      { path: 'departments', element: <DepartmentManagementPage /> },
+      { path: 'reports', element: <ReportsPage /> },
+    ],
+  },
 
   // 404 Not Found - Must be last
   {
