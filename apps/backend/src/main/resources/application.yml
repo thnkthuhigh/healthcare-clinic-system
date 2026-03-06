@@ -12,12 +12,10 @@ app:
     password: ${OWNER_PASSWORD:owner123}
 
 spring:
-  application:
-    name: clinic
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:clinic_dev}?stringtype=unspecified
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5444/edb?stringtype=unspecified
+    username: enterprisedb
+    password:
     hikari:
       connection-init-sql: SET TIME ZONE 'UTC'
   jpa:

@@ -159,8 +159,8 @@ function getRedirectPath(role: string): string {
     case 'CASHIER':
       return '/doctor/dashboard'; // TODO: cashier dashboard
     case 'PATIENT':
-      return '/booking';
+      return '/mainpage';
     default:
-      return '/';
+      return '/mainpage';
   }
 }
