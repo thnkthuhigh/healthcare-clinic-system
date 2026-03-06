@@ -15,7 +15,7 @@ import {
   DoctorSettingsPage,
 } from '../modules/doctor/pages';
 import { HomePage } from '../modules/home/home.page';
-import { PatientHomePage } from '../modules/patient/pages/PatientHomePage';
+import { BookingPage, HealthProfilePage } from '../modules/patient/pages';
 
 export const router = createBrowserRouter([
   // Public routes
@@ -27,28 +27,16 @@ export const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
   },
+  // Patient / Customer routes
   {
-    path: '/register',
-    element: <RegisterPage />,
+    path: '/booking',
+    element: <BookingPage />,
   },
   {
-    path: '/forgot-password',
-    element: <ForgotPasswordPage />,
+    path: '/health-profile',
+    element: <HealthProfilePage />,
   },
-
-  // Authenticated patient home
-  {
-    path: '/mainpage',
-    element: (
-      <RequireAuth
-        allowedRoles={['PATIENT', 'OWNER', 'ADMIN', 'DOCTOR', 'RECEPTIONIST', 'CASHIER']}
-      >
-        <PatientHomePage />
-      </RequireAuth>
-    ),
-  },
-
-  // Doctor routes - Protected
+  // Doctor routes
   {
     path: '/doctor',
     element: (

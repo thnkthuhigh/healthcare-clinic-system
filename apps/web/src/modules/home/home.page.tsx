@@ -11,96 +11,60 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-4xl p-6">
-        <div className="text-center py-12">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">🏥 Healthcare Clinic System</h1>
-          <p className="text-lg text-slate-600">Comprehensive clinic management solution</p>
-        </div>
+      <div className="mx-auto max-w-3xl p-6">
+        <h1 className="text-3xl font-semibold">Clinic System</h1>
+        <p className="mt-2 text-sm text-slate-600">Hệ thống phòng khám — Monorepo.</p>
 
-        {/* Role Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-12">
-          {/* Doctor Portal */}
-          <Link
-            to="/doctor"
-            className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md hover:border-blue-300 transition-all group"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
-                <span className="material-symbols-outlined text-3xl text-blue-600">
-                  medical_information
-                </span>
-              </div>
-              <h3 className="font-semibold text-slate-900 mb-1">Doctor</h3>
-              <p className="text-sm text-slate-600">
-                Manage patients, consultations & prescriptions
-              </p>
-            </div>
-          </Link>
-
-          {/* Receptionist Portal - Coming Soon */}
-          <div className="bg-white border border-slate-200 rounded-lg p-6 opacity-60 cursor-not-allowed relative">
-            <div className="absolute top-2 right-2 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
-              Coming Soon
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-3xl text-green-600">
-                  calendar_month
-                </span>
-              </div>
-              <h3 className="font-semibold text-slate-900 mb-1">Receptionist</h3>
-              <p className="text-sm text-slate-600">Appointments & patient check-in</p>
-            </div>
-          </div>
-
-          {/* Pharmacist Portal - Coming Soon */}
-          <div className="bg-white border border-slate-200 rounded-lg p-6 opacity-60 cursor-not-allowed relative">
-            <div className="absolute top-2 right-2 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
-              Coming Soon
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-3xl text-purple-600">
-                  medication
-                </span>
-              </div>
-              <h3 className="font-semibold text-slate-900 mb-1">Pharmacist</h3>
-              <p className="text-sm text-slate-600">Inventory & prescription dispensing</p>
-            </div>
-          </div>
-
-          {/* Admin Portal - Coming Soon */}
-          <div className="bg-white border border-slate-200 rounded-lg p-6 opacity-60 cursor-not-allowed relative">
-            <div className="absolute top-2 right-2 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
-              Coming Soon
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-3xl text-red-600">
-                  admin_panel_settings
-                </span>
-              </div>
-              <h3 className="font-semibold text-slate-900 mb-1">Admin</h3>
-              <p className="text-sm text-slate-600">System configuration & user management</p>
-            </div>
+        {/* Patient section */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-slate-700 mb-3">🏥 Dành cho Bệnh nhân</h2>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className="rounded-lg bg-primary px-5 py-2.5 text-white font-semibold hover:bg-primary-dark transition-colors"
+              to="/booking"
+            >
+              📅 Đặt lịch khám
+            </Link>
+            <Link
+              className="rounded-lg border border-primary text-primary px-5 py-2.5 font-semibold hover:bg-primary/5 transition-colors"
+              to="/health-profile"
+            >
+              📋 Hồ sơ sức khỏe
+            </Link>
           </div>
         </div>
 
-        {/* Quick Links */}
-        <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link
-            className="rounded bg-slate-900 px-6 py-3 text-white hover:bg-slate-800 transition-colors font-medium"
-            to="/login"
-          >
-            🔐 Login
-          </Link>
+        {/* Staff section */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-slate-700 mb-3">👨‍⚕️ Dành cho Nhân viên</h2>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 hover:border-slate-400 transition-colors"
+              to="/login"
+            >
+              Đăng nhập
+            </Link>
+            <Link
+              className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 hover:border-slate-400 transition-colors"
+              to="/doctor/dashboard"
+            >
+              Bảng điều khiển Bác sĩ
+            </Link>
+          </div>
+        </div>
+
+        {/* Dev links */}
+        <div className="mt-8 border-t border-slate-200 pt-5">
+          <p className="text-xs text-slate-400 mb-2">Dev / Debug</p>
           <a
-            className="rounded border border-slate-300 bg-white px-6 py-3 hover:bg-slate-50 transition-colors font-medium"
+            className="text-xs text-slate-400 underline"
             href="http://localhost:4000/api/v1/health"
             rel="noreferrer"
             target="_blank"
-          >
+          
+
             ✅ Check API Health
+
           </a>
           <a
             className="rounded border border-slate-300 bg-white px-6 py-3 hover:bg-slate-50 transition-colors font-medium"
