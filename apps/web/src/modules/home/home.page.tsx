@@ -1,6 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+
+import { useAuth } from '../auth/useAuth';
 
 export function HomePage() {
+  const { isAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to="/mainpage" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-3xl p-6">
@@ -53,9 +61,57 @@ export function HomePage() {
             href="http://localhost:4000/api/v1/health"
             rel="noreferrer"
             target="_blank"
-          >
-            API Health Check
+          
+
+            ✅ Check API Health
+
           </a>
+          <a
+            className="rounded border border-slate-300 bg-white px-6 py-3 hover:bg-slate-50 transition-colors font-medium"
+            href="http://localhost:4000/swagger-ui"
+            rel="noreferrer"
+            target="_blank"
+          >
+            📚 API Documentation
+          </a>
+        </div>
+
+        {/* System Info */}
+        <div className="mt-16 pt-8 border-t border-slate-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-blue-600">4</p>
+              <p className="text-sm text-slate-600 mt-1">Modules</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-600">8+</p>
+              <p className="text-sm text-slate-600 mt-1">Features</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-purple-600">15+</p>
+              <p className="text-sm text-slate-600 mt-1">DB Tables</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-red-600">20+</p>
+              <p className="text-sm text-slate-600 mt-1">API Endpoints</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-12 text-center text-sm text-slate-500">
+          <p>Built with React + Spring Boot + PostgreSQL</p>
+          <p className="mt-1">
+            Need help? Check{' '}
+            <a
+              href="https://github.com/thnkthuhigh/healthcare-clinic-system"
+              target="_blank"
+              rel="noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              Documentation
+            </a>
+          </p>
         </div>
       </div>
     </div>

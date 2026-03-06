@@ -13,14 +13,33 @@ import type {
 
 const API_BASE = 'http://localhost:4000/api/doctor';
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('clinic_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options?.headers,
     },
   });
+
+  if (response.status === 401 || response.status === 403) {
+    // Token expired or invalid, redirect to login
+    localStorage.removeItem('clinic_token');
+    localStorage.removeItem('clinic_user');
+    window.location.href = '/login';
+    throw new Error('Phiên đăng nhập hết hạn');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'API Error' }));

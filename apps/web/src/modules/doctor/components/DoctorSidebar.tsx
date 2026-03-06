@@ -1,4 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../../auth/useAuth';
 
 interface SidebarProps {
   doctorName: string;
@@ -15,6 +17,16 @@ const navItems = [
 
 export function DoctorSidebar({ doctorName, specialty: _specialty, avatarUrl }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+
+  const displayName = user?.phone ? `${doctorName}` : doctorName;
+  const roleBadge = user?.role === 'OWNER' ? '👑 Owner' : user?.role === 'ADMIN' ? '⚙️ Admin' : '';
+
+  const handleSignOut = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <aside className="w-64 h-screen bg-white dark:bg-[#151b2b] border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 transition-colors duration-200">
@@ -31,7 +43,8 @@ export function DoctorSidebar({ doctorName, specialty: _specialty, avatarUrl }: 
         </div>
         <div className="flex flex-col overflow-hidden">
           <h1 className="text-sm font-bold text-slate-900 dark:text-white truncate">MedDesk</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{doctorName}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{displayName}</p>
+          {roleBadge && <p className="text-[10px] text-primary font-semibold">{roleBadge}</p>}
         </div>
       </div>
 
@@ -83,9 +96,7 @@ export function DoctorSidebar({ doctorName, specialty: _specialty, avatarUrl }: 
       {/* Logout */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800">
         <button
-          onClick={() => {
-            window.location.href = '/login';
-          }}
+          onClick={handleSignOut}
           className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>

@@ -31,9 +31,12 @@ public class User {
     
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
-    
+
+    @Column(name = "full_name")
+    private String fullName;
+
     public enum UserRole {
-        ADMIN, RECEPTIONIST, CASHIER, DOCTOR, PATIENT
+        OWNER, ADMIN, RECEPTIONIST, CASHIER, DOCTOR, PATIENT
     }
     
     public enum AccountStatus {
@@ -61,4 +64,7 @@ public class User {
     
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
 }

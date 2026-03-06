@@ -4,14 +4,20 @@ server:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:hc-clinic-super-secret-key-must-be-at-least-64-bytes-long-for-hs512!!}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  owner:
+    phone: ${OWNER_PHONE:0900000000}
+    password: ${OWNER_PASSWORD:owner123}
 
 spring:
   application:
-    name: clinic-backend
+    name: clinic
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/clinic_dev}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:clinic_dev}?stringtype=unspecified
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     hikari:
       connection-init-sql: SET TIME ZONE 'UTC'
   jpa:
