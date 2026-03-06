@@ -15,13 +15,16 @@ export function RatingModal({ doctorName, onSubmit, onClose }: RatingModalProps)
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (stars === 0) { setError('Vui lòng chọn số sao'); return; }
+    if (stars === 0) {
+      setError('Vui lòng chọn số sao');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       await onSubmit(stars, comment);
       onClose();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setError(e.message ?? 'Có lỗi xảy ra');
     } finally {

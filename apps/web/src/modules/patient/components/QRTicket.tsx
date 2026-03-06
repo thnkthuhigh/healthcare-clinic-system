@@ -79,7 +79,9 @@ export function QRTicket({ ticket }: QRTicketProps) {
         <div className="bg-slate-50 border-t border-slate-100 px-5 py-2 flex justify-between text-xs text-slate-500">
           <span>
             Trạng thái:{' '}
-            <strong className={ticket.paymentStatus === 'PAID' ? 'text-green-600' : 'text-amber-600'}>
+            <strong
+              className={ticket.paymentStatus === 'PAID' ? 'text-green-600' : 'text-amber-600'}
+            >
               {ticket.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chờ thanh toán'}
             </strong>
           </span>
@@ -97,7 +99,8 @@ export function QRTicket({ ticket }: QRTicketProps) {
       </button>
 
       <p className="text-center text-xs text-slate-400">
-        Xuất trình mã QR này khi đến quầy check-in hoặc đọc SĐT <strong>{ticket.patientPhone}</strong>
+        Xuất trình mã QR này khi đến quầy check-in hoặc đọc SĐT{' '}
+        <strong>{ticket.patientPhone}</strong>
         <br />
         cho nhân viên lễ tân.
       </p>

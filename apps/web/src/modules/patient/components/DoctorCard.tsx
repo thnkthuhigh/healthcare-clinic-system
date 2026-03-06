@@ -30,7 +30,11 @@ export function DoctorCard({ doctor, selected, onSelect }: DoctorCardProps) {
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-xl font-bold text-primary overflow-hidden">
           {doctor.avatarUrl ? (
-            <img src={doctor.avatarUrl} alt={doctor.displayName} className="w-full h-full object-cover" />
+            <img
+              src={doctor.avatarUrl}
+              alt={doctor.displayName}
+              className="w-full h-full object-cover"
+            />
           ) : (
             doctor.displayName.charAt(0)
           )}

@@ -76,9 +76,13 @@ export function ShiftPicker({
                 disabled={isFull}
                 onClick={() => !isFull && onShiftSelect(shift.id)}
                 className={`w-full text-left rounded-lg border-2 p-3 transition-all flex items-center justify-between
-                  ${isFull ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed' :
-                    isSelected ? 'border-primary bg-primary/5' :
-                    'border-slate-200 bg-white hover:border-primary/50'}`}
+                  ${
+                    isFull
+                      ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
+                      : isSelected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-slate-200 bg-white hover:border-primary/50'
+                  }`}
               >
                 <div>
                   <p className={`font-semibold ${isSelected ? 'text-primary' : 'text-slate-700'}`}>
@@ -88,7 +92,9 @@ export function ShiftPicker({
                 </div>
                 <div className="text-right">
                   {isFull ? (
-                    <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded">FULL</span>
+                    <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded">
+                      FULL
+                    </span>
                   ) : (
                     <span className="text-xs text-slate-500">
                       Còn <strong className="text-primary">{shift.availableSlots}</strong> chỗ

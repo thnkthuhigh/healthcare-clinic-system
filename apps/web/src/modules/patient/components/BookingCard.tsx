@@ -33,7 +33,12 @@ const STATUS_COLOR: Record<string, string> = {
   RESULTS_READY: 'bg-teal-100 text-teal-700',
 };
 
-export function BookingCard({ booking, onViewPrescription, onViewLabResults, onRate }: BookingCardProps) {
+export function BookingCard({
+  booking,
+  onViewPrescription,
+  onViewLabResults,
+  onRate,
+}: BookingCardProps) {
   const isPaid = booking.paymentStatus === 'PAID';
   const isCompleted = booking.status === 'COMPLETED';
 

@@ -23,7 +23,7 @@ export function BookingPage() {
 
   // Step 2
   const [selectedDate, setSelectedDate] = useState<string>(
-    () => new Date().toISOString().split('T')[0] ?? ''
+    () => new Date().toISOString().split('T')[0] ?? '',
   );
   const [selectedShift, setSelectedShift] = useState<AvailableShift | null>(null);
 
@@ -81,20 +81,26 @@ export function BookingPage() {
   };
 
   const handleStep1Next = () => {
-    if (!selectedDoctor) { setError('Vui lòng chọn một bác sĩ'); return; }
+    if (!selectedDoctor) {
+      setError('Vui lòng chọn một bác sĩ');
+      return;
+    }
     setError(null);
     setStep(2);
   };
 
   const handleStep2Next = () => {
-    if (!selectedShift) { setError('Vui lòng chọn ca khám'); return; }
+    if (!selectedShift) {
+      setError('Vui lòng chọn ca khám');
+      return;
+    }
     setError(null);
     setStep(3);
   };
 
   const handlePatientInfoSubmit = (values: PatientInfoFormValues) => {
     setPatientInfo(values);
-    const svc = values.serviceId ? services.find((s) => s.id === values.serviceId) ?? null : null;
+    const svc = values.serviceId ? (services.find((s) => s.id === values.serviceId) ?? null) : null;
     setSelectedService(svc);
     setError(null);
     // Create the booking automatically when submitting patient info
@@ -125,7 +131,10 @@ export function BookingPage() {
         {step > 1 && step < 5 && (
           <button
             type="button"
-            onClick={() => { setStep(step - 1); setError(null); }}
+            onClick={() => {
+              setStep(step - 1);
+              setError(null);
+            }}
             className="text-slate-500 hover:text-slate-800 text-lg"
           >
             ←
@@ -133,7 +142,9 @@ export function BookingPage() {
         )}
         <div className="flex-1">
           <h1 className="font-bold text-slate-800">Đặt lịch khám</h1>
-          <p className="text-xs text-slate-400">Bước {step} / {STEPS.length}</p>
+          <p className="text-xs text-slate-400">
+            Bước {step} / {STEPS.length}
+          </p>
         </div>
       </div>
 
@@ -150,7 +161,9 @@ export function BookingPage() {
         {step === 1 && (
           <div className="space-y-4">
             <h2 className="text-base font-semibold text-slate-700">Chọn bác sĩ</h2>
-            {loadingDoctors && <p className="text-sm text-slate-400">Đang tải danh sách bác sĩ...</p>}
+            {loadingDoctors && (
+              <p className="text-sm text-slate-400">Đang tải danh sách bác sĩ...</p>
+            )}
             {doctors.map((doc) => (
               <DoctorCard
                 key={doc.id}
@@ -179,7 +192,10 @@ export function BookingPage() {
             <ShiftPicker
               doctorId={selectedDoctor.id}
               selectedDate={selectedDate}
-              onDateChange={(d) => { setSelectedDate(d); setSelectedShift(null); }}
+              onDateChange={(d) => {
+                setSelectedDate(d);
+                setSelectedShift(null);
+              }}
               shifts={shifts}
               selectedShiftId={selectedShift?.id ?? null}
               onShiftSelect={(id) => {
@@ -206,10 +222,7 @@ export function BookingPage() {
               <div className="text-center text-sm text-slate-500 py-4">Đang đặt lịch...</div>
             )}
             {!createBookingMutation.isPending && (
-              <PatientInfoForm
-                services={services}
-                onSubmit={handlePatientInfoSubmit}
-              />
+              <PatientInfoForm services={services} onSubmit={handlePatientInfoSubmit} />
             )}
           </div>
         )}

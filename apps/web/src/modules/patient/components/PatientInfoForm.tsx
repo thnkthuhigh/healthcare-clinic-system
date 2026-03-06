@@ -102,7 +102,11 @@ export function PatientInfoForm({ services, onSubmit }: PatientInfoFormProps) {
             {services.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} (
-                {(s.priceCents / 100).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })})
+                {(s.priceCents / 100).toLocaleString('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND',
+                })}
+                )
               </option>
             ))}
           </select>
@@ -111,7 +115,9 @@ export function PatientInfoForm({ services, onSubmit }: PatientInfoFormProps) {
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Ghi chú / Triệu chứng</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Ghi chú / Triệu chứng
+        </label>
         <textarea
           {...register('notes')}
           rows={3}

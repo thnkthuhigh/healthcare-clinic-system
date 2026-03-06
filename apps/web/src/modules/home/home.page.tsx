@@ -5,9 +5,7 @@ export function HomePage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-3xl p-6">
         <h1 className="text-3xl font-semibold">Clinic System</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Hệ thống phòng khám — Monorepo.
-        </p>
+        <p className="mt-2 text-sm text-slate-600">Hệ thống phòng khám — Monorepo.</p>
 
         {/* Patient section */}
         <div className="mt-8">
@@ -63,4 +61,3 @@ export function HomePage() {
     </div>
   );
 }
-

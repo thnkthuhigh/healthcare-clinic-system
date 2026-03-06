@@ -36,8 +36,15 @@ export function HealthProfilePage() {
   });
 
   const ratingMutation = useMutation({
-    mutationFn: ({ bookingId, stars, comment }: { bookingId: string; stars: number; comment: string }) =>
-      customerApi.submitRating(bookingId, { stars, comment }),
+    mutationFn: ({
+      bookingId,
+      stars,
+      comment,
+    }: {
+      bookingId: string;
+      stars: number;
+      comment: string;
+    }) => customerApi.submitRating(bookingId, { stars, comment }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patient-bookings', patientId] });
     },
@@ -63,7 +70,10 @@ export function HealthProfilePage() {
 
       <div className="mx-auto max-w-lg px-4 pt-5 pb-10 space-y-5">
         {/* Phone lookup form */}
-        <form onSubmit={handleLookup} className="bg-white rounded-xl border border-slate-100 shadow-soft p-4 space-y-3">
+        <form
+          onSubmit={handleLookup}
+          className="bg-white rounded-xl border border-slate-100 shadow-soft p-4 space-y-3"
+        >
           <p className="text-sm font-medium text-slate-700">Tra cứu bằng số điện thoại</p>
           <div className="flex gap-2">
             <input

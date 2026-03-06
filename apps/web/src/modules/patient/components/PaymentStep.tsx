@@ -86,8 +86,8 @@ export function PaymentStep({
 
       {/* Simulated payment notice */}
       <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
-        💳 <strong>Mô phỏng thanh toán (MVP):</strong> Bấm nút bên dưới để hệ thống xác nhận
-        thành công và chuyển sang trạng thái BOOKED.
+        💳 <strong>Mô phỏng thanh toán (MVP):</strong> Bấm nút bên dưới để hệ thống xác nhận thành
+        công và chuyển sang trạng thái BOOKED.
       </div>
 
       <button
@@ -103,15 +103,7 @@ export function PaymentStep({
   );
 }
 
-function Row({
-  label,
-  value,
-  bold = false,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
+function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex justify-between gap-2">
       <span className="text-slate-500 flex-shrink-0">{label}</span>
