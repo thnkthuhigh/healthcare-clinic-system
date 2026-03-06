@@ -12,10 +12,12 @@ import type {
 const API_BASE = 'http://localhost:4000/api/customer';
 
 async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('clinic_token');
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });

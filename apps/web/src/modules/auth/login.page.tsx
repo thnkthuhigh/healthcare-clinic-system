@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from './useAuth';
@@ -13,10 +13,12 @@ export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth();
 
   // If already authenticated, redirect
-  if (isAuthenticated && user) {
-    const redirectTo = getRedirectPath(user.role);
-    navigate(redirectTo, { replace: true });
-  }
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const redirectTo = getRedirectPath(user.role);
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,8 +158,8 @@ function getRedirectPath(role: string): string {
     case 'CASHIER':
       return '/doctor/dashboard'; // TODO: cashier dashboard
     case 'PATIENT':
-      return '/mainpage';
+      return '/booking';
     default:
-      return '/mainpage';
+      return '/';
   }
 }

@@ -15,6 +15,7 @@ import {
   DoctorSettingsPage,
 } from '../modules/doctor/pages';
 import { HomePage } from '../modules/home/home.page';
+import { AccountManagementPage } from '../modules/owner/pages';
 import { BookingPage, HealthProfilePage } from '../modules/patient/pages';
 
 export const router = createBrowserRouter([
@@ -26,6 +27,14 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/register',
+    element: <RegisterPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
   },
   // Patient / Customer routes
   {
@@ -76,6 +85,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <DoctorSettingsPage />,
+      },
+      {
+        path: 'accounts',
+        element: <AccountManagementPage />,
       },
     ],
   },
