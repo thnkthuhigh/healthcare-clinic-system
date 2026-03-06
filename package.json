@@ -37,5 +37,8 @@
     "husky": "^9.0.11",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "react-qr-code": "^2.0.18"
   }
 }

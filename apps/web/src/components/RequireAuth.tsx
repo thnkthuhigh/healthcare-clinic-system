@@ -33,7 +33,7 @@ export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

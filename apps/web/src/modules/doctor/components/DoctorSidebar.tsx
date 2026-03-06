@@ -15,6 +15,8 @@ const navItems = [
   { path: '/doctor/patients', icon: 'group', label: 'Patients' },
 ];
 
+const ownerNavItems = [{ path: '/doctor/accounts', icon: 'manage_accounts', label: 'Tài khoản' }];
+
 export function DoctorSidebar({ doctorName, specialty: _specialty, avatarUrl }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -77,6 +79,40 @@ export function DoctorSidebar({ doctorName, specialty: _specialty, avatarUrl }: 
             </Link>
           );
         })}
+
+        {user?.role === 'OWNER' && (
+          <>
+            <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
+            <p className="px-3 py-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              Owner
+            </p>
+            {ownerNavItems.map((item) => {
+              const isActive = location.pathname.startsWith(item.path);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
+                    isActive
+                      ? 'bg-primary/10 text-primary dark:bg-primary/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[20px] ${isActive ? 'fill-current' : 'group-hover:text-primary'} transition-colors`}
+                  >
+                    {item.icon}
+                  </span>
+                  <span
+                    className={`text-sm ${isActive ? 'font-bold' : 'font-medium group-hover:text-primary'} transition-colors`}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </>
+        )}
 
         <div className="my-2 border-t border-slate-100 dark:border-slate-800" />
 
