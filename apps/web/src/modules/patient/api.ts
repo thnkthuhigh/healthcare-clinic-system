@@ -79,4 +79,10 @@ export const customerApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  cancelBooking: (bookingId: string, phone: string) =>
+    fetchApi<BookingTicket>(
+      `${API_BASE}/bookings/${bookingId}/cancel?phone=${encodeURIComponent(phone)}`,
+      { method: 'POST' },
+    ),
 };

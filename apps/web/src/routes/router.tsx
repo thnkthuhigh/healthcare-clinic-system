@@ -16,7 +16,15 @@ import {
 } from '../modules/doctor/pages';
 import { HomePage } from '../modules/home/home.page';
 import { AccountManagementPage } from '../modules/owner/pages';
-import { BookingPage, HealthProfilePage } from '../modules/patient/pages';
+import {
+  BookingPage,
+  HealthProfilePage,
+  DoctorsPage,
+  ServicesPage,
+  AboutPage,
+  AppointmentsPage,
+  PatientHomePage,
+} from '../modules/patient/pages';
 
 export const router = createBrowserRouter([
   // Public routes
@@ -38,12 +46,32 @@ export const router = createBrowserRouter([
   },
   // Patient / Customer routes
   {
+    path: '/mainpage',
+    element: <PatientHomePage />,
+  },
+  {
     path: '/booking',
     element: <BookingPage />,
   },
   {
     path: '/health-profile',
     element: <HealthProfilePage />,
+  },
+  {
+    path: '/doctors',
+    element: <DoctorsPage />,
+  },
+  {
+    path: '/services',
+    element: <ServicesPage />,
+  },
+  {
+    path: '/about',
+    element: <AboutPage />,
+  },
+  {
+    path: '/appointments',
+    element: <AppointmentsPage />,
   },
   // Doctor routes
   {

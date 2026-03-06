@@ -5,8 +5,9 @@ import { useAuth } from '../../auth/useAuth';
 
 const NAV_LINKS = [
   { to: '/mainpage', label: 'Trang chủ' },
+  { to: '/about', label: 'Giới thiệu' },
   { to: '/doctors', label: 'Bác sĩ' },
-  { to: '/services', label: 'Dịch vụ' },
+  { to: '/services', label: 'Dịch vụ & Giá' },
   { to: '/booking', label: 'Đặt lịch khám' },
   { to: '/appointments', label: 'Lịch khám của tôi' },
 ];
