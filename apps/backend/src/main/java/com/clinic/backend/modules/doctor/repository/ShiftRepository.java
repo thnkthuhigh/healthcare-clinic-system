@@ -24,4 +24,9 @@ public interface ShiftRepository extends JpaRepository<Shift, UUID> {
 
     @Query("SELECT s FROM Shift s JOIN FETCH s.doctor WHERE s.id = :shiftId")
     java.util.Optional<Shift> findByIdWithDoctor(@Param("shiftId") UUID shiftId);
+
+    @Query("SELECT s FROM Shift s JOIN FETCH s.doctor WHERE s.date = :date ORDER BY s.startTime")
+    List<Shift> findByDateWithDoctor(@Param("date") LocalDate date);
+
+    boolean existsByDoctorIdAndDateAndType(UUID doctorId, LocalDate date, Shift.ShiftType type);
 }

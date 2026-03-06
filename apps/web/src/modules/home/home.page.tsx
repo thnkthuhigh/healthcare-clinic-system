@@ -69,21 +69,21 @@ export function HomePage() {
             </div>
           </div>
 
-          {/* Admin Portal - Coming Soon */}
-          <div className="bg-white border border-slate-200 rounded-lg p-6 opacity-60 cursor-not-allowed relative">
-            <div className="absolute top-2 right-2 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">
-              Coming Soon
-            </div>
+          {/* Admin Portal */}
+          <Link
+            to="/admin"
+            className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md hover:border-red-300 transition-all group"
+          >
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
                 <span className="material-symbols-outlined text-3xl text-red-600">
                   admin_panel_settings
                 </span>
               </div>
               <h3 className="font-semibold text-slate-900 mb-1">Admin</h3>
-              <p className="text-sm text-slate-600">System configuration & user management</p>
+              <p className="text-sm text-slate-600">Quản trị hệ thống & điều phối khám</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Quick Links */}

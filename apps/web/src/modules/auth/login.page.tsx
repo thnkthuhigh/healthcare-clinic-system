@@ -96,6 +96,7 @@ export function LoginPage() {
                 <div className="flex-1">
                   <p className="text-xs text-blue-800 font-medium">Tài khoản mặc định</p>
                   <p className="text-xs text-blue-700 mt-1">Owner: 0900000000 / owner123</p>
+                  <p className="text-xs text-blue-700">Admin: 0903456789 / password123</p>
                   <p className="text-xs text-blue-700">BS. Lê Văn Minh: 0901234567 / password123</p>
                 </div>
               </div>
@@ -148,7 +149,7 @@ function getRedirectPath(role: string): string {
   switch (role) {
     case 'OWNER':
     case 'ADMIN':
-      return '/doctor/dashboard';
+      return '/admin';
     case 'DOCTOR':
       return '/doctor/dashboard';
     case 'RECEPTIONIST':
