@@ -4,6 +4,7 @@ import { LoginPage } from '../modules/auth/login.page';
 import { DoctorLayout } from '../modules/doctor/components';
 import { DoctorDashboardPage, PatientQueuePage, ConsultationPage } from '../modules/doctor/pages';
 import { HomePage } from '../modules/home/home.page';
+import { BookingPage, HealthProfilePage } from '../modules/patient/pages';
 
 export const router = createBrowserRouter([
   {
@@ -13,6 +14,15 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  // Patient / Customer routes
+  {
+    path: '/booking',
+    element: <BookingPage />,
+  },
+  {
+    path: '/health-profile',
+    element: <HealthProfilePage />,
   },
   // Doctor routes
   {

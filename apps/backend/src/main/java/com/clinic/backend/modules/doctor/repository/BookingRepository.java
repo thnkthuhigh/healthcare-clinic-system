@@ -83,7 +83,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         Optional<Booking> findNextInQueue(@Param("shiftId") UUID shiftId);
 
         /**
-         * Get patient's booking history
+         * Get patient's booking history (COMPLETED bookings)
          */
         @Query("""
                         SELECT b FROM Booking b
@@ -95,4 +95,33 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                         ORDER BY b.completedAt DESC
                         """)
         List<Booking> findPatientHistory(@Param("patientId") UUID patientId);
+
+        /**
+         * Get all bookings for a patient ordered by creation date (for full history page)
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.shift s
+                        JOIN FETCH s.doctor d
+                        LEFT JOIN FETCH b.service sv
+                        WHERE b.patient.id = :patientId
+                        ORDER BY b.createdAt DESC
+                        """)
+        List<Booking> findByPatientIdOrderByCreatedAtDesc(@Param("patientId") UUID patientId);
+
+        /**
+         * Find today's BOOKED bookings for a patient (for phone check-in)
+         */
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.shift s
+                        JOIN FETCH s.doctor d
+                        WHERE b.patient.id = :patientId
+                        AND s.date = :today
+                        AND CAST(b.status AS string) = 'BOOKED'
+                        ORDER BY b.createdAt ASC
+                        """)
+        List<Booking> findTodayBookedByPatientId(
+                        @Param("patientId") UUID patientId,
+                        @Param("today") java.time.LocalDate today);
 }
