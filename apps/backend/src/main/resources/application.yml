@@ -13,9 +13,9 @@ app:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5444/edb?stringtype=unspecified
-    username: enterprisedb
-    password:
+    url: jdbc:postgresql://localhost:5432/clinic_dev?stringtype=unspecified
+    username: postgres
+    password: postgres
     hikari:
       connection-init-sql: SET TIME ZONE 'UTC'
   jpa:
