@@ -82,10 +82,12 @@ Hệ thống quản lý phòng khám đa chức năng với kiến trúc Monorep
 
 Healthcare Clinic System là một hệ thống quản lý phòng khám toàn diện được xây dựng theo kiến trúc Monorepo, hỗ trợ nhiều vai trò người dùng khác nhau:
 
+- **Owner**: Quản lý tài khoản hệ thống (tạo/khóa/xóa tài khoản)
+- **Admin**: Quản lý toàn bộ hệ thống — bác sĩ, bệnh nhân, ca trực, dịch vụ, thuốc, khoa, báo cáo
 - **Bác sĩ**: Quản lý ca làm việc, hàng đợi bệnh nhân, khám bệnh và kê đơn
-- **Lễ tân**: Đặt lịch khám, check-in bệnh nhân
-- **Dược sĩ**: Quản lý kho thuốc và phát thuốc
-- **Admin**: Quản lý hệ thống, người dùng và cấu hình
+- **Bệnh nhân**: Đặt lịch khám, xem thông tin bác sĩ/dịch vụ, quản lý lịch hẹn
+- **Lễ tân**: Tiếp nhận bệnh nhân, check-in (Coming soon)
+- **Thu ngân**: Thanh toán, xuất hóa đơn (Coming soon)
 
 ---
 
@@ -179,12 +181,13 @@ Healthcare Clinic System là một hệ thống quản lý phòng khám toàn di
 
 ### Backend (Primary - Spring Boot)
 
-- **Language**: Java 17
-- **Framework**: Spring Boot 3.2
+- **Language**: Java 21
+- **Framework**: Spring Boot 3.2.2
 - **ORM**: Spring Data JPA + Hibernate
-- **Database Migrations**: Flyway
-- **Database**: PostgreSQL 15
-- **API Documentation**: Swagger/OpenAPI
+- **Security**: Spring Security + JWT (HS512)
+- **Database Migrations**: Flyway 9.22.3
+- **Database**: PostgreSQL 16
+- **API Documentation**: Swagger/OpenAPI (SpringDoc)
 - **Validation**: Jakarta Validation
 - **Monitoring**: Spring Boot Actuator
 
@@ -224,41 +227,44 @@ healthcare-clinic-system/
 
 ```
 backend/
+├── .mvn/
+│   └── jvm.config            # JVM args (timezone=UTC)
 ├── src/main/java/com/clinic/backend/
-│   ├── common/           # Common utilities, exceptions
-│   ├── config/           # Spring configuration (CORS, Swagger)
-│   ├── modules/
-│   │   ├── health/       # Health check endpoints
-│   │   ├── doctor/       # Doctor module (shifts, queue)
-│   │   └── consultation/ # Consultation & prescription
-│   └── entity/           # JPA Entities
-│       ├── User, Doctor, Patient
-│       ├── Shift, Slot, Booking
-│       ├── Service, Medication
-│       └── MedicalRecord, Prescription
-└── src/main/resources/
-    ├── application.yml
-    └── db/migration/     # Flyway migrations
-        ├── V1__init.sql
-        ├── V2__medical_records.sql
-        └── V3__seed_data.sql
+│   ├── common/               # Common utilities, exceptions
+│   ├── config/               # CORS, Swagger, Security config
+│   ├── entity/               # JPA Entities (User, Doctor, Patient, etc.)
+│   └── modules/
+│       ├── health/           # Health check endpoints
+│       ├── auth/             # Authentication (JWT login/register)
+│       ├── doctor/           # Doctor module (shifts, queue, services)
+│       ├── consultation/     # Consultation & prescription
+│       ├── customer/         # Customer-facing API (booking, services)
+│       ├── admin/            # Admin module (CRUD management)
+│       └── owner/            # Owner module (account management)
+├── src/main/resources/
+│   ├── application.yml
+│   └── db/migration/         # Flyway migrations (V1 → V10)
+├── repair-db.ps1             # Fix Flyway checksum errors
+└── reset-db.ps1              # Reset database from scratch
 ```
 
 ### Frontend Architecture
 
 ```
 web/src/
-├── modules/
-│   ├── auth/         # Authentication (Login)
-│   ├── doctor/       # Doctor module
-│   │   ├── api.ts           # API service layer
-│   │   ├── types.ts         # TypeScript interfaces
-│   │   ├── components/      # DoctorLayout, Sidebar, Header
-│   │   └── pages/           # Dashboard, Queue, Consultation
-│   └── home/         # Home page
-├── routes/           # Router configuration
+├── components/       # Shared components (Navigation, RequireAuth)
+├── hooks/            # Custom hooks (useNavigation)
 ├── lib/              # React Query setup
-└── styles/           # Global styles
+├── modules/
+│   ├── auth/         # Authentication (Login, Register, Forgot Password)
+│   ├── home/         # Landing page
+│   ├── patient/      # Patient module (Booking, Doctors, Services, About, Appointments)
+│   ├── doctor/       # Doctor module (Dashboard, Queue, Consultation, Schedule)
+│   ├── admin/        # Admin module (Dashboard, Reception, Cashier, Management pages)
+│   ├── owner/        # Owner module (Account Management)
+│   └── common/       # Common pages (404 Not Found)
+├── routes/           # Router configuration
+└── styles/           # Global styles (Tailwind CSS)
 ```
 
 ### API Conventions
@@ -558,6 +564,13 @@ Database `clinic_dev` gồm các bảng chính:
 - `medical_records`: Hồ sơ bệnh án
 - `prescriptions`: Đơn thuốc (với status: HELD/PAID/CANCELED)
 - `prescription_items`: Chi tiết đơn thuốc
+- `prescription_templates`: Mẫu đơn thuốc
+- `prescription_template_items`: Chi tiết mẫu đơn thuốc
+
+#### Organization
+
+- `departments`: Khoa / phòng ban
+- `ratings`: Đánh giá bác sĩ từ bệnh nhân
 
 #### Audit
 
@@ -569,10 +582,18 @@ Database `clinic_dev` gồm các bảng chính:
 
 #### Available migrations:
 
-- **V1\_\_init.sql**: Schema ban đầu
+- **V1\_\_init.sql**: Schema ban đầu (users, doctors, patients, shifts, slots, bookings, services, specialties)
 - **V2\_\_medical_records.sql**: Medical records, prescriptions, medications
-- **V3\_\_seed_data.sql**: Sample data cho testing
+- **V3\_\_seed_data.sql**: Sample data cho testing (doctors, patients, bookings, medications)
 - **V4\_\_add_prescription_items_columns.sql**: Mở rộng prescription_items
+- **V5\_\_add_owner_role.sql**: Thêm role OWNER vào enum
+- **V6\_\_update_seed_passwords.sql**: Cập nhật mật khẩu seed data
+- **V7\_\_add_full_name_to_users.sql**: Thêm cột full_name vào bảng users
+- **V8\_\_prescription_templates.sql**: Bảng mẫu đơn thuốc
+- **V9\_\_departments.sql**: Bảng khoa/phòng ban
+- **V10\_\_customer_features.sql**: Ratings, customer booking features
+
+> **⚠️ QUY TẮC MIGRATION**: KHÔNG BAO GIỜ sửa hoặc rename migration đã push lên. Chỉ tạo file migration MỚI với version tiếp theo (hiện tại: V10 → tạo V11). Kiểm tra version cao nhất trước khi tạo.
 
 #### Migration Commands
 
@@ -589,6 +610,15 @@ mvn flyway:info
 mvn flyway:validate
 ```
 
+**🔧 Repair migrations (khi lỗi checksum mismatch / validate failed):**
+
+```powershell
+cd apps/backend
+.\repair-db.ps1
+```
+
+Script này sync lại schema history với file migration hiện tại. **Không mất dữ liệu.**
+
 **⚠️ Reset database (XÓA TẤT CẢ DỮ LIỆU):**
 
 ```powershell
@@ -600,17 +630,7 @@ Script này sẽ:
 
 1. Drop database `clinic_dev`
 2. Tạo lại database mới
-3. Chạy tất cả migrations
-4. Load sample data
-
-**Run migrations manually:**
-
-```powershell
-cd apps/backend
-.\migrate.ps1
-```
-
-An toàn, không xóa dữ liệu.
+3. Flyway sẽ tự chạy lại tất cả migrations khi start backend
 
 ### Sample Data
 
@@ -750,22 +770,45 @@ Truy cập http://localhost:4000/swagger-ui sau khi start backend để xem full
 
 - `/` - Homepage với role selection cards
 - `/login` - Login page với role-based authentication
+- `/register` - Đăng ký tài khoản bệnh nhân
+- `/forgot-password` - Quên mật khẩu
 
-#### Doctor Routes (Protected)
+#### Patient Routes (Public)
+
+- `/mainpage` - Trang chủ bệnh nhân (thông tin phòng khám, dịch vụ, bác sĩ)
+- `/booking` - Đặt lịch khám
+- `/health-profile` - Hồ sơ sức khỏe
+- `/doctors` - Danh sách bác sĩ
+- `/services` - Danh sách dịch vụ
+- `/about` - Giới thiệu phòng khám
+- `/appointments` - Quản lý lịch hẹn
+
+#### Doctor Routes (Protected — DOCTOR, ADMIN, OWNER)
 
 - `/doctor` - Auto-redirect to dashboard
 - `/doctor/dashboard` - Dashboard: Shift overview & statistics
-- `/doctor/queue/:shiftId?` - Patient queue management với smart priority
+- `/doctor/queue/:shiftId` - Patient queue management với smart priority
 - `/doctor/consultation/:bookingId` - Consultation & prescription page
-- `/doctor/schedule` - Schedule management (Coming soon)
-- `/doctor/patients` - Patient records browser (Coming soon)
-- `/doctor/settings` - Account settings (Coming soon)
+- `/doctor/schedule` - Schedule management
+- `/doctor/patients` - Patient records browser
+- `/doctor/settings` - Account settings
+- `/doctor/accounts` - Quản lý tài khoản (Owner only)
 
-#### Future Routes (Planned)
+#### Admin Routes (Protected — ADMIN, OWNER)
 
-- `/receptionist/*` - Receptionist portal
-- `/pharmacist/*` - Pharmacist portal
-- `/admin/*` - Admin portal
+- `/admin` - Auto-redirect to dashboard
+- `/admin/dashboard` - Admin dashboard
+- `/admin/reception` - Tiếp nhận bệnh nhân
+- `/admin/cashier` - Thu ngân
+- `/admin/doctors` - Quản lý bác sĩ
+- `/admin/patients` - Quản lý bệnh nhân
+- `/admin/records` - Hồ sơ bệnh án
+- `/admin/shifts` - Quản lý ca trực
+- `/admin/services` - Quản lý dịch vụ
+- `/admin/medications` - Quản lý thuốc
+- `/admin/templates` - Mẫu đơn thuốc
+- `/admin/departments` - Quản lý khoa
+- `/admin/reports` - Báo cáo thống kê
 
 ### Navigation Flow
 
@@ -845,8 +888,11 @@ import { BackButton } from './components/Navigation';
 | -------------------------------------- | ----------------- |
 | http://localhost:3000/                 | Homepage          |
 | http://localhost:3000/login            | Login page        |
+| http://localhost:3000/mainpage         | Patient homepage  |
+| http://localhost:3000/booking          | Đặt lịch khám     |
 | http://localhost:3000/doctor/dashboard | Doctor dashboard  |
 | http://localhost:3000/doctor/queue     | Patient queue     |
+| http://localhost:3000/admin/dashboard  | Admin dashboard   |
 | http://localhost:4000/swagger-ui       | API documentation |
 
 **📖 Xem thêm**: [apps/web/ROUTES.md](apps/web/ROUTES.md) và [apps/web/NAVIGATION_GUIDE.md](apps/web/NAVIGATION_GUIDE.md)
@@ -869,24 +915,30 @@ healthcare-clinic-system/
 │   │   │   │   └── useNavigation.ts  # Navigation hooks (useDoctorNavigation, useAppNavigation)
 │   │   │   ├── modules/              # Feature modules
 │   │   │   │   ├── auth/             # Authentication module
-│   │   │   │   │   └── login.page.tsx
+│   │   │   │   │   ├── login.page.tsx
+│   │   │   │   │   ├── register.page.tsx
+│   │   │   │   │   └── forgot-password.page.tsx
 │   │   │   │   ├── common/           # Common/shared module
 │   │   │   │   │   └── NotFound.page.tsx  # 404 page
+│   │   │   │   ├── patient/          # Patient module
+│   │   │   │   │   ├── api.ts
+│   │   │   │   │   ├── types.ts
+│   │   │   │   │   ├── components/   # PatientNavbar, BookingCard, etc.
+│   │   │   │   │   └── pages/        # PatientHomePage, BookingPage, DoctorsPage, etc.
 │   │   │   │   ├── doctor/           # Doctor module
 │   │   │   │   │   ├── api.ts        # API service
 │   │   │   │   │   ├── types.ts      # TypeScript types
-│   │   │   │   │   ├── components/   # Module components
-│   │   │   │   │   │   ├── DoctorLayout.tsx
-│   │   │   │   │   │   ├── DoctorSidebar.tsx  # Sidebar with navigation
-│   │   │   │   │   │   └── DoctorHeader.tsx   # Header with breadcrumbs & back button
-│   │   │   │   │   └── pages/        # Page components
-│   │   │   │   │       ├── index.ts  # Page exports
-│   │   │   │   │       ├── DoctorDashboardPage.tsx
-│   │   │   │   │       ├── PatientQueuePage.tsx
-│   │   │   │   │       ├── ConsultationPage.tsx
-│   │   │   │   │       ├── DoctorSchedulePage.tsx   # Coming soon
-│   │   │   │   │       ├── DoctorPatientsPage.tsx   # Coming soon
-│   │   │   │   │       └── DoctorSettingsPage.tsx   # Coming soon
+│   │   │   │   │   ├── components/   # DoctorLayout, Sidebar, Header
+│   │   │   │   │   └── pages/        # Dashboard, Queue, Consultation, Schedule
+│   │   │   │   ├── admin/            # Admin module
+│   │   │   │   │   ├── api.ts
+│   │   │   │   │   ├── types.ts
+│   │   │   │   │   ├── components/   # AdminLayout, Sidebar, Header
+│   │   │   │   │   └── pages/        # Dashboard, Reception, Cashier, Management pages
+│   │   │   │   ├── owner/            # Owner module
+│   │   │   │   │   ├── api.ts
+│   │   │   │   │   ├── types.ts
+│   │   │   │   │   └── pages/        # AccountManagementPage
 │   │   │   │   └── home/             # Home module
 │   │   │   │       └── home.page.tsx
 │   │   │   ├── routes/               # Routing configuration
@@ -903,6 +955,8 @@ healthcare-clinic-system/
 │   │   └── NAVIGATION_GUIDE.md       # Navigation hooks/components guide
 │   │
 │   ├── backend/                      # Spring Boot Backend
+│   │   ├── .mvn/
+│   │   │   └── jvm.config            # JVM args (timezone=UTC)
 │   │   ├── src/
 │   │   │   ├── main/
 │   │   │   │   ├── java/com/clinic/backend/
@@ -912,50 +966,26 @@ healthcare-clinic-system/
 │   │   │   │   │   │   └── response/
 │   │   │   │   │   ├── config/       # Configuration
 │   │   │   │   │   │   ├── CorsConfig.java
+│   │   │   │   │   │   ├── SecurityConfig.java
 │   │   │   │   │   │   └── SwaggerConfig.java
 │   │   │   │   │   ├── entity/       # JPA Entities
-│   │   │   │   │   │   ├── User.java
-│   │   │   │   │   │   ├── Doctor.java
-│   │   │   │   │   │   ├── Patient.java
-│   │   │   │   │   │   ├── Shift.java
-│   │   │   │   │   │   ├── Slot.java
-│   │   │   │   │   │   ├── Booking.java
-│   │   │   │   │   │   ├── Service.java
-│   │   │   │   │   │   ├── Medication.java
-│   │   │   │   │   │   ├── MedicalRecord.java
-│   │   │   │   │   │   ├── Prescription.java
-│   │   │   │   │   │   └── PrescriptionItem.java
 │   │   │   │   │   ├── repository/   # JPA Repositories
-│   │   │   │   │   │   ├── UserRepository.java
-│   │   │   │   │   │   ├── DoctorRepository.java
-│   │   │   │   │   │   ├── PatientRepository.java
-│   │   │   │   │   │   ├── ShiftRepository.java
-│   │   │   │   │   │   ├── BookingRepository.java
-│   │   │   │   │   │   ├── MedicationRepository.java
-│   │   │   │   │   │   ├── MedicalRecordRepository.java
-│   │   │   │   │   │   └── PrescriptionRepository.java
 │   │   │   │   │   └── modules/      # Feature modules
 │   │   │   │   │       ├── health/
-│   │   │   │   │       │   ├── HealthController.java
-│   │   │   │   │       │   └── dto/
-│   │   │   │   │       ├── doctor/
-│   │   │   │   │       │   ├── DoctorController.java
-│   │   │   │   │       │   ├── DoctorService.java
-│   │   │   │   │       │   └── dto/
-│   │   │   │   │       └── consultation/
-│   │   │   │   │           ├── ConsultationController.java
-│   │   │   │   │           ├── ConsultationService.java
-│   │   │   │   │           └── dto/
+│   │   │   │   │       ├── auth/         # JWT auth (login/register)
+│   │   │   │   │       ├── doctor/       # Doctor (shifts, queue, services)
+│   │   │   │   │       ├── consultation/ # Consultation & prescription
+│   │   │   │   │       ├── customer/     # Customer-facing API
+│   │   │   │   │       ├── admin/        # Admin CRUD management
+│   │   │   │   │       └── owner/        # Owner account management
 │   │   │   │   └── resources/
-│   │   │   │       ├── application.yml      # Main config
-│   │   │   │       └── db/migration/        # Flyway migrations
-│   │   │   │           ├── V1__init.sql
-│   │   │   │           ├── V2__medical_records.sql
-│   │   │   │           ├── V3__seed_data.sql
-│   │   │   │           └── V4__add_prescription_items_columns.sql
-│   │   │   └── test/                        # Tests
+│   │   │   │       ├── application.yml
+│   │   │   │       └── db/migration/     # Flyway migrations (V1→V10)
+│   │   │   └── test/
 │   │   ├── pom.xml
-│   │   ├── DATABASE.md                      # Database docs
+│   │   ├── repair-db.ps1             # Fix Flyway checksum errors
+│   │   ├── reset-db.ps1              # Reset database from scratch
+│   │   ├── DATABASE.md
 │   │   └── package.json
 │   │
 │   └── api/                          # Legacy Node.js API
@@ -1069,8 +1099,8 @@ git push origin feature/ten-tinh-nang
 ### 2. Thêm Database Migration
 
 ```powershell
-# 1. Tạo file migration mới
-# apps/backend/src/main/resources/db/migration/V5__ten_migration.sql
+# 1. Tạo file migration mới (kiểm tra version cao nhất hiện tại, hiện là V10)
+# apps/backend/src/main/resources/db/migration/V11__ten_migration.sql
 
 # 2. Viết SQL DDL
 # CREATE TABLE, ALTER TABLE, etc.
@@ -1118,6 +1148,45 @@ public interface TenEntityRepository extends JpaRepository<TenEntity, Long> {
 
 - Tạo service class trong `modules/[module-name]/`
 - Tạo controller với `@RestController` và `@RequestMapping`
+
+---
+
+## 🔧 Troubleshooting
+
+### Lỗi thường gặp và cách xử lý
+
+| Lỗi                                                  | Nguyên nhân                                           | Cách fix                                                  |
+| ---------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------- |
+| `Found more than one migration with version X`       | Thư mục `target/` chứa file migration cũ              | Đã fix tự động: `npm run dev` luôn chạy `mvn clean` trước |
+| `Migration checksum mismatch`                        | Schema history trong DB không khớp với file migration | Chạy `cd apps/backend; .\repair-db.ps1`                   |
+| `Validate failed: Migrations have failed validation` | Tương tự checksum mismatch                            | Chạy `cd apps/backend; .\repair-db.ps1`                   |
+| `FATAL: invalid value for parameter "TimeZone"`      | Java gửi timezone "Asia/Saigon" (deprecated)          | Đã fix tự động qua `.mvn/jvm.config`                      |
+| `Connection refused localhost:5432`                  | PostgreSQL Docker chưa chạy                           | Chạy `docker compose up -d`                               |
+| `FATAL: password authentication failed`              | Sai thông tin kết nối                                 | Kiểm tra `application.yml` khớp với `docker-compose.yml`  |
+| Pre-commit hook fail (Prettier)                      | Code chưa format                                      | Chạy `npm run format` trước khi commit                    |
+
+### Quy trình khi gặp lỗi Flyway
+
+```powershell
+# Bước 1: Thử repair (không mất dữ liệu)
+cd apps/backend
+.\repair-db.ps1
+npm run dev
+
+# Bước 2: Nếu vẫn lỗi, reset database (MẤT DỮ LIỆU)
+.\reset-db.ps1
+npm run dev
+```
+
+### Quy trình chuẩn mỗi ngày
+
+```powershell
+git pull                 # Kéo code mới
+npm install              # Cài dependencies mới (nếu có)
+docker compose up -d     # Đảm bảo PostgreSQL chạy
+npm run dev              # Chạy app (tự clean build)
+```
+
 - Inject dependencies qua constructor
 - Follow error handling conventions
 
