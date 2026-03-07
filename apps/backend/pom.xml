@@ -101,7 +101,7 @@
         <artifactId>flyway-maven-plugin</artifactId>
         <version>9.22.3</version>
         <configuration>
-          <url>jdbc:postgresql://localhost:5432/clinic_dev?serverTimezone=UTC</url>
+          <url>jdbc:postgresql://localhost:5432/clinic_dev?stringtype=unspecified</url>
           <user>postgres</user>
           <password>postgres</password>
           <locations>
