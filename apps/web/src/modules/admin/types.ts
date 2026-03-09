@@ -318,3 +318,69 @@ export interface DepartmentDto {
   name: string;
   createdAt: string;
 }
+
+// ========== Patient Records Types (PR7) ==========
+
+export interface PatientRecordPrescriptionItem {
+  medicationName: string;
+  unit: string;
+  qty: number;
+  dosage: string | null;
+  note: string | null;
+}
+
+export interface VisitRecordDto {
+  recordId: string;
+  bookingId: string;
+  doctorName: string;
+  serviceName: string | null;
+  symptoms: string | null;
+  diagnosis: string | null;
+  conclusion: string | null;
+  notes: string | null;
+  bookingStatus: string;
+  paymentStatus: string;
+  visitDate: string | null;
+  prescriptionItems: PatientRecordPrescriptionItem[] | null;
+  prescriptionStatus: string | null;
+}
+
+export interface PatientRecordDto {
+  patientId: string;
+  fullName: string;
+  phone: string;
+  nationalId: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  allergies: string | null;
+  address: string | null;
+  records: VisitRecordDto[];
+}
+
+// ========== Report Types (PR7) ==========
+
+export interface ReportSummaryDto {
+  totalBookings: number;
+  completedBookings: number;
+  canceledBookings: number;
+  noShowBookings: number;
+  webBookings: number;
+  walkInBookings: number;
+  paidBookings: number;
+  unpaidBookings: number;
+  totalRevenueCents: number;
+  serviceRevenueCents: number;
+  prescriptionRevenueCents: number;
+  overrideCount: number;
+}
+
+export interface AuditLogDto {
+  id: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  metaJson: string | null;
+  createdAt: string;
+}

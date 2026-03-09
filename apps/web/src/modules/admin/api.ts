@@ -6,6 +6,7 @@ import type {
   AdminServiceDto,
   AdminShiftDto,
   AdminSlotDto,
+  AuditLogDto,
   CashierBooking,
   CreateDoctorRequest,
   CreateMedicationRequest,
@@ -13,7 +14,9 @@ import type {
   CreateShiftRequest,
   DashboardStats,
   DepartmentDto,
+  PatientRecordDto,
   ReceptionBooking,
+  ReportSummaryDto,
   SavePrescriptionTemplateRequest,
   ShiftOverview,
   UpdateDoctorRequest,
@@ -285,4 +288,28 @@ export const adminApi = {
 
   deleteDepartment: (id: string) =>
     fetchApi<void>(`${API_BASE}/departments/${id}`, { method: 'DELETE' }),
+
+  // ========== Patient Records API (PR7) ==========
+
+  getPatientRecords: (patientId: string) =>
+    fetchApi<PatientRecordDto>(`${API_BASE}/patients/${patientId}/records`),
+
+  // ========== Reports API (PR7) ==========
+
+  getReportSummary: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const qs = params.toString();
+    return fetchApi<ReportSummaryDto>(`${API_BASE}/reports/summary${qs ? '?' + qs : ''}`);
+  },
+
+  getAuditLogs: (from?: string, to?: string, entityType?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (entityType) params.set('entityType', entityType);
+    const qs = params.toString();
+    return fetchApi<AuditLogDto[]>(`${API_BASE}/reports/audit${qs ? '?' + qs : ''}`);
+  },
 };

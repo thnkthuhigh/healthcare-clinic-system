@@ -241,3 +241,47 @@ Verification:
 
 - npm run lint — 0 errors
 - npm run typecheck — 3/3 workspaces pass
+
+---
+
+PR7: Hồ sơ Bệnh nhân + Báo cáo & Audit — HOÀN THÀNH
+
+Đã tạo mới (9 backend files):
+
+- PatientRecordDto.java — DTO chính + nested VisitRecordDto (recordId, bookingId, doctorName, serviceName, symptoms, diagnosis, conclusion, notes, bookingStatus, paymentStatus, visitDate, prescriptionItems, prescriptionStatus) + PrescriptionItemDto (medicationName, unit, qty, dosage, note)
+- ReportSummaryDto.java — DTO: totalBookings, completedBookings, canceledBookings, noShowBookings, webBookings, walkInBookings, paidBookings, unpaidBookings, totalRevenueCents, serviceRevenueCents, prescriptionRevenueCents, overrideCount
+- AuditLogDto.java — DTO: id, actorUserId, actorName, action, entityType, entityId, metaJson, createdAt
+- AuditLog.java — Entity cho bảng `audit_logs` (đã có từ V1): id (UUID), actorUser (ManyToOne User), action, entityType, entityId, metaJson (JSONB), createdAt
+- AuditLogRepository.java — findByDateRange(from, to), findByDateRangeAndEntityType(from, to, entityType)
+- PatientRecordService.java — getPatientRecords(patientId): lấy thông tin BN + native SQL lấy medical_records JOIN bookings/shifts/doctors/users/services + prescription items
+- ReportService.java — getSummary(from, to): native SQL aggregate booking stats (FILTER WHERE), revenue (service + prescription), override count (slots pool='OVERRIDE'); getAuditLogs(from, to, entityType)
+- PatientRecordController.java — GET /api/v1/admin/patients/{patientId}/records @PreAuthorize OWNER/ADMIN
+- ReportController.java — GET /api/v1/admin/reports/summary?from&to, GET /api/v1/admin/reports/audit?from&to&entityType @PreAuthorize OWNER/ADMIN
+
+Đã sửa (4 frontend files):
+
+- types.ts — +5 interfaces: PatientRecordPrescriptionItem, VisitRecordDto, PatientRecordDto, ReportSummaryDto, AuditLogDto
+- api.ts — +3 methods: getPatientRecords(patientId), getReportSummary(from, to), getAuditLogs(from, to, entityType)
+- PatientRecordsPage.tsx — Thay placeholder bằng trang đầy đủ: layout 2 cột (trái=search BN theo SĐT/Tên/CCCD, phải=hồ sơ), patient info card (CCCD, ngày sinh, giới tính, dị ứng, địa chỉ), records timeline expandable (triệu chứng, chẩn đoán, kết luận, ghi chú, toa thuốc), status badges, payment badges
+- ReportsPage.tsx — Thay placeholder bằng trang đầy đủ: 2 tabs (Thống kê/Audit Log), Tab 1: date range picker, 4 stat cards (tổng/hoàn thành/hủy/không đến), channel breakdown bars (Web vs Walk-in), payment breakdown, doanh thu (tổng/dịch vụ/thuốc), Override Log count; Tab 2: date range + entity type filter, bảng audit log (thời gian, người thực hiện, hành động, loại, ID, chi tiết)
+
+PRD mapping:
+
+- §2.7 Hồ sơ BN: Search SĐT/Tên/CCCD ✅, lịch sử y tế ✅, toa thuốc cũ ✅
+- §2.12 Báo cáo: Lượt khám/Doanh thu/Web vs Walk-in ✅, Override log ✅, Audit log ✅
+
+Frameworks & Tools:
+
+- React 18 + TypeScript + TailwindCSS
+- TanStack Query (useQuery, staleTime 30s/60s)
+- Spring Boot 3.2 + JPA (EntityManager native SQL, PostgreSQL FILTER WHERE)
+- @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
+
+Rủi ro:
+
+- Bảng audit_logs có schema từ V1 nhưng chưa có service ghi log vào. Cần bổ sung audit logging ở các module khác (cashier, medication, shift) để có data hiển thị trên tab Audit. Không ảnh hưởng tới trang hiện tại.
+
+Verification:
+
+- npm run lint — 0 errors
+- npm run typecheck — 3/3 workspaces pass
