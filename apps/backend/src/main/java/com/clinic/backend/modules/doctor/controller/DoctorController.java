@@ -38,11 +38,11 @@ public class DoctorController {
     public ResponseEntity<List<ShiftDto>> getShifts(
             @PathVariable UUID doctorId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
+
         if (date == null) {
             date = LocalDate.now();
         }
-        
+
         List<ShiftDto> shifts = doctorService.getShiftsByDate(doctorId, date);
         return ResponseEntity.ok(shifts);
     }
@@ -65,7 +65,7 @@ public class DoctorController {
     public ResponseEntity<List<QueueItemDto>> getQueue(
             @PathVariable UUID shiftId,
             @RequestParam(required = false) String status) {
-        
+
         List<QueueItemDto> queue = doctorService.getQueueByShift(shiftId, status);
         return ResponseEntity.ok(queue);
     }
@@ -78,5 +78,34 @@ public class DoctorController {
     public ResponseEntity<List<QueueItemDto>> getAllBookings(@PathVariable UUID shiftId) {
         List<QueueItemDto> bookings = doctorService.getAllBookingsByShift(shiftId);
         return ResponseEntity.ok(bookings);
+    }
+
+    /**
+     * Get doctor's shifts by date range (for schedule page)
+     * GET /api/doctor/{doctorId}/schedule?from=2026-03-01&to=2026-03-31
+     */
+    @GetMapping("/{doctorId}/schedule")
+    public ResponseEntity<List<ShiftDto>> getSchedule(
+            @PathVariable UUID doctorId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+
+        if (from == null)
+            from = LocalDate.now().withDayOfMonth(1);
+        if (to == null)
+            to = from.plusMonths(1).minusDays(1);
+
+        List<ShiftDto> shifts = doctorService.getShiftsByDateRange(doctorId, from, to);
+        return ResponseEntity.ok(shifts);
+    }
+
+    /**
+     * Search patients
+     * GET /api/doctor/patients/search?query=Nguyen
+     */
+    @GetMapping("/patients/search")
+    public ResponseEntity<List<PatientDto>> searchPatients(@RequestParam(required = false) String query) {
+        List<PatientDto> patients = doctorService.searchPatients(query);
+        return ResponseEntity.ok(patients);
     }
 }

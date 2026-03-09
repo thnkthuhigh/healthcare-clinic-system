@@ -73,6 +73,19 @@ export const doctorApi = {
   // Get all bookings for a shift
   getAllBookings: (shiftId: string) =>
     fetchApi<QueueItem[]>(`${API_BASE}/shifts/${shiftId}/bookings`),
+
+  // Get shifts by date range (for schedule page)
+  getSchedule: (doctorId: string, from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchApi<Shift[]>(`${API_BASE}/${doctorId}/schedule${qs}`);
+  },
+
+  // Search patients
+  searchPatients: (query: string) =>
+    fetchApi<Patient[]>(`${API_BASE}/patients/search?query=${encodeURIComponent(query)}`),
 };
 
 // ========== Consultation API ==========
