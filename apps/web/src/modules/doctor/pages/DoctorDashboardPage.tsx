@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useAuth } from '../../auth/useAuth';
 import { doctorApi } from '../api';
 import type { Shift } from '../types';
 
@@ -15,6 +16,7 @@ function getShiftStatus(shift: Shift) {
 }
 
 export function DoctorDashboardPage() {
+  const { user } = useAuth();
   const [selectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +30,12 @@ export function DoctorDashboardPage() {
   // Fetch shifts from API
   useEffect(() => {
     const fetchShifts = async () => {
+      if (!user) return;
       try {
         setLoading(true);
         setError(null);
-        // TODO: Thay bằng doctor ID từ auth context khi có authentication
-        const DOCTOR_ID = 'b0000000-0000-0000-0000-000000000001';
-        const data = await doctorApi.getShifts(DOCTOR_ID, selectedDate || undefined);
+        const doctor = await doctorApi.getProfile(user.id);
+        const data = await doctorApi.getShifts(doctor.id, selectedDate || undefined);
         setShifts(data);
       } catch (err) {
         console.error('Failed to fetch shifts:', err);
@@ -45,7 +47,7 @@ export function DoctorDashboardPage() {
     };
 
     fetchShifts();
-  }, [selectedDate]);
+  }, [selectedDate, user]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('vi-VN', {

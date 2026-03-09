@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "concurrently -k -n BACKEND,WEB -c magenta,cyan \"npm run dev -w apps/backend\" \"npm run dev -w apps/web\"",
+    "db:refresh": "docker exec clinic_postgres psql -U postgres -d clinic_dev -c \"SELECT refresh_demo_data();\"",
     "dev:api": "npm run dev -w apps/api",
     "dev:backend": "npm run dev -w apps/backend",
     "dev:web": "npm run dev -w apps/web",

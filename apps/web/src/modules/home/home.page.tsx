@@ -61,10 +61,8 @@ export function HomePage() {
             href="http://localhost:4000/api/v1/health"
             rel="noreferrer"
             target="_blank"
-          
-
+          >
             ✅ Check API Health
-
           </a>
           <a
             className="rounded border border-slate-300 bg-white px-6 py-3 hover:bg-slate-50 transition-colors font-medium"

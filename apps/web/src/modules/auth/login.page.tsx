@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from './useAuth';
 
@@ -15,7 +15,7 @@ export function LoginPage() {
   // If already authenticated, redirect
   if (isAuthenticated && user) {
     const redirectTo = getRedirectPath(user.role);
-    navigate(redirectTo, { replace: true });
+    return <Navigate to={redirectTo} replace />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
