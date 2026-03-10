@@ -18,5 +18,37 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: clinic_backend
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      SERVER_PORT: 4000
+      DB_URL: jdbc:postgresql://postgres:5432/clinic_dev?stringtype=unspecified
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: hc-clinic-super-secret-key-must-be-at-least-64-bytes-long-for-hs512!!
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      OWNER_PHONE: '0900000000'
+      OWNER_PASSWORD: owner123
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: clinic_web
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
 volumes:
   clinic_postgres_data:

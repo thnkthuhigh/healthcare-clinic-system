@@ -42,6 +42,11 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                // Customer booking browsing - public (no login required)
+                .requestMatchers(HttpMethod.GET, "/api/customer/doctors").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/customer/doctors/*/shifts").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/customer/services").permitAll()
+
                 // OWNER has access to everything
                 .requestMatchers("/api/**").hasAnyRole("OWNER", "ADMIN", "DOCTOR", "RECEPTIONIST", "CASHIER", "PATIENT")
 

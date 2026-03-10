@@ -90,8 +90,8 @@ public class AdminService {
             "SELECT s.id, d.display_name, s.date, s.type, s.start_time, s.end_time, s.status, " +
             "(SELECT COUNT(*) FROM slots sl WHERE sl.shift_id = s.id) AS total_slots, " +
             "(SELECT COUNT(*) FROM bookings b WHERE b.shift_id = s.id) AS booked_slots, " +
-            "(SELECT COUNT(*) FROM slots sl WHERE sl.shift_id = s.id AND sl.pool = 'COMMON' AND sl.status = 'AVAILABLE') AS common_available, " +
-            "(SELECT COUNT(*) FROM slots sl WHERE sl.shift_id = s.id AND sl.pool = 'RESERVE' AND sl.status = 'AVAILABLE') AS reserve_available " +
+            "(SELECT COUNT(*) FROM slots sl WHERE sl.shift_id = s.id AND sl.pool = 'COMMON' AND sl.status = 'OPEN') AS common_available, " +
+            "(SELECT COUNT(*) FROM slots sl WHERE sl.shift_id = s.id AND sl.pool = 'RESERVE' AND sl.status = 'OPEN') AS reserve_available " +
             "FROM shifts s JOIN doctors d ON s.doctor_id = d.id WHERE s.date = :date ORDER BY s.start_time")
             .setParameter("date", date)
             .getResultList();

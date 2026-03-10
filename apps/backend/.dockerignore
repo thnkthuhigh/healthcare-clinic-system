@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+target
+**/target
+.git
+.vscode
+.idea
+*.md
+!README.md

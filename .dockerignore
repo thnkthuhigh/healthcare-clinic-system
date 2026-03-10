@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/build
+**/target
+.git
+.vscode
+.idea
+apps/api
+apps/backend
