@@ -37,18 +37,34 @@ export function HomePage() {
         {/* Staff section */}
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-slate-700 mb-3">👨‍⚕️ Dành cho Nhân viên</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Link
-              className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 hover:border-slate-400 transition-colors"
               to="/login"
+              className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md hover:border-blue-300 transition-all group"
             >
-              Đăng nhập
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+                  <span className="material-symbols-outlined text-3xl text-blue-600">login</span>
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-1">Đăng nhập</h3>
+                <p className="text-sm text-slate-600">Bác sĩ & Nhân viên</p>
+              </div>
             </Link>
+
+            {/* Admin Portal */}
             <Link
-              className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 hover:border-slate-400 transition-colors"
-              to="/doctor/dashboard"
+              to="/admin"
+              className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md hover:border-red-300 transition-all group"
             >
-              Bảng điều khiển Bác sĩ
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-red-200 transition-colors">
+                  <span className="material-symbols-outlined text-3xl text-red-600">
+                    admin_panel_settings
+                  </span>
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-1">Admin</h3>
+                <p className="text-sm text-slate-600">Quản trị hệ thống & điều phối khám</p>
+              </div>
             </Link>
           </div>
         </div>

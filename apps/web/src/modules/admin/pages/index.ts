@@ -1,0 +1,12 @@
+export { AdminDashboardPage } from './AdminDashboardPage';
+export { ReceptionPage } from './ReceptionPage';
+export { CashierPage } from './CashierPage';
+export { DoctorManagementPage } from './DoctorManagementPage';
+export { PatientManagementPage } from './PatientManagementPage';
+export { PatientRecordsPage } from './PatientRecordsPage';
+export { ShiftManagementPage } from './ShiftManagementPage';
+export { ServiceManagementPage } from './ServiceManagementPage';
+export { MedicationManagementPage } from './MedicationManagementPage';
+export { PrescriptionTemplatePage } from './PrescriptionTemplatePage';
+export { ReportsPage } from './ReportsPage';
+export { DepartmentManagementPage } from './DepartmentManagementPage';

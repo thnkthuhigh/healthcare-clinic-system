@@ -13,7 +13,16 @@ import {
   DoctorSettingsPage,
 } from '../modules/doctor/pages';
 import { HomePage } from '../modules/home/home.page';
-import { BookingPage, HealthProfilePage } from '../modules/patient/pages';
+import { AccountManagementPage } from '../modules/owner/pages';
+import {
+  BookingPage,
+  HealthProfilePage,
+  DoctorsPage,
+  ServicesPage,
+  AboutPage,
+  AppointmentsPage,
+  PatientHomePage,
+} from '../modules/patient/pages';
 
 export const router = createBrowserRouter([
   // Public routes
@@ -25,7 +34,19 @@ export const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
   },
+  {
+    path: '/register',
+    element: <RegisterPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
+  },
   // Patient / Customer routes
+  {
+    path: '/mainpage',
+    element: <PatientHomePage />,
+  },
   {
     path: '/booking',
     element: <BookingPage />,
@@ -33,6 +54,22 @@ export const router = createBrowserRouter([
   {
     path: '/health-profile',
     element: <HealthProfilePage />,
+  },
+  {
+    path: '/doctors',
+    element: <DoctorsPage />,
+  },
+  {
+    path: '/services',
+    element: <ServicesPage />,
+  },
+  {
+    path: '/about',
+    element: <AboutPage />,
+  },
+  {
+    path: '/appointments',
+    element: <AppointmentsPage />,
   },
   // Doctor routes
   {
@@ -75,6 +112,10 @@ export const router = createBrowserRouter([
         path: 'settings',
         element: <DoctorSettingsPage />,
       },
+      {
+        path: 'accounts',
+        element: <AccountManagementPage />,
+      },
     ],
   },
 
@@ -104,19 +145,30 @@ export const router = createBrowserRouter([
   //   ],
   // },
 
-  // Admin routes - Coming soon (TODO)
-  // {
-  //   path: '/admin',
-  //   element: <AdminLayout />,
-  //   children: [
-  //     { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-  //     { path: 'dashboard', element: <AdminDashboardPage /> },
-  //     { path: 'users', element: <UsersPage /> },
-  //     { path: 'doctors', element: <DoctorsPage /> },
-  //     { path: 'services', element: <ServicesPage /> },
-  //     { path: 'settings', element: <SettingsPage /> },
-  //   ],
-  // },
+  // Admin routes - Protected (ADMIN + OWNER)
+  {
+    path: '/admin',
+    element: (
+      <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+        <AdminLayout />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { path: 'dashboard', element: <AdminDashboardPage /> },
+      { path: 'reception', element: <ReceptionPage /> },
+      { path: 'cashier', element: <CashierPage /> },
+      { path: 'doctors', element: <DoctorManagementPage /> },
+      { path: 'patients', element: <PatientManagementPage /> },
+      { path: 'records', element: <PatientRecordsPage /> },
+      { path: 'shifts', element: <ShiftManagementPage /> },
+      { path: 'services', element: <ServiceManagementPage /> },
+      { path: 'medications', element: <MedicationManagementPage /> },
+      { path: 'templates', element: <PrescriptionTemplatePage /> },
+      { path: 'departments', element: <DepartmentManagementPage /> },
+      { path: 'reports', element: <ReportsPage /> },
+    ],
+  },
 
   // 404 Not Found - Must be last
   {
