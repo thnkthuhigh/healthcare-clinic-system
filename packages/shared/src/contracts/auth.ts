@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'RECEPTIONIST' | 'CASHIER' | 'DOCTOR' | 'PATIENT';
+export type UserRole = 'OWNER' | 'ADMIN' | 'RECEPTIONIST' | 'CASHIER' | 'DOCTOR' | 'PATIENT';
 
 export type AccountStatus = 'ACTIVE' | 'LOCKED';
 
@@ -8,7 +8,7 @@ export type LoginRequest = {
 };
 
 export type LoginResponse = {
-  accessToken: string;
+  token: string;
   user: {
     id: string;
     phone: string;

@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Refreshes demo seed data to today's date on every server startup.
- * Calls the refresh_demo_data() PostgreSQL function defined in V9 migration.
+ * Calls the refresh_demo_data() PostgreSQL function defined in V11 migration.
  * This ensures shifts and bookings always appear as "today" during development.
  */
 @Component
