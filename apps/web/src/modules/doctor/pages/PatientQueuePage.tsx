@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { useAuth } from '../../auth/useAuth';
 import { doctorApi } from '../api';
 import type { QueueItem, BookingStatus } from '../types';
 
@@ -84,6 +85,7 @@ const avatarColors = [
 ];
 
 export function PatientQueuePage() {
+  const { user } = useAuth();
   const { shiftId: paramShiftId } = useParams<{ shiftId: string }>();
   const [activeShiftId, setActiveShiftId] = useState<string | null>(paramShiftId || null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,11 +104,14 @@ export function PatientQueuePage() {
     }
 
     const findActiveShift = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
-        // TODO: Get from auth context
-        const DOCTOR_ID = 'b0000000-0000-0000-0000-000000000001';
-        const shifts = await doctorApi.getShifts(DOCTOR_ID);
+        const doctor = await doctorApi.getProfile(user.id);
+        const shifts = await doctorApi.getShifts(doctor.id);
 
         // Find current or next shift
         const active = shifts.find((s) => s.status !== 'CLOSED') || shifts[0];
@@ -125,7 +130,7 @@ export function PatientQueuePage() {
     };
 
     findActiveShift();
-  }, [paramShiftId]);
+  }, [paramShiftId, user]);
 
   // Fetch queue data
   const fetchQueue = useCallback(async () => {

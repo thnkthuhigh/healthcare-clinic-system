@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from './useAuth';
 
@@ -13,12 +13,10 @@ export function LoginPage() {
   const { login, isAuthenticated, user } = useAuth();
 
   // If already authenticated, redirect
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const redirectTo = getRedirectPath(user.role);
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, user, navigate]);
+  if (isAuthenticated && user) {
+    const redirectTo = getRedirectPath(user.role);
+    return <Navigate to={redirectTo} replace />;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

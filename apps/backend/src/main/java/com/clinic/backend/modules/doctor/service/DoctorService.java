@@ -6,6 +6,7 @@ import com.clinic.backend.modules.doctor.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.clinic.backend.modules.doctor.entity.Patient;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -18,14 +19,17 @@ public class DoctorService {
     private final DoctorRepository doctorRepository;
     private final ShiftRepository shiftRepository;
     private final BookingRepository bookingRepository;
+    private final PatientRepository patientRepository;
 
     public DoctorService(
             DoctorRepository doctorRepository,
             ShiftRepository shiftRepository,
-            BookingRepository bookingRepository) {
+            BookingRepository bookingRepository,
+            PatientRepository patientRepository) {
         this.doctorRepository = doctorRepository;
         this.shiftRepository = shiftRepository;
         this.bookingRepository = bookingRepository;
+        this.patientRepository = patientRepository;
     }
 
     /**
@@ -81,6 +85,38 @@ public class DoctorService {
     public List<QueueItemDto> getAllBookingsByShift(UUID shiftId) {
         List<Booking> bookings = bookingRepository.findAllByShiftId(shiftId);
         return bookings.stream().map(this::toQueueItemDto).toList();
+    }
+
+    /**
+     * Get doctor's shifts across a date range (for schedule page)
+     */
+    public List<ShiftDto> getShiftsByDateRange(UUID doctorId, LocalDate from, LocalDate to) {
+        List<Shift> shifts = shiftRepository.findByDoctorIdAndDateBetween(doctorId, from, to);
+        return shifts.stream().map(this::toShiftDto).toList();
+    }
+
+    /**
+     * Search patients by name, phone or national ID
+     */
+    public List<PatientDto> searchPatients(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        return patientRepository.search(query)
+                .stream()
+                .map(p -> new PatientDto(
+                        p.getId(),
+                        p.getFullName(),
+                        p.getPhone(),
+                        p.getNationalId(),
+                        p.getDateOfBirth(),
+                        p.getAge(),
+                        p.getGender(),
+                        p.getWeightKg(),
+                        p.getHeightCm(),
+                        p.getAllergies(),
+                        p.getAddress()))
+                .toList();
     }
 
     // ========== Mappers ==========
