@@ -158,7 +158,10 @@ export function DoctorDashboardPage() {
                   {totalCompleted}
                 </p>
                 <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-medium">
-                  {Math.round((totalCompleted / totalAppointments) * 100)}% tiến độ
+                  {totalAppointments > 0
+                    ? Math.round((totalCompleted / totalAppointments) * 100)
+                    : 0}
+                  % tiến độ
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">

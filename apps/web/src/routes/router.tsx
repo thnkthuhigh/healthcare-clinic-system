@@ -1,7 +1,24 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { RequireAuth } from '../components/RequireAuth';
+import { AdminLayout } from '../modules/admin/components';
+import {
+  AdminDashboardPage,
+  ReceptionPage,
+  CashierPage,
+  DoctorManagementPage,
+  PatientManagementPage,
+  PatientRecordsPage,
+  ShiftManagementPage,
+  ServiceManagementPage,
+  MedicationManagementPage,
+  PrescriptionTemplatePage,
+  ReportsPage,
+  DepartmentManagementPage,
+} from '../modules/admin/pages';
+import { ForgotPasswordPage } from '../modules/auth/forgot-password.page';
 import { LoginPage } from '../modules/auth/login.page';
+import { RegisterPage } from '../modules/auth/register.page';
 import { NotFoundPage } from '../modules/common/NotFound.page';
 import { DoctorLayout } from '../modules/doctor/components';
 import {
