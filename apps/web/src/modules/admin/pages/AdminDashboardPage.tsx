@@ -22,10 +22,9 @@ export function AdminDashboardPage() {
         ]);
         setStats(statsData);
         setShifts(shiftsData);
-      } catch (err) {
-        console.error('Dashboard fetch error:', err);
+      } catch {
         setError('Không thể tải dữ liệu. Vui lòng thử lại.');
-        // Fallback mock data for development
+        // Fallback data while backend is loading
         setStats({
           todayPatients: 24,
           waitingCount: 5,

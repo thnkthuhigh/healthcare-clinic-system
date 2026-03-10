@@ -94,19 +94,19 @@ export function HomePage() {
         <div className="mt-16 pt-8 border-t border-slate-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-blue-600">4</p>
+              <p className="text-2xl font-bold text-blue-600">5</p>
               <p className="text-sm text-slate-600 mt-1">Modules</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-600">8+</p>
+              <p className="text-2xl font-bold text-green-600">15+</p>
               <p className="text-sm text-slate-600 mt-1">Features</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-purple-600">15+</p>
+              <p className="text-2xl font-bold text-purple-600">19</p>
               <p className="text-sm text-slate-600 mt-1">DB Tables</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-red-600">20+</p>
+              <p className="text-2xl font-bold text-red-600">40+</p>
               <p className="text-sm text-slate-600 mt-1">API Endpoints</p>
             </div>
           </div>
