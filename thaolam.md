@@ -1,3 +1,39 @@
+# QUY TẮC GHI NHẬT KÝ CÔNG VIỆC (BẮT BUỘC)
+
+> Áp dụng cho: tất cả thành viên làm **admin module** (`apps/web/src/modules/admin/`, `apps/backend/modules/admin/`)
+
+## Template bắt buộc khi hoàn thành 1 PR/task:
+
+```
+PR<số>: <Tên tính năng> — HOÀN THÀNH | ĐANG LÀM | BỊ BLOCK
+
+Đã tạo mới (<n> files):
+- <tên file> — <mục đích 1 dòng>
+
+Đã sửa (<n> files):
+- <tên file> — <thay đổi gì>
+
+Logic đã implement:
+- <Logic key A/B/C nếu có>
+
+Verification:
+- npm run lint — <kết quả>
+- npm run typecheck — <kết quả>
+- API test: <endpoint đã test>
+
+Known issues / TODO còn lại:
+- <nếu có>
+```
+
+## Quy tắc:
+1. **Làm xong phải note ngay** — không để qua ngày hôm sau.
+2. **Không tóm tắt chung chung** — phải liệt kê đúng tên file, tên method, tên endpoint.
+3. **Verification là bắt buộc** — phải chạy `npm run check` trước khi note HOÀN THÀNH.
+4. **Ghi Known issues** — nếu còn TODO dang dở, ghi rõ để người sau không bị hiểu nhầm là đã xong hoàn toàn.
+5. **Đánh số PR liên tiếp** — PR1, PR2, PR3... không được bỏ trống số.
+
+---
+
 PR1: AdminLayout + Dashboard — HOÀN THÀNH
 Đã tạo mới (17 files)
 Frontend — Types & API:
@@ -285,3 +321,83 @@ Verification:
 
 - npm run lint — 0 errors
 - npm run typecheck — 3/3 workspaces pass
+
+---
+
+PR8: Sprint 1 - Fix toa mau + Gop trang Ho so kham � HOAN THANH
+
+Da tao moi (0 files):
+- Khong tao file moi.
+
+Da sua (8 files):
+- apps/backend/src/main/java/com/clinic/backend/modules/admin/service/PrescriptionTemplateService.java � harden update/delete toa mau, validate item payload, normalize text, xu ly duplicate medication.
+- apps/backend/src/main/java/com/clinic/backend/modules/doctor/repository/PrescriptionTemplateRepository.java � them methods existsByNameIgnoreCase() va deleteItemsByTemplateId().
+- apps/web/src/modules/admin/api.ts � fetchApi() xu ly response khong co body (204/empty) de DELETE khong bi vo json parse.
+- apps/web/src/modules/admin/pages/PatientManagementPage.tsx � gop UI Patient + Records thanh trang Quan ly Ho so kham (left panel + tabs Thong tin/Lich su kham/Don thuoc cu).
+- apps/web/src/routes/router.tsx � xoa route /admin/records.
+- apps/web/src/modules/admin/components/AdminSidebar.tsx � gop nav item sang 1 muc Ho so kham.
+- apps/web/src/modules/admin/components/AdminHeader.tsx � cap nhat title map cho /admin/patients.
+- apps/web/src/modules/admin/pages/index.ts � xoa export PatientRecordsPage.
+
+Logic da implement:
+- Fix bug xoa toa mau: frontend khong con fail khi API tra empty body.
+- Fix bug sua/xoa toa mau: backend xoa item theo template_id truoc khi update/delete de tranh loi FK/cascade tren DB cu.
+- Gom trang theo Sprint 1: /admin/patients tro thanh trang quan ly ho so kham tong hop, /admin/records bi loai bo.
+
+Verification:
+- npm run lint � PASS
+- npm run typecheck � PASS (3/3 workspaces)
+- npm run check � FAIL tai buoc prettier check do ton tai san 124 file format issue toan repo (khong do thay doi task nay)
+- API test manual: /api/v1/admin/prescription-templates (PUT/DELETE) � da harden theo code path frontend + backend
+
+Known issues / TODO con lai:
+- Chua implement Phase 0.2 show/hide password (de Sprint 8 theo ke hoach).
+- Chua them migration schema moi (V13+) trong Sprint 1.
+
+---
+
+PR9: Sprint 2 - Migrations V13-V16 + Room Management � HOAN THANH
+
+Da tao moi (10 files):
+- apps/backend/src/main/resources/db/migration/V13__rooms.sql � tao bang rooms, them shifts.room_id, seed 4 phong mau.
+- apps/backend/src/main/resources/db/migration/V14__service_specialty_doctor_service.sql � them services.specialty_id va bang doctor_services, seed mapping ban dau.
+- apps/backend/src/main/resources/db/migration/V15__supplies_assets.sql � tao bang supplies va assets.
+- apps/backend/src/main/resources/db/migration/V16__finance_ledger.sql � tao finance_ledger + indexes + trigger auto ghi thu/chi.
+- apps/backend/src/main/java/com/clinic/backend/modules/admin/entity/Room.java � JPA entity cho rooms.
+- apps/backend/src/main/java/com/clinic/backend/modules/admin/repository/RoomRepository.java � repository cho rooms.
+- apps/backend/src/main/java/com/clinic/backend/modules/admin/dto/RoomDto.java � DTO response room (co assetCount).
+- apps/backend/src/main/java/com/clinic/backend/modules/admin/service/RoomService.java � business logic list/create/update/toggle rooms.
+- apps/backend/src/main/java/com/clinic/backend/modules/admin/controller/RoomController.java � API /api/v1/admin/rooms.
+- apps/web/src/modules/admin/pages/RoomManagementPage.tsx � trang quan ly phong kham moi.
+
+Da sua (7 files):
+- apps/web/src/modules/admin/types.ts � them AdminRoomDto, CreateRoomRequest, UpdateRoomRequest, RoomStatus.
+- apps/web/src/modules/admin/api.ts � them getRooms/createRoom/updateRoom/toggleRoom.
+- apps/web/src/routes/router.tsx � them route /admin/rooms.
+- apps/web/src/modules/admin/components/AdminSidebar.tsx � them nav item Phong kham.
+- apps/web/src/modules/admin/components/AdminHeader.tsx � them route title cho /admin/rooms.
+- apps/web/src/modules/admin/pages/index.ts � export RoomManagementPage.
+- thaolam.md � cap nhat nhat ky PR9.
+
+Logic da implement:
+- Data model Sprint 2: rooms + service-specialty + doctor-services + supplies/assets + finance ledger.
+- Trigger ledger tu dong:
+  - bookings.payment_status -> PAID => INCOME/CONSULTATION_FEE.
+  - prescriptions.status -> PAID => INCOME/MEDICATION_SALE (per prescription item).
+  - medications stock_real tang => EXPENSE/MEDICATION_PURCHASE.
+  - supplies stock_qty tang => EXPENSE/SUPPLY_PURCHASE.
+  - assets insert co purchase_price => EXPENSE/ASSET_PURCHASE.
+- Room management full flow:
+  - GET /api/v1/admin/rooms?status=&roomType=
+  - POST /api/v1/admin/rooms
+  - PATCH /api/v1/admin/rooms/{id}
+  - POST /api/v1/admin/rooms/{id}/toggle
+
+Verification:
+- Backend compile: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -Command "mvn -q -DskipTests compile" � PASS.
+- Frontend typecheck: npm run typecheck -w apps/web � PASS.
+- npm run check � FAIL tai prettier check (125 files format issue toan repo, khong phai rieng task PR9).
+
+Known issues / TODO con lai:
+- Chua implement cac page/features tiep theo cua Sprint 3+ (auto dispatch, weekly shift, supplies/assets UI...).
+- Trigger medication purchase dang tinh amount theo price_cents hien tai vi chua co gia nhap rieng cho medication.

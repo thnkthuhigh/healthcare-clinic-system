@@ -243,6 +243,37 @@ export interface UpdateServiceRequest {
   priceCents?: number | undefined;
 }
 
+// ========== Room Management Types ==========
+
+export type RoomStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+
+export interface AdminRoomDto {
+  id: string;
+  code: string;
+  name: string;
+  area: string | null;
+  roomType: string;
+  status: RoomStatus;
+  assetCount: number;
+  createdAt: string;
+}
+
+export interface CreateRoomRequest {
+  code: string;
+  name: string;
+  area?: string | undefined;
+  roomType: string;
+  status?: RoomStatus | undefined;
+}
+
+export interface UpdateRoomRequest {
+  code?: string | undefined;
+  name?: string | undefined;
+  area?: string | undefined;
+  roomType?: string | undefined;
+  status?: RoomStatus | undefined;
+}
+
 // ========== Medication Management Types ==========
 
 export interface AdminMedicationDto {

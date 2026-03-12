@@ -3,6 +3,7 @@ import type {
   AdminMedicationDto,
   AdminPatientDto,
   AdminPrescriptionTemplateDto,
+  AdminRoomDto,
   AdminServiceDto,
   AdminShiftDto,
   AdminSlotDto,
@@ -10,6 +11,7 @@ import type {
   CashierBooking,
   CreateDoctorRequest,
   CreateMedicationRequest,
+  CreateRoomRequest,
   CreateServiceRequest,
   CreateShiftRequest,
   DashboardStats,
@@ -21,6 +23,7 @@ import type {
   ShiftOverview,
   UpdateDoctorRequest,
   UpdateMedicationRequest,
+  UpdateRoomRequest,
   UpdateServiceRequest,
   WalkInRequest,
   WalkInResponse,
@@ -60,7 +63,25 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error(error.message || 'API Error');
   }
 
-  return response.json();
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+  if (contentType.includes('application/json')) {
+    return (await response.json()) as T;
+  }
+
+  const rawBody = await response.text();
+  if (!rawBody) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(rawBody) as T;
+  } catch {
+    return rawBody as T;
+  }
 }
 
 // ========== Dashboard API ==========
@@ -195,6 +216,31 @@ export const adminApi = {
 
   toggleSlot: (slotId: string) =>
     fetchApi<AdminSlotDto>(`${API_BASE}/shifts/slots/${slotId}/toggle`, { method: 'POST' }),
+
+  // ========== Room Management API ==========
+
+  getRooms: (status?: string, roomType?: string) => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (roomType) params.set('roomType', roomType);
+    const qs = params.toString();
+    return fetchApi<AdminRoomDto[]>(`${API_BASE}/rooms${qs ? '?' + qs : ''}`);
+  },
+
+  createRoom: (data: CreateRoomRequest) =>
+    fetchApi<AdminRoomDto>(`${API_BASE}/rooms`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateRoom: (id: string, data: UpdateRoomRequest) =>
+    fetchApi<AdminRoomDto>(`${API_BASE}/rooms/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  toggleRoom: (id: string) =>
+    fetchApi<AdminRoomDto>(`${API_BASE}/rooms/${id}/toggle`, { method: 'POST' }),
 
   // ========== Service Management API ==========
 
