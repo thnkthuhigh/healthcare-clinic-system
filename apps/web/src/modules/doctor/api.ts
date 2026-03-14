@@ -1,6 +1,7 @@
 import type {
   Doctor,
   Shift,
+  ScheduleShift,
   QueueItem,
   BookingDetail,
   MedicalRecord,
@@ -81,6 +82,14 @@ export const doctorApi = {
     if (to) params.set('to', to);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return fetchApi<Shift[]>(`${API_BASE}/${doctorId}/schedule${qs}`);
+  },
+
+  getScheduleDetails: (doctorId: string, from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchApi<ScheduleShift[]>(`${API_BASE}/${doctorId}/schedule-details${qs}`);
   },
 
   // Search patients

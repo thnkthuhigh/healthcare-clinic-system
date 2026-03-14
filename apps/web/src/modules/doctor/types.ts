@@ -23,6 +23,7 @@ export interface Patient {
 
 export type ShiftType = 'MORNING' | 'AFTERNOON';
 export type ShiftStatus = 'OPEN' | 'CLOSED';
+export type SlotPool = 'COMMON' | 'RESERVE' | 'OVERRIDE';
 
 export interface Shift {
   id: string;
@@ -37,6 +38,36 @@ export interface Shift {
   checkedInCount: number;
   inConsultationCount: number;
   completedCount: number;
+}
+
+export interface ScheduleBooking {
+  id: string;
+  queueNumber: number | null;
+  appointmentTime: string;
+  slotSequence: number;
+  slotPool: SlotPool | null;
+  patient: Patient;
+  serviceName: string | null;
+  status: BookingStatus;
+  channel: BookingChannel;
+  checkInAt: string | null;
+}
+
+export interface ScheduleShift {
+  id: string;
+  date: string;
+  type: ShiftType;
+  startTime: string;
+  endTime: string;
+  timeRange: string;
+  status: ShiftStatus;
+  totalPatients: number;
+  bookedCount: number;
+  waitingCount: number;
+  checkedInCount: number;
+  inConsultationCount: number;
+  completedCount: number;
+  bookings: ScheduleBooking[];
 }
 
 export type BookingStatus =
@@ -56,6 +87,8 @@ export type PaymentStatus = 'UNPAID' | 'PAID' | 'VOID';
 export interface QueueItem {
   id: string;
   queueNumber: number | null;
+  appointmentTime: string;
+  slotSequence: number;
   patient: Patient;
   serviceName: string | null;
   status: BookingStatus;

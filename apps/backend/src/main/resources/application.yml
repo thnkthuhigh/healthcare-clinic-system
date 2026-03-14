@@ -10,6 +10,8 @@ app:
   owner:
     phone: ${OWNER_PHONE:0900000000}
     password: ${OWNER_PASSWORD:owner123}
+  demo:
+    refresh-on-startup: ${APP_DEMO_REFRESH_ON_STARTUP:false}
 
 spring:
   datasource:
