@@ -31,23 +31,39 @@ public class RoomService {
 
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
-    public List<RoomDto> getRooms(String status, String roomType) {
+    public List<RoomDto> getRooms(String status, String serviceId) {
         String normalizedStatus = normalizeOptionalUpper(status);
-        String normalizedRoomType = normalizeOptionalUpper(roomType);
+        UUID serviceUuid = parseOptionalUuid(serviceId, "serviceId");
 
-        List<Object[]> rows = em.createNativeQuery(
+        StringBuilder sql = new StringBuilder(
             "SELECT " +
-                "r.id::text, r.code, r.name, r.area, r.room_type, r.status, r.created_at, " +
+                "r.id, r.code, r.name, r.area, r.room_type, r.service_id, sv.name, r.status, r.created_at, " +
                 "COUNT(a.id) AS asset_count " +
             "FROM rooms r " +
+            "LEFT JOIN services sv ON sv.id = r.service_id " +
             "LEFT JOIN assets a ON a.room_id = r.id " +
-            "WHERE (:status IS NULL OR upper(r.status) = :status) " +
-              "AND (:roomType IS NULL OR upper(r.room_type) = :roomType) " +
-            "GROUP BY r.id, r.code, r.name, r.area, r.room_type, r.status, r.created_at " +
-            "ORDER BY r.code")
-            .setParameter("status", normalizedStatus)
-            .setParameter("roomType", normalizedRoomType)
-            .getResultList();
+            "WHERE 1=1 ");
+
+        if (normalizedStatus != null) {
+            sql.append("AND upper(r.status) = :status ");
+        }
+        if (serviceUuid != null) {
+            sql.append("AND r.service_id = :serviceId ");
+        }
+
+        sql.append(
+            "GROUP BY r.id, r.code, r.name, r.area, r.room_type, r.service_id, sv.name, r.status, r.created_at " +
+            "ORDER BY r.code");
+
+        var query = em.createNativeQuery(sql.toString());
+        if (normalizedStatus != null) {
+            query.setParameter("status", normalizedStatus);
+        }
+        if (serviceUuid != null) {
+            query.setParameter("serviceId", serviceUuid);
+        }
+
+        List<Object[]> rows = query.getResultList();
 
         List<RoomDto> result = new ArrayList<>();
         for (Object[] row : rows) {
@@ -62,21 +78,24 @@ public class RoomService {
     }
 
     @Transactional
-    public RoomDto createRoom(String code, String name, String area, String roomType, String status) {
+    public RoomDto createRoom(String code, String name, String serviceId, String status) {
         String normalizedCode = normalizeRequired(code, "Ma phong la bat buoc").toUpperCase();
         String normalizedName = normalizeRequired(name, "Ten phong la bat buoc");
-        String normalizedRoomType = normalizeRequired(roomType, "Loai phong la bat buoc").toUpperCase();
+        UUID serviceUuid = parseUuid(serviceId, "serviceId");
         String normalizedStatus = normalizeStatus(status);
 
         if (roomRepository.existsByCodeIgnoreCase(normalizedCode)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ma phong da ton tai");
         }
 
+        String derivedRoomType = deriveRoomTypeFromService(serviceUuid);
+
         Room room = new Room();
         room.setCode(normalizedCode);
         room.setName(normalizedName);
-        room.setArea(normalizeNullable(area));
-        room.setRoomType(normalizedRoomType);
+        room.setArea(null);
+        room.setServiceId(serviceUuid);
+        room.setRoomType(derivedRoomType);
         room.setStatus(normalizedStatus);
         Room saved = roomRepository.saveAndFlush(room);
 
@@ -84,7 +103,7 @@ public class RoomService {
     }
 
     @Transactional
-    public RoomDto updateRoom(UUID id, String code, String name, String area, String roomType, String status) {
+    public RoomDto updateRoom(UUID id, String code, String name, String serviceId, String status) {
         Room room = roomRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay phong"));
 
@@ -101,12 +120,11 @@ public class RoomService {
             room.setName(normalizeRequired(name, "Ten phong khong hop le"));
         }
 
-        if (area != null) {
-            room.setArea(normalizeNullable(area));
-        }
-
-        if (roomType != null) {
-            room.setRoomType(normalizeRequired(roomType, "Loai phong khong hop le").toUpperCase());
+        if (serviceId != null) {
+            UUID serviceUuid = parseUuid(serviceId, "serviceId");
+            room.setServiceId(serviceUuid);
+            room.setRoomType(deriveRoomTypeFromService(serviceUuid));
+            room.setArea(null);
         }
 
         if (status != null) {
@@ -132,12 +150,13 @@ public class RoomService {
     private RoomDto fetchRoomDtoById(UUID id) {
         List<Object[]> rows = em.createNativeQuery(
             "SELECT " +
-                "r.id::text, r.code, r.name, r.area, r.room_type, r.status, r.created_at, " +
+                "r.id, r.code, r.name, r.area, r.room_type, r.service_id, sv.name, r.status, r.created_at, " +
                 "COUNT(a.id) AS asset_count " +
             "FROM rooms r " +
+            "LEFT JOIN services sv ON sv.id = r.service_id " +
             "LEFT JOIN assets a ON a.room_id = r.id " +
             "WHERE r.id = :id " +
-            "GROUP BY r.id, r.code, r.name, r.area, r.room_type, r.status, r.created_at")
+            "GROUP BY r.id, r.code, r.name, r.area, r.room_type, r.service_id, sv.name, r.status, r.created_at")
             .setParameter("id", id)
             .getResultList();
 
@@ -155,9 +174,11 @@ public class RoomService {
         dto.setName(row[2].toString());
         dto.setArea(row[3] != null ? row[3].toString() : null);
         dto.setRoomType(row[4].toString());
-        dto.setStatus(row[5].toString());
-        dto.setCreatedAt(row[6].toString());
-        dto.setAssetCount(((Number) row[7]).intValue());
+        dto.setServiceId(row[5] != null ? row[5].toString() : null);
+        dto.setServiceName(row[6] != null ? row[6].toString() : null);
+        dto.setStatus(row[7].toString());
+        dto.setCreatedAt(row[8].toString());
+        dto.setAssetCount(((Number) row[9]).intValue());
         return dto;
     }
 
@@ -183,6 +204,50 @@ public class RoomService {
     private String normalizeOptionalUpper(String value) {
         String normalized = normalizeNullable(value);
         return normalized == null ? null : normalized.toUpperCase();
+    }
+
+    private UUID parseUuid(String value, String fieldName) {
+        String normalized = normalizeRequired(value, fieldName + " la bat buoc");
+        try {
+            return UUID.fromString(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+        }
+    }
+
+    private UUID parseOptionalUuid(String value, String fieldName) {
+        String normalized = normalizeNullable(value);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            return UUID.fromString(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String deriveRoomTypeFromService(UUID serviceId) {
+        List<Object[]> rows = em.createNativeQuery(
+                "SELECT sv.name, dep.name " +
+                "FROM services sv " +
+                "LEFT JOIN departments dep ON dep.id = sv.specialty_id " +
+                "WHERE sv.id = :serviceId")
+            .setParameter("serviceId", serviceId)
+            .getResultList();
+
+        if (rows.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dich vu khong ton tai");
+        }
+
+        String departmentName = rows.get(0)[1] != null ? rows.get(0)[1].toString().trim() : "";
+        String serviceName = rows.get(0)[0] != null ? rows.get(0)[0].toString().trim() : "";
+        String source = !departmentName.isEmpty() ? departmentName : serviceName;
+        if (source.isEmpty()) {
+            return "SERVICE";
+        }
+        return source.toUpperCase().replace(' ', '_');
     }
 
     private String normalizeStatus(String status) {

@@ -2,24 +2,28 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
 import { adminApi } from '../api';
-import type { AdminRoomDto, CreateRoomRequest, RoomStatus, UpdateRoomRequest } from '../types';
+import type {
+  AdminRoomDto,
+  AdminServiceDto,
+  CreateRoomRequest,
+  RoomStatus,
+  UpdateRoomRequest,
+} from '../types';
 
 const ROOM_STATUSES: RoomStatus[] = ['ACTIVE', 'INACTIVE', 'MAINTENANCE'];
-const DEFAULT_ROOM_TYPES = ['EXAMINATION', 'LAB', 'ULTRASOUND', 'XRAY', 'PROCEDURE', 'OTHER'];
 
 interface RoomModalProps {
   initial?: AdminRoomDto | undefined;
-  knownTypes: string[];
+  services: AdminServiceDto[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
+function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
   const isEdit = !!initial;
   const [code, setCode] = useState(initial?.code ?? '');
   const [name, setName] = useState(initial?.name ?? '');
-  const [area, setArea] = useState(initial?.area ?? '');
-  const [roomType, setRoomType] = useState(initial?.roomType ?? 'EXAMINATION');
+  const [serviceId, setServiceId] = useState(initial?.serviceId ?? '');
   const [status, setStatus] = useState<RoomStatus>(initial?.status ?? 'ACTIVE');
   const [error, setError] = useState('');
 
@@ -33,7 +37,8 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateRoomRequest }) => adminApi.updateRoom(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateRoomRequest }) =>
+      adminApi.updateRoom(id, data),
     onSuccess: () => {
       onSaved();
       onClose();
@@ -49,8 +54,6 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
 
     const normalizedCode = code.trim().toUpperCase();
     const normalizedName = name.trim();
-    const normalizedArea = area.trim();
-    const normalizedRoomType = roomType.trim().toUpperCase();
 
     if (!normalizedCode) {
       setError('Ma phong khong duoc de trong');
@@ -60,8 +63,8 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
       setError('Ten phong khong duoc de trong');
       return;
     }
-    if (!normalizedRoomType) {
-      setError('Loai phong khong duoc de trong');
+    if (!serviceId) {
+      setError('Vui long chon dich vu phu trach');
       return;
     }
 
@@ -69,28 +72,19 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
       const data: UpdateRoomRequest = {};
       if (normalizedCode !== initial!.code) data.code = normalizedCode;
       if (normalizedName !== initial!.name) data.name = normalizedName;
-      if (normalizedArea !== (initial!.area ?? '')) data.area = normalizedArea;
-      if (normalizedRoomType !== initial!.roomType) data.roomType = normalizedRoomType;
+      if (serviceId !== (initial!.serviceId ?? '')) data.serviceId = serviceId;
       if (status !== initial!.status) data.status = status;
       updateMutation.mutate({ id: initial!.id, data });
       return;
     }
 
-    const payload: CreateRoomRequest = {
+    createMutation.mutate({
       code: normalizedCode,
       name: normalizedName,
-      roomType: normalizedRoomType,
+      serviceId,
       status,
-      ...(normalizedArea ? { area: normalizedArea } : {}),
-    };
-
-    createMutation.mutate(payload);
+    });
   };
-
-  const typeOptions = useMemo(() => {
-    const all = new Set<string>([...DEFAULT_ROOM_TYPES, ...knownTypes]);
-    return Array.from(all).sort();
-  }, [knownTypes]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -126,16 +120,17 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Loai phong *
+                Dich vu *
               </label>
               <select
-                value={roomType}
-                onChange={(e) => setRoomType(e.target.value)}
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               >
-                {typeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
+                <option value="">-- Chon dich vu --</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
                   </option>
                 ))}
               </select>
@@ -157,19 +152,6 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Khu vuc
-            </label>
-            <input
-              type="text"
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              placeholder="Tang 1 - Khu A"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
               Trang thai
             </label>
             <select
@@ -177,9 +159,9 @@ function RoomModal({ initial, knownTypes, onClose, onSaved }: RoomModalProps) {
               onChange={(e) => setStatus(e.target.value as RoomStatus)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
             >
-              {ROOM_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {ROOM_STATUSES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
                 </option>
               ))}
             </select>
@@ -216,25 +198,30 @@ function statusColor(status: string) {
 export function RoomManagementPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [serviceFilter, setServiceFilter] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<AdminRoomDto | undefined>();
 
+  const { data: services = [] } = useQuery({
+    queryKey: ['admin-services-room-filter'],
+    queryFn: () => adminApi.getServices(),
+    staleTime: 60000,
+  });
+
+  const activeServices = useMemo(
+    () => services.filter((service: AdminServiceDto) => service.active),
+    [services],
+  );
+
   const { data: rooms = [], isLoading } = useQuery({
-    queryKey: ['admin-rooms', statusFilter, typeFilter],
-    queryFn: () => adminApi.getRooms(statusFilter || undefined, typeFilter || undefined),
+    queryKey: ['admin-rooms', statusFilter, serviceFilter],
+    queryFn: () => adminApi.getRooms(statusFilter || undefined, serviceFilter || undefined),
   });
 
   const toggleMutation = useMutation({
     mutationFn: adminApi.toggleRoom,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-rooms'] }),
   });
-
-  const roomTypes = useMemo(() => {
-    const all = new Set<string>(DEFAULT_ROOM_TYPES);
-    rooms.forEach((room) => all.add(room.roomType));
-    return Array.from(all).sort();
-  }, [rooms]);
 
   const stats = {
     total: rooms.length,
@@ -252,8 +239,8 @@ export function RoomManagementPage() {
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">Quan ly Phong kham</h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              {stats.active}/{stats.total} phong dang hoat dong · {stats.maintenance} phong bao tri ·{' '}
-              {stats.assets} tai san
+              {stats.active}/{stats.total} phong dang hoat dong - {stats.maintenance} phong bao tri
+              - {stats.assets} tai san
             </p>
           </div>
           <div className="flex-1" />
@@ -270,14 +257,14 @@ export function RoomManagementPage() {
             ))}
           </select>
           <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            value={serviceFilter}
+            onChange={(e) => setServiceFilter(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
           >
-            <option value="">Tat ca loai phong</option>
-            {roomTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
+            <option value="">Tat ca dich vu</option>
+            {activeServices.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.name}
               </option>
             ))}
           </select>
@@ -317,10 +304,7 @@ export function RoomManagementPage() {
                     Ten phong
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Khu vuc
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Loai
+                    Dich vu phu trach
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Trang thai
@@ -335,13 +319,21 @@ export function RoomManagementPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {rooms.map((room) => (
-                  <tr key={room.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{room.code}</td>
+                  <tr
+                    key={room.id}
+                    className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                  >
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                      {room.code}
+                    </td>
                     <td className="px-4 py-3 text-slate-900 dark:text-white">{room.name}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{room.area || '—'}</td>
-                    <td className="px-4 py-3 text-center text-slate-700 dark:text-slate-300">{room.roomType}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                      {room.serviceName ?? 'Chua gan dich vu'}
+                    </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColor(room.status)}`}>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColor(room.status)}`}
+                      >
                         {room.status}
                       </span>
                     </td>
@@ -378,7 +370,7 @@ export function RoomManagementPage() {
       {showModal && (
         <RoomModal
           initial={editTarget}
-          knownTypes={roomTypes}
+          services={activeServices}
           onClose={() => setShowModal(false)}
           onSaved={refreshRooms}
         />

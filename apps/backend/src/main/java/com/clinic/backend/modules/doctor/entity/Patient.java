@@ -26,6 +26,9 @@ public class Patient {
     
     @Column(name = "national_id")
     private String nationalId;
+
+    @Column(name = "insurance_code")
+    private String insuranceCode;
     
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
@@ -63,6 +66,9 @@ public class Patient {
     
     public String getNationalId() { return nationalId; }
     public void setNationalId(String nationalId) { this.nationalId = nationalId; }
+
+    public String getInsuranceCode() { return insuranceCode; }
+    public void setInsuranceCode(String insuranceCode) { this.insuranceCode = insuranceCode; }
     
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }

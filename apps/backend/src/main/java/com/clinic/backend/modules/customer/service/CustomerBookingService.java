@@ -13,6 +13,7 @@ import com.clinic.backend.modules.doctor.entity.Shift;
 import com.clinic.backend.modules.doctor.entity.Slot;
 import com.clinic.backend.modules.doctor.entity.Service;
 import com.clinic.backend.modules.doctor.repository.*;
+import com.clinic.backend.modules.doctor.service.QueueNumberService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ public class CustomerBookingService {
     private final PrescriptionRepository prescriptionRepository;
     private final RatingRepository ratingRepository;
     private final ServiceRepository serviceRepository;
+    private final QueueNumberService queueNumberService;
 
     public CustomerBookingService(
             DoctorRepository doctorRepository,
@@ -46,7 +48,8 @@ public class CustomerBookingService {
             MedicalRecordRepository medicalRecordRepository,
             PrescriptionRepository prescriptionRepository,
             RatingRepository ratingRepository,
-            ServiceRepository serviceRepository) {
+            ServiceRepository serviceRepository,
+            QueueNumberService queueNumberService) {
         this.doctorRepository = doctorRepository;
         this.shiftRepository = shiftRepository;
         this.slotRepository = slotRepository;
@@ -56,6 +59,7 @@ public class CustomerBookingService {
         this.prescriptionRepository = prescriptionRepository;
         this.ratingRepository = ratingRepository;
         this.serviceRepository = serviceRepository;
+        this.queueNumberService = queueNumberService;
     }
 
     // =====================================================
@@ -154,7 +158,7 @@ public class CustomerBookingService {
         booking.setChannel(Booking.BookingChannel.WEB);
         booking.setStatus(Booking.BookingStatus.BOOKED);
         booking.setPaymentStatus(Booking.PaymentStatus.UNPAID);
-        booking.setQueueNumber(slot.getSequence());
+        booking.setQueueNumber(null);
         booking.setPriorityScore(0);
         bookingRepository.save(booking);
 
@@ -217,10 +221,13 @@ public class CustomerBookingService {
                     "Booking cannot be checked in (status: " + booking.getStatus() + ")");
         }
 
-        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        booking.setStatus(Booking.BookingStatus.WAITING);
         booking.setCheckInAt(Instant.now());
         // Web bookings get a slight priority boost on check-in
         booking.setPriorityScore(50);
+        if (booking.getQueueNumber() == null) {
+            booking.setQueueNumber(queueNumberService.allocateNextForShift(booking.getShift().getId()));
+        }
         bookingRepository.save(booking);
 
         return toTicketDto(booking);
@@ -246,9 +253,12 @@ public class CustomerBookingService {
 
         // Check in the first BOOKED appointment of today
         Booking booking = todayBookings.get(0);
-        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        booking.setStatus(Booking.BookingStatus.WAITING);
         booking.setCheckInAt(Instant.now());
         booking.setPriorityScore(50);
+        if (booking.getQueueNumber() == null) {
+            booking.setQueueNumber(queueNumberService.allocateNextForShift(booking.getShift().getId()));
+        }
         bookingRepository.save(booking);
 
         return toTicketDto(booking);

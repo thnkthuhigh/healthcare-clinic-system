@@ -58,7 +58,6 @@ public class CustomerController {
                 .map(s -> Map.<String, Object>of(
                         "id", s.getId(),
                         "name", s.getName(),
-                        "durationMin", s.getDurationMin(),
                         "priceCents", s.getPriceCents()))
                 .toList();
         return ResponseEntity.ok(result);

@@ -18,6 +18,7 @@ export function PatientManagementPage() {
 
   const [resetModal, setResetModal] = useState<AdminPatientDto | null>(null);
   const [resetPassword, setResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
 
@@ -42,6 +43,7 @@ export function PatientManagementPage() {
     onSuccess: (response) => {
       setResetSuccess(response.message);
       setResetPassword('');
+      setShowResetPassword(false);
       setResetError('');
       queryClient.invalidateQueries({ queryKey: ['admin-patients'] });
     },
@@ -67,6 +69,7 @@ export function PatientManagementPage() {
 
     setResetModal(selectedPatient);
     setResetPassword('');
+    setShowResetPassword(false);
     setResetError('');
     setResetSuccess('');
   }
@@ -132,7 +135,9 @@ export function PatientManagementPage() {
             >
               <p className="text-sm font-medium text-slate-900">{patient.fullName}</p>
               <p className="mt-1 text-xs text-slate-500">{patient.phone}</p>
-              {patient.nationalId && <p className="mt-0.5 text-xs text-slate-400">CCCD: {patient.nationalId}</p>}
+              {patient.nationalId && (
+                <p className="mt-0.5 text-xs text-slate-400">CCCD: {patient.nationalId}</p>
+              )}
             </button>
           ))}
         </div>
@@ -153,7 +158,9 @@ export function PatientManagementPage() {
             <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
               <div>
                 <h1 className="text-lg font-bold text-slate-900">Quan ly ho so kham</h1>
-                <p className="text-sm text-slate-500">{selectedPatient?.fullName ?? patientRecord?.fullName ?? 'Benh nhan'}</p>
+                <p className="text-sm text-slate-500">
+                  {selectedPatient?.fullName ?? patientRecord?.fullName ?? 'Benh nhan'}
+                </p>
               </div>
               <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
                 {[
@@ -218,23 +225,40 @@ export function PatientManagementPage() {
 
             <form onSubmit={handleResetSubmit} className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-700">Mat khau moi *</label>
-                <input
-                  type="password"
-                  value={resetPassword}
-                  onChange={(event) => setResetPassword(event.target.value)}
-                  minLength={6}
-                  required
-                  placeholder="Toi thieu 6 ky tu"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
+                <label className="mb-1 block text-xs font-medium text-slate-700">
+                  Mat khau moi *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? 'text' : 'password'}
+                    value={resetPassword}
+                    onChange={(event) => setResetPassword(event.target.value)}
+                    minLength={6}
+                    required
+                    placeholder="Toi thieu 6 ky tu"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-sm focus:border-blue-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 px-2 text-slate-500 hover:text-slate-700"
+                    tabIndex={-1}
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showResetPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
               </div>
               {resetError && <p className="text-xs text-red-600">{resetError}</p>}
               {resetSuccess && <p className="text-xs text-green-600">{resetSuccess}</p>}
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setResetModal(null)}
+                  onClick={() => {
+                    setResetModal(null);
+                    setShowResetPassword(false);
+                  }}
                   className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
                   Dong
@@ -265,7 +289,7 @@ function PatientInfoTab({
   onResetPassword: () => void;
 }) {
   const genderLabel =
-    record.gender === 'MALE' ? 'Nam' : record.gender === 'FEMALE' ? 'Nu' : (record.gender ?? '—');
+    record.gender === 'MALE' ? 'Nam' : record.gender === 'FEMALE' ? 'Nu' : (record.gender ?? 'â€”');
 
   return (
     <div className="space-y-4">
@@ -345,17 +369,23 @@ function VisitHistoryTab({
               className="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left hover:bg-slate-100"
             >
               <div>
-                <p className="text-sm font-medium text-slate-900">{record.diagnosis || 'Chua co chan doan'}</p>
+                <p className="text-sm font-medium text-slate-900">
+                  {record.diagnosis || 'Chua co chan doan'}
+                </p>
                 <p className="text-xs text-slate-500">
-                  {formatDateTime(record.visitDate)} · BS. {record.doctorName}
-                  {record.serviceName ? ` · ${record.serviceName}` : ''}
+                  {formatDateTime(record.visitDate)} Â· BS. {record.doctorName}
+                  {record.serviceName ? ` Â· ${record.serviceName}` : ''}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge(record.bookingStatus)}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge(record.bookingStatus)}`}
+                >
                   {record.bookingStatus}
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${paymentBadge(record.paymentStatus)}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${paymentBadge(record.paymentStatus)}`}
+                >
                   {record.paymentStatus}
                 </span>
                 <span className="material-symbols-outlined text-base text-slate-400">
@@ -392,13 +422,16 @@ function VisitHistoryTab({
                       </thead>
                       <tbody>
                         {record.prescriptionItems.map((item, index) => (
-                          <tr key={`${record.recordId}-${index}`} className="border-t border-slate-100">
+                          <tr
+                            key={`${record.recordId}-${index}`}
+                            className="border-t border-slate-100"
+                          >
                             <td className="py-1 pr-2 text-slate-700">{item.medicationName}</td>
                             <td className="py-1 pr-2 text-slate-700">
                               {item.qty} {item.unit}
                             </td>
-                            <td className="py-1 pr-2 text-slate-700">{item.dosage || '—'}</td>
-                            <td className="py-1 text-slate-500">{item.note || '—'}</td>
+                            <td className="py-1 pr-2 text-slate-700">{item.dosage || 'â€”'}</td>
+                            <td className="py-1 text-slate-500">{item.note || 'â€”'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -433,7 +466,7 @@ function PrescriptionHistoryTab({ records }: { records: VisitRecordDto[] }) {
                 {record.diagnosis || 'Don thuoc khong co chan doan'}
               </p>
               <p className="text-xs text-slate-500">
-                {formatDateTime(record.visitDate)} · BS. {record.doctorName}
+                {formatDateTime(record.visitDate)} Â· BS. {record.doctorName}
               </p>
             </div>
             <button
@@ -461,8 +494,8 @@ function PrescriptionHistoryTab({ records }: { records: VisitRecordDto[] }) {
                   <td className="py-1 pr-2 text-slate-700">
                     {item.qty} {item.unit}
                   </td>
-                  <td className="py-1 pr-2 text-slate-700">{item.dosage || '—'}</td>
-                  <td className="py-1 text-slate-500">{item.note || '—'}</td>
+                  <td className="py-1 pr-2 text-slate-700">{item.dosage || 'â€”'}</td>
+                  <td className="py-1 text-slate-500">{item.note || 'â€”'}</td>
                 </tr>
               ))}
             </tbody>
@@ -477,7 +510,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
   return (
     <div className="rounded-lg bg-slate-50 px-3 py-2">
       <p className="text-[11px] text-slate-500">{label}</p>
-      <p className="text-sm font-medium text-slate-800">{value ?? '—'}</p>
+      <p className="text-sm font-medium text-slate-800">{value ?? 'â€”'}</p>
     </div>
   );
 }
@@ -485,22 +518,24 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
 function PanelItem({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="text-sm text-slate-700">{value || '—'}</p>
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="text-sm text-slate-700">{value || 'â€”'}</p>
     </div>
   );
 }
 
 function formatDate(value: string | null): string {
   if (!value) {
-    return '—';
+    return 'â€”';
   }
   return new Date(value).toLocaleDateString('vi-VN');
 }
 
 function formatDateTime(value: string | null): string {
   if (!value) {
-    return '—';
+    return 'â€”';
   }
   return new Date(value).toLocaleString('vi-VN');
 }

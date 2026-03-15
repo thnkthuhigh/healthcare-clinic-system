@@ -25,6 +25,9 @@ public class Room {
     @Column(name = "room_type", nullable = false)
     private String roomType;
 
+    @Column(name = "service_id")
+    private UUID serviceId;
+
     @Column(nullable = false)
     private String status = "ACTIVE";
 
@@ -69,6 +72,14 @@ public class Room {
 
     public void setRoomType(String roomType) {
         this.roomType = roomType;
+    }
+
+    public UUID getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(UUID serviceId) {
+        this.serviceId = serviceId;
     }
 
     public String getStatus() {

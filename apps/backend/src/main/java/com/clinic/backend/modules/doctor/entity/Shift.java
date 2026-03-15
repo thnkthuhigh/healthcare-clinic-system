@@ -33,6 +33,12 @@ public class Shift {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ShiftStatus status = ShiftStatus.OPEN;
+
+    @Column(name = "is_makeup", nullable = false)
+    private Boolean isMakeup = false;
+
+    @Column(name = "adjustment_note")
+    private String adjustmentNote;
     
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
@@ -66,6 +72,12 @@ public class Shift {
     
     public ShiftStatus getStatus() { return status; }
     public void setStatus(ShiftStatus status) { this.status = status; }
+
+    public Boolean getIsMakeup() { return isMakeup; }
+    public void setIsMakeup(Boolean isMakeup) { this.isMakeup = isMakeup; }
+
+    public String getAdjustmentNote() { return adjustmentNote; }
+    public void setAdjustmentNote(String adjustmentNote) { this.adjustmentNote = adjustmentNote; }
     
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

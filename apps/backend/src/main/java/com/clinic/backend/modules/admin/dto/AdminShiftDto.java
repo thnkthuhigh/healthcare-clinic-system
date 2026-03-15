@@ -1,5 +1,7 @@
 package com.clinic.backend.modules.admin.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class AdminShiftDto {
 
     private String id;
@@ -14,6 +16,8 @@ public class AdminShiftDto {
     private int totalSlots;
     private int openSlots;
     private int bookedSlots;
+    private boolean isMakeup;
+    private String adjustmentNote;
     private String createdAt;
 
     public String getId() { return id; }
@@ -51,6 +55,13 @@ public class AdminShiftDto {
 
     public int getBookedSlots() { return bookedSlots; }
     public void setBookedSlots(int bookedSlots) { this.bookedSlots = bookedSlots; }
+
+    @JsonProperty("isMakeup")
+    public boolean isMakeup() { return isMakeup; }
+    public void setMakeup(boolean makeup) { isMakeup = makeup; }
+
+    public String getAdjustmentNote() { return adjustmentNote; }
+    public void setAdjustmentNote(String adjustmentNote) { this.adjustmentNote = adjustmentNote; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

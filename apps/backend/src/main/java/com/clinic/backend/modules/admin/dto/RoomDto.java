@@ -7,6 +7,8 @@ public class RoomDto {
     private String name;
     private String area;
     private String roomType;
+    private String serviceId;
+    private String serviceName;
     private String status;
     private int assetCount;
     private String createdAt;
@@ -57,6 +59,22 @@ public class RoomDto {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
     }
 
     public int getAssetCount() {

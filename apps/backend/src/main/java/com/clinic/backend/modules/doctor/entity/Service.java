@@ -22,6 +22,9 @@ public class Service {
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Column(name = "specialty_id")
+    private UUID specialtyId;
     
     // Getters and Setters
     public UUID getId() { return id; }
@@ -38,4 +41,7 @@ public class Service {
     
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public UUID getSpecialtyId() { return specialtyId; }
+    public void setSpecialtyId(UUID specialtyId) { this.specialtyId = specialtyId; }
 }

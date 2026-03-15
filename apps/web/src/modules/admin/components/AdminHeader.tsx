@@ -9,6 +9,8 @@ const routeTitles: Record<string, { title: string; icon: string }> = {
   '/admin/shifts': { title: 'Ca lam viec', icon: 'calendar_month' },
   '/admin/services': { title: 'Dich vu va Chuyen khoa', icon: 'medical_services' },
   '/admin/rooms': { title: 'Quan ly Phong kham', icon: 'meeting_room' },
+  '/admin/supplies': { title: 'Quan ly Vat tu', icon: 'inventory_2' },
+  '/admin/assets': { title: 'Quan ly Tai san', icon: 'inventory' },
   '/admin/medications': { title: 'Danh muc Thuoc', icon: 'medication' },
   '/admin/templates': { title: 'Toa thuoc mau', icon: 'description' },
   '/admin/departments': { title: 'Quan ly Khoa', icon: 'domain' },

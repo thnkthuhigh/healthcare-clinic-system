@@ -366,7 +366,6 @@ function ServicesSection({
                       </span>
                     </div>
                     <h3 className="text-xs font-semibold text-slate-900 leading-tight">{s.name}</h3>
-                    <p className="text-xs text-slate-400 mt-1">{Math.floor(s.durationMin)} phút</p>
                   </Link>
                 );
               })}
@@ -534,9 +533,8 @@ function PricingPreviewSection({
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm mb-8">
-          <div className="bg-blue-600 text-white px-6 py-4 grid grid-cols-3 text-sm font-semibold">
+          <div className="bg-blue-600 text-white px-6 py-4 grid grid-cols-2 text-sm font-semibold">
             <span>Dịch vụ</span>
-            <span className="text-center">Thời gian</span>
             <span className="text-right">Giá khám</span>
           </div>
           {isLoading
@@ -550,7 +548,7 @@ function PricingPreviewSection({
                 return (
                   <div
                     key={s.id}
-                    className="px-6 py-4 border-b border-slate-100 grid grid-cols-3 items-center hover:bg-blue-50/30 transition-colors"
+                    className="px-6 py-4 border-b border-slate-100 grid grid-cols-2 items-center hover:bg-blue-50/30 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <span className={`material-symbols-outlined text-base ${palette.color}`}>
@@ -558,7 +556,6 @@ function PricingPreviewSection({
                       </span>
                       <span className="text-sm font-medium text-slate-800">{s.name}</span>
                     </div>
-                    <span className="text-sm text-slate-500 text-center">{s.durationMin} phút</span>
                     <span className="text-sm font-bold text-blue-700 text-right">
                       {formatVND(s.priceCents)}
                     </span>

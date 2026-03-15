@@ -24,25 +24,23 @@ public class RoomController {
     public record CreateRoomRequest(
         @NotBlank String code,
         @NotBlank String name,
-        String area,
-        @NotBlank String roomType,
+        @NotBlank String serviceId,
         String status
     ) {}
 
     public record UpdateRoomRequest(
         String code,
         String name,
-        String area,
-        String roomType,
+        String serviceId,
         String status
     ) {}
 
     @GetMapping
     public List<RoomDto> getRooms(
         @RequestParam(required = false) String status,
-        @RequestParam(required = false) String roomType
+        @RequestParam(required = false) String serviceId
     ) {
-        return roomService.getRooms(status, roomType);
+        return roomService.getRooms(status, serviceId);
     }
 
     @PostMapping
@@ -50,8 +48,7 @@ public class RoomController {
         return roomService.createRoom(
             request.code(),
             request.name(),
-            request.area(),
-            request.roomType(),
+            request.serviceId(),
             request.status()
         );
     }
@@ -62,8 +59,7 @@ public class RoomController {
             id,
             request.code(),
             request.name(),
-            request.area(),
-            request.roomType(),
+            request.serviceId(),
             request.status()
         );
     }

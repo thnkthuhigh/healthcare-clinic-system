@@ -1,30 +1,51 @@
 import type {
+  AdminAssetDto,
   AdminDoctorDto,
   AdminMedicationDto,
   AdminPatientDto,
   AdminPrescriptionTemplateDto,
   AdminRoomDto,
   AdminServiceDto,
+  AdminSupplyDto,
   AdminShiftDto,
   AdminSlotDto,
   AuditLogDto,
   CashierBooking,
+  FinanceLedgerEntryDto,
+  FinanceSummaryDto,
+  ManualFinanceEntryRequest,
+  CreateVisitRequest,
+  CreateVisitResponse,
+  DispatchOptionDto,
   CreateDoctorRequest,
+  CreateAssetRequest,
   CreateMedicationRequest,
   CreateRoomRequest,
   CreateServiceRequest,
+  CreateSupplyRequest,
   CreateShiftRequest,
+  BulkShiftRequest,
+  BulkShiftResponse,
+  SyncWeekShiftRequest,
+  SyncWeekShiftResponse,
+  DailyInvoiceDto,
   DashboardStats,
   DepartmentDto,
+  DoctorVisitStatsDto,
   PatientRecordDto,
+  PatientLookupResponse,
   ReceptionBooking,
+  RetailSaleRequest,
+  RetailSaleResponse,
   ReportSummaryDto,
   SavePrescriptionTemplateRequest,
   ShiftOverview,
   UpdateDoctorRequest,
+  UpdateAssetRequest,
   UpdateMedicationRequest,
   UpdateRoomRequest,
   UpdateServiceRequest,
+  UpdateSupplyRequest,
   WalkInRequest,
   WalkInResponse,
 } from './types';
@@ -60,7 +81,9 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'API Error' }));
-    throw new Error(error.message || 'API Error');
+    const apiError = new Error(error.message || 'API Error') as Error & { status?: number };
+    apiError.status = response.status;
+    throw apiError;
   }
 
   if (response.status === 204) {
@@ -125,6 +148,22 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
+  createVisit: (data: CreateVisitRequest) =>
+    fetchApi<CreateVisitResponse>(`${API_BASE}/reception/create-visit`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  lookupPatient: (phone: string) =>
+    fetchApi<PatientLookupResponse | null>(
+      `${API_BASE}/reception/lookup?phone=${encodeURIComponent(phone)}`,
+    ),
+
+  getDispatchOptions: (serviceId: string) =>
+    fetchApi<DispatchOptionDto[]>(
+      `${API_BASE}/reception/dispatch-options?serviceId=${encodeURIComponent(serviceId)}`,
+    ),
+
   markNoShow: (bookingId: string) =>
     fetchApi<{ message: string }>(`${API_BASE}/reception/no-show/${bookingId}`, {
       method: 'POST',
@@ -153,6 +192,12 @@ export const adminApi = {
   expireOldPrescriptions: () =>
     fetchApi<{ expiredCount: number; message: string }>(`${API_BASE}/cashier/expire-old`, {
       method: 'POST',
+    }),
+
+  retailSale: (data: RetailSaleRequest) =>
+    fetchApi<RetailSaleResponse>(`${API_BASE}/cashier/retail-sale`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 
   // ========== Doctor Management API ==========
@@ -203,6 +248,18 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
+  createShiftsBulk: (data: BulkShiftRequest) =>
+    fetchApi<BulkShiftResponse>(`${API_BASE}/shifts/bulk`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  syncWeekShifts: (data: SyncWeekShiftRequest) =>
+    fetchApi<SyncWeekShiftResponse>(`${API_BASE}/shifts/sync-week`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   lockShift: (id: string) =>
     fetchApi<AdminShiftDto>(`${API_BASE}/shifts/${id}/lock`, { method: 'POST' }),
 
@@ -219,10 +276,10 @@ export const adminApi = {
 
   // ========== Room Management API ==========
 
-  getRooms: (status?: string, roomType?: string) => {
+  getRooms: (status?: string, serviceId?: string) => {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
-    if (roomType) params.set('roomType', roomType);
+    if (serviceId) params.set('serviceId', serviceId);
     const qs = params.toString();
     return fetchApi<AdminRoomDto[]>(`${API_BASE}/rooms${qs ? '?' + qs : ''}`);
   },
@@ -241,6 +298,63 @@ export const adminApi = {
 
   toggleRoom: (id: string) =>
     fetchApi<AdminRoomDto>(`${API_BASE}/rooms/${id}/toggle`, { method: 'POST' }),
+
+  // ========== Supply Management API ==========
+
+  getSupplies: (active?: boolean, lowStock?: boolean) => {
+    const params = new URLSearchParams();
+    if (active !== undefined) params.set('active', String(active));
+    if (lowStock !== undefined) params.set('lowStock', String(lowStock));
+    const qs = params.toString();
+    return fetchApi<AdminSupplyDto[]>(`${API_BASE}/supplies${qs ? '?' + qs : ''}`);
+  },
+
+  createSupply: (data: CreateSupplyRequest) =>
+    fetchApi<AdminSupplyDto>(`${API_BASE}/supplies`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateSupply: (id: string, data: UpdateSupplyRequest) =>
+    fetchApi<AdminSupplyDto>(`${API_BASE}/supplies/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  restockSupply: (id: string, qty: number, unitCostCents?: number) =>
+    fetchApi<AdminSupplyDto>(`${API_BASE}/supplies/${id}/restock`, {
+      method: 'POST',
+      body: JSON.stringify({
+        qty,
+        ...(unitCostCents !== undefined ? { unitCostCents } : {}),
+      }),
+    }),
+
+  toggleSupply: (id: string) =>
+    fetchApi<AdminSupplyDto>(`${API_BASE}/supplies/${id}/toggle`, { method: 'POST' }),
+
+  // ========== Asset Management API ==========
+
+  getAssets: (category?: string, status?: string, roomId?: string) => {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (status) params.set('status', status);
+    if (roomId) params.set('roomId', roomId);
+    const qs = params.toString();
+    return fetchApi<AdminAssetDto[]>(`${API_BASE}/assets${qs ? '?' + qs : ''}`);
+  },
+
+  createAsset: (data: CreateAssetRequest) =>
+    fetchApi<AdminAssetDto>(`${API_BASE}/assets`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateAsset: (id: string, data: UpdateAssetRequest) =>
+    fetchApi<AdminAssetDto>(`${API_BASE}/assets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 
   // ========== Service Management API ==========
 
@@ -350,11 +464,53 @@ export const adminApi = {
     return fetchApi<ReportSummaryDto>(`${API_BASE}/reports/summary${qs ? '?' + qs : ''}`);
   },
 
-  getAuditLogs: (from?: string, to?: string, entityType?: string) => {
+  getFinanceLedger: (from?: string, to?: string, category?: string, type?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (category) params.set('category', category);
+    if (type) params.set('type', type);
+    const qs = params.toString();
+    return fetchApi<FinanceLedgerEntryDto[]>(`${API_BASE}/reports/finance${qs ? '?' + qs : ''}`);
+  },
+
+  getFinanceSummary: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const qs = params.toString();
+    return fetchApi<FinanceSummaryDto>(`${API_BASE}/reports/finance/summary${qs ? '?' + qs : ''}`);
+  },
+
+  createManualFinanceEntry: (data: ManualFinanceEntryRequest) =>
+    fetchApi<FinanceLedgerEntryDto>(`${API_BASE}/reports/finance/manual`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getDailyInvoices: (date?: string) => {
+    const params = new URLSearchParams();
+    if (date) params.set('date', date);
+    const qs = params.toString();
+    return fetchApi<DailyInvoiceDto[]>(`${API_BASE}/reports/daily-invoices${qs ? '?' + qs : ''}`);
+  },
+
+  getVisitsByDoctor: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const qs = params.toString();
+    return fetchApi<DoctorVisitStatsDto[]>(
+      `${API_BASE}/reports/visits-by-doctor${qs ? '?' + qs : ''}`,
+    );
+  },
+
+  getAuditLogs: (from?: string, to?: string, entityType?: string, action?: string) => {
     const params = new URLSearchParams();
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     if (entityType) params.set('entityType', entityType);
+    if (action) params.set('action', action);
     const qs = params.toString();
     return fetchApi<AuditLogDto[]>(`${API_BASE}/reports/audit${qs ? '?' + qs : ''}`);
   },

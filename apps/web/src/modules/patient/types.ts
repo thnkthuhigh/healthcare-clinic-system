@@ -23,7 +23,6 @@ export interface AvailableShift {
 export interface ClinicService {
   id: string;
   name: string;
-  durationMin: number;
   priceCents: number;
 }
 

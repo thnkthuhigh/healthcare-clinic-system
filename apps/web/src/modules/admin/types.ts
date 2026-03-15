@@ -68,7 +68,6 @@ export interface MedicationItem {
 export interface ServiceItem {
   id: string;
   name: string;
-  durationMin: number;
   priceCents: number;
   isActive: boolean;
 }
@@ -97,6 +96,8 @@ export interface ReceptionBooking {
   doctorName: string;
   shiftId: string;
   shiftType: string;
+  roomName: string | null;
+  slotPool: 'COMMON' | 'RESERVE' | 'OVERRIDE' | null;
   serviceName: string | null;
   status: string;
   channel: 'WEB' | 'WALK_IN';
@@ -120,6 +121,51 @@ export interface WalkInResponse {
   queueNumber: number;
 }
 
+export interface CreateVisitRequest {
+  patientName: string;
+  patientPhone: string;
+  patientDob?: string | undefined;
+  patientGender?: 'MALE' | 'FEMALE' | 'OTHER' | undefined;
+  patientNationalId?: string | undefined;
+  patientInsuranceCode?: string | undefined;
+  serviceId: string;
+  preferredDoctorId?: string | undefined;
+  forceOverride?: boolean | undefined;
+}
+
+export interface CreateVisitResponse {
+  bookingId: string;
+  patientId: string;
+  patientName: string;
+  queueNumber: number;
+  doctorName: string;
+  roomName: string;
+  shiftType: 'MORNING' | 'AFTERNOON';
+  isOverride: boolean;
+  poolUsed: 'COMMON' | 'RESERVE' | 'OVERRIDE';
+  isNewPatient: boolean;
+}
+
+export interface PatientLookupResponse {
+  patientId: string;
+  fullName: string;
+  phone: string;
+  dateOfBirth?: string | undefined;
+  gender?: string | undefined;
+  nationalId?: string | undefined;
+  insuranceCode?: string | undefined;
+}
+
+export interface DispatchOptionDto {
+  shiftId: string;
+  doctorId: string;
+  doctorName: string;
+  roomName: string;
+  shiftType: 'MORNING' | 'AFTERNOON';
+  openSlots: number;
+  bookingLoad: number;
+}
+
 // ========== Doctor & Patient Management Types ==========
 
 export interface AdminDoctorDto {
@@ -128,6 +174,14 @@ export interface AdminDoctorDto {
   phone: string;
   displayName: string;
   specialty: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  experienceYears: number;
+  qualifications: string | null;
+  dateOfBirth: string | null;
+  nationalId: string | null;
+  workHistory: string | null;
+  serviceIds: string[];
   status: 'ACTIVE' | 'LOCKED';
   createdAt: string;
 }
@@ -137,12 +191,28 @@ export interface CreateDoctorRequest {
   password: string;
   displayName: string;
   specialty?: string | undefined;
+  avatarUrl?: string | undefined;
+  bio?: string | undefined;
+  experienceYears?: number | undefined;
+  qualifications?: string | undefined;
+  dateOfBirth?: string | undefined;
+  nationalId?: string | undefined;
+  workHistory?: string | undefined;
+  serviceIds?: string[] | undefined;
 }
 
 export interface UpdateDoctorRequest {
   displayName?: string | undefined;
   specialty?: string | undefined;
   newPassword?: string | undefined;
+  avatarUrl?: string | undefined;
+  bio?: string | undefined;
+  experienceYears?: number | undefined;
+  qualifications?: string | undefined;
+  dateOfBirth?: string | undefined;
+  nationalId?: string | undefined;
+  workHistory?: string | undefined;
+  serviceIds?: string[] | undefined;
 }
 
 export interface AdminPatientDto {
@@ -190,6 +260,35 @@ export interface CashierBooking {
   totalBillCents: number;
 }
 
+export interface RetailSaleItemRequest {
+  medicationId: string;
+  qty: number;
+}
+
+export interface RetailSaleRequest {
+  customerName?: string | undefined;
+  customerPhone?: string | undefined;
+  items: RetailSaleItemRequest[];
+}
+
+export interface RetailSaleItem {
+  medicationId: string;
+  medicationName: string;
+  unit: string;
+  qty: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+}
+
+export interface RetailSaleResponse {
+  invoiceCode: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  totalCents: number;
+  createdAt: string;
+  items: RetailSaleItem[];
+}
+
 // ========== Shift Management Types ==========
 
 export interface AdminShiftDto {
@@ -205,6 +304,8 @@ export interface AdminShiftDto {
   totalSlots: number;
   openSlots: number;
   bookedSlots: number;
+  isMakeup: boolean;
+  adjustmentNote: string | null;
   createdAt: string;
 }
 
@@ -221,26 +322,75 @@ export interface CreateShiftRequest {
   type: 'MORNING' | 'AFTERNOON';
 }
 
+export interface BulkShiftRequest {
+  doctorId: string;
+  weekStartDate: string;
+  shiftTypes?: Array<'MORNING' | 'AFTERNOON'> | undefined;
+  daysOfWeek?: number[] | undefined;
+  dayConfigs?: DayShiftConfig[] | undefined;
+  repeatWeeks?: number | undefined;
+}
+
+export interface DayShiftConfig {
+  dayOfWeek: number;
+  shiftTypes: Array<'MORNING' | 'AFTERNOON'>;
+}
+
+export interface BulkShiftSkippedItem {
+  date: string;
+  type: 'MORNING' | 'AFTERNOON';
+  reason: string;
+}
+
+export interface BulkShiftResponse {
+  doctorId: string;
+  weekStartDate: string;
+  repeatWeeks?: number | undefined;
+  created: AdminShiftDto[];
+  skipped: BulkShiftSkippedItem[];
+}
+
+export interface SyncWeekShiftRequest {
+  doctorId: string;
+  weekStartDate: string;
+  note: string;
+  dayConfigs: DayShiftConfig[];
+}
+
+export interface SyncWeekShiftDeletedItem {
+  date: string;
+  type: 'MORNING' | 'AFTERNOON';
+}
+
+export interface SyncWeekShiftResponse {
+  doctorId: string;
+  weekStartDate: string;
+  created: AdminShiftDto[];
+  deleted: SyncWeekShiftDeletedItem[];
+  skipped: BulkShiftSkippedItem[];
+}
+
 // ========== Service Management Types ==========
 
 export interface AdminServiceDto {
   id: string;
   name: string;
-  durationMin: number;
   priceCents: number;
   active: boolean;
+  specialtyId?: string | null;
+  specialtyName?: string | null;
 }
 
 export interface CreateServiceRequest {
   name: string;
-  durationMin: number;
   priceCents: number;
+  specialtyId?: string | undefined;
 }
 
 export interface UpdateServiceRequest {
   name?: string | undefined;
-  durationMin?: number | undefined;
   priceCents?: number | undefined;
+  specialtyId?: string | undefined;
 }
 
 // ========== Room Management Types ==========
@@ -251,8 +401,8 @@ export interface AdminRoomDto {
   id: string;
   code: string;
   name: string;
-  area: string | null;
-  roomType: string;
+  serviceId: string | null;
+  serviceName: string | null;
   status: RoomStatus;
   assetCount: number;
   createdAt: string;
@@ -261,17 +411,87 @@ export interface AdminRoomDto {
 export interface CreateRoomRequest {
   code: string;
   name: string;
-  area?: string | undefined;
-  roomType: string;
+  serviceId: string;
   status?: RoomStatus | undefined;
 }
 
 export interface UpdateRoomRequest {
   code?: string | undefined;
   name?: string | undefined;
-  area?: string | undefined;
-  roomType?: string | undefined;
+  serviceId?: string | undefined;
   status?: RoomStatus | undefined;
+}
+
+// ========== Supply Management Types ==========
+
+export interface AdminSupplyDto {
+  id: string;
+  name: string;
+  unit: string;
+  stockQty: number;
+  minQty: number;
+  unitCostCents: number;
+  active: boolean;
+  lowStock: boolean;
+  createdAt: string | null;
+}
+
+export interface CreateSupplyRequest {
+  name: string;
+  unit: string;
+  stockQty?: number | undefined;
+  minQty?: number | undefined;
+  unitCostCents?: number | undefined;
+  active?: boolean | undefined;
+}
+
+export interface UpdateSupplyRequest {
+  name?: string | undefined;
+  unit?: string | undefined;
+  stockQty?: number | undefined;
+  minQty?: number | undefined;
+  unitCostCents?: number | undefined;
+  active?: boolean | undefined;
+}
+
+// ========== Asset Management Types ==========
+
+export type AssetStatus = 'ACTIVE' | 'MAINTENANCE' | 'RETIRED';
+
+export interface AdminAssetDto {
+  id: string;
+  name: string;
+  assetCode: string | null;
+  category: string;
+  roomId: string | null;
+  roomName: string | null;
+  purchaseDate: string | null;
+  purchasePriceCents: number;
+  status: AssetStatus;
+  notes: string | null;
+  createdAt: string | null;
+}
+
+export interface CreateAssetRequest {
+  name: string;
+  assetCode?: string | undefined;
+  category: string;
+  roomId?: string | undefined;
+  purchaseDate?: string | undefined;
+  purchasePriceCents?: number | undefined;
+  status?: AssetStatus | undefined;
+  notes?: string | undefined;
+}
+
+export interface UpdateAssetRequest {
+  name?: string | undefined;
+  assetCode?: string | undefined;
+  category?: string | undefined;
+  roomId?: string | undefined;
+  purchaseDate?: string | undefined;
+  purchasePriceCents?: number | undefined;
+  status?: AssetStatus | undefined;
+  notes?: string | undefined;
 }
 
 // ========== Medication Management Types ==========
@@ -414,4 +634,62 @@ export interface AuditLogDto {
   entityId: string | null;
   metaJson: string | null;
   createdAt: string;
+}
+
+export interface FinanceLedgerEntryDto {
+  id: string;
+  entryDate: string;
+  entryType: 'INCOME' | 'EXPENSE' | string;
+  category: string;
+  refType: string | null;
+  refId: string | null;
+  description: string;
+  qty: number | null;
+  unit: string | null;
+  amountCents: number;
+  actorUserId: string | null;
+  actorName: string | null;
+  createdAt: string | null;
+}
+
+export interface FinanceSummaryDto {
+  totalIncomeCents: number;
+  totalExpenseCents: number;
+  balanceCents: number;
+}
+
+export interface ManualFinanceEntryRequest {
+  entryDate?: string | undefined;
+  flowType: 'THU' | 'CHI' | 'NHAP' | 'XUAT';
+  description: string;
+  qty?: number | undefined;
+  unit?: string | undefined;
+  amountCents: number;
+}
+
+export interface DailyInvoiceDto {
+  bookingId: string;
+  queueNumber: number | null;
+  patientName: string;
+  patientPhone: string;
+  doctorName: string;
+  serviceName: string | null;
+  roomName: string | null;
+  shiftType: string | null;
+  channel: string;
+  status: string;
+  paymentStatus: string;
+  invoiceAt: string | null;
+  serviceAmountCents: number;
+  medicationAmountCents: number;
+  totalAmountCents: number;
+}
+
+export interface DoctorVisitStatsDto {
+  doctorId: string;
+  doctorName: string;
+  specialty: string | null;
+  morningVisits: number;
+  afternoonVisits: number;
+  totalVisits: number;
 }

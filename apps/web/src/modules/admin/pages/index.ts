@@ -6,6 +6,8 @@ export { PatientManagementPage } from './PatientManagementPage';
 export { ShiftManagementPage } from './ShiftManagementPage';
 export { ServiceManagementPage } from './ServiceManagementPage';
 export { RoomManagementPage } from './RoomManagementPage';
+export { SupplyManagementPage } from './SupplyManagementPage';
+export { AssetManagementPage } from './AssetManagementPage';
 export { MedicationManagementPage } from './MedicationManagementPage';
 export { PrescriptionTemplatePage } from './PrescriptionTemplatePage';
 export { ReportsPage } from './ReportsPage';

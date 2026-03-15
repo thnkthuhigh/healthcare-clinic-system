@@ -41,4 +41,11 @@ public interface MedicationRepository extends JpaRepository<Medication, UUID> {
     @Modifying
     @Query("UPDATE Medication m SET m.stockReal = m.stockReal - :qty, m.stockHold = m.stockHold - :qty WHERE m.id = :id AND m.stockHold >= :qty")
     int confirmDeduction(@Param("id") UUID id, @Param("qty") int qty);
+
+    /**
+     * Deduct real stock directly for retail sale (no hold step).
+     */
+    @Modifying
+    @Query("UPDATE Medication m SET m.stockReal = m.stockReal - :qty WHERE m.id = :id AND (m.stockReal - m.stockHold) >= :qty")
+    int deductForRetail(@Param("id") UUID id, @Param("qty") int qty);
 }

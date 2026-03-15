@@ -26,10 +26,12 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
         LEFT JOIN FETCH a.actorUser
         WHERE a.createdAt >= :from AND a.createdAt < :to
         AND (:entityType IS NULL OR a.entityType = :entityType)
+        AND (:action IS NULL OR a.action = :action)
         ORDER BY a.createdAt DESC
         """)
-    List<AuditLog> findByDateRangeAndEntityType(
+    List<AuditLog> findByDateRangeAndFilters(
             @Param("from") Instant from,
             @Param("to") Instant to,
-            @Param("entityType") String entityType);
+            @Param("entityType") String entityType,
+            @Param("action") String action);
 }

@@ -1,4 +1,5 @@
 # CODEX — BẢN CHỐT NGHIỆP VỤ MVP ADMIN
+
 > Tài liệu yêu cầu chi tiết để implement. Đọc cùng với `CODEX_CONTEXT.md`.
 > Cập nhật: 2026-03-12
 
@@ -13,8 +14,10 @@
 ## PHASE 0 — SỬA BUG NGAY (không phụ thuộc gì)
 
 ### 0.1 Fix Toa Thuốc Mẫu — không sửa/xóa được
+
 **Vấn đề:** `PrescriptionTemplatePage` + `PrescriptionTemplateController` đang có bug không cho sửa hoặc xóa template.  
 **Cần kiểm tra:**
+
 - Frontend: `handleSubmit()` trong `TemplateModal` — payload PUT có đúng format không
 - Backend: `updateTemplate()` và `deleteTemplate()` trong `PrescriptionTemplateController` / `PrescriptionTemplateService`
 - Migration V8: `ON CONFLICT` và cascade delete có đúng không
@@ -22,13 +25,15 @@
 - File: `apps/backend/.../modules/admin/PrescriptionTemplateController.java`
 
 ### 0.2 Show/Hide Password
+
 **Vị trí:** Tất cả form có input password:
+
 - `apps/web/src/modules/auth/login.page.tsx`
 - `apps/web/src/modules/auth/register.page.tsx`
 - `apps/web/src/modules/auth/forgot-password.page.tsx`
 - Modal tạo/sửa bác sĩ trong `DoctorManagementPage.tsx`
 - Modal reset mật khẩu trong `PatientManagementPage.tsx`
-  
+
 **Cách làm:** Thêm state `showPw: boolean`, icon mắt (toggle), type `password/text`.
 
 ---
@@ -36,7 +41,9 @@
 ## PHASE 1 — TÁI CẤU TRÚC DATA MODEL (cần làm trước khi code tính năng mới)
 
 ### 1.1 Migration V13 — Room (Phòng khám)
+
 **Tạo bảng `rooms`:**
+
 ```sql
 CREATE TABLE rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,6 +60,7 @@ ALTER TABLE shifts ADD COLUMN room_id UUID REFERENCES rooms(id);
 ```
 
 ### 1.2 Migration V14 — Service-Specialty relationship + Doctor-Service many-to-many
+
 **Vấn đề hiện tại:** `services` chưa có `specialty_id`. `doctors` và `services` chưa có quan hệ nhiều-nhiều.
 
 ```sql
@@ -71,6 +79,7 @@ CREATE TABLE doctor_services (
 ```
 
 ### 1.3 Migration V15 — Supplies & Assets (Vật tư & Tài sản)
+
 ```sql
 -- Vật tư tiêu hao (kim tiêm, găng tay, bông gạc...)
 CREATE TABLE supplies (
@@ -100,6 +109,7 @@ CREATE TABLE assets (
 ```
 
 ### 1.4 Migration V16 — Finance Ledger (Quản lý Thu Chi)
+
 ```sql
 -- Bảng sổ cái thu-chi tổng hợp
 CREATE TABLE finance_ledger (
@@ -125,6 +135,7 @@ CREATE INDEX idx_finance_ref ON finance_ledger(ref_type, ref_id);
 ```
 
 **Trigger tự động ghi ledger:**
+
 - Khi `bookings.payment_status` → PAID: ghi `INCOME / CONSULTATION_FEE`
 - Khi `prescriptions.status` → PAID: ghi `INCOME / MEDICATION_SALE` (per item)
 - Khi nhập kho thuốc (`restock`): ghi `EXPENSE / MEDICATION_PURCHASE`
@@ -140,6 +151,7 @@ CREATE INDEX idx_finance_ref ON finance_ledger(ref_type, ref_id);
 **Xóa route:** `/admin/records` (PatientRecordsPage)  
 **Mở rộng route:** `/admin/patients` → đổi tên thành "Quản lý Hồ Sơ Khám"  
 **File cần sửa:**
+
 - `apps/web/src/routes/router.tsx` — xóa `/admin/records`, đổi label `/admin/patients`
 - `apps/web/src/modules/admin/components/AdminSidebar.tsx` — gộp 2 nav items thành 1
 - `apps/web/src/modules/admin/components/AdminHeader.tsx` — cập nhật `routeTitles` map
@@ -147,6 +159,7 @@ CREATE INDEX idx_finance_ref ON finance_ledger(ref_type, ref_id);
 - `apps/web/src/modules/admin/pages/index.ts` — xóa export PatientRecordsPage hoặc rename
 
 **UI mới cho trang "Quản lý Hồ Sơ Khám":**
+
 - Panel trái: danh sách bệnh nhân (search SĐT/tên/CCCD), nút tạo hồ sơ mới
 - Panel phải tabs:
   - Tab "Thông tin": demographics + BHYT + allergies + reset PW
@@ -154,8 +167,10 @@ CREATE INDEX idx_finance_ref ON finance_ledger(ref_type, ref_id);
   - Tab "Đơn thuốc cũ": list đơn có thể in lại
 
 ### 2.2 Chỉnh giao diện Quản lý Khoa (DepartmentManagementPage)
+
 **Vấn đề hiện tại:** UI đơn giản, cần nâng cấp.  
 **Yêu cầu mới:**
+
 - Hiển thị số bác sĩ thuộc khoa, số dịch vụ thuộc khoa (badge)
 - Khi hover/click khoa → pop-out/sidebar hiện danh sách bác sĩ + dịch vụ thuộc khoa đó
 - Confirm modal trước khi xóa phải hiện cảnh báo nếu còn bác sĩ/dịch vụ gán vào
@@ -169,12 +184,15 @@ CREATE INDEX idx_finance_ref ON finance_ledger(ref_type, ref_id);
 **Đây là thay đổi lớn nhất.** Luồng mới hoàn toàn:
 
 #### Luồng cũ (xóa bỏ):
+
 Admin chọn ca → chọn bác sĩ → tạo walk-in → hệ thống cấp slot
 
 #### Luồng mới (bắt buộc implement):
+
 Admin chỉ nhập thông tin bệnh nhân + chọn dịch vụ → hệ thống tự dispatch
 
 **Backend — API mới:** `POST /api/v1/admin/reception/create-visit`
+
 ```json
 // Request
 {
@@ -203,6 +221,7 @@ Admin chỉ nhập thông tin bệnh nhân + chọn dịch vụ → hệ thống
 ```
 
 **Backend — Dispatch Logic (AutoDispatchService.java):**
+
 ```
 1. Xác định serviceId
 2. Tìm specialty từ services.specialty_id
@@ -228,6 +247,7 @@ Nếu không tìm được doctor/slot:
 
 File: `apps/web/src/modules/admin/pages/ReceptionPage.tsx`  
 Thêm tab hoặc modal "Tạo phiếu khám" với:
+
 - Section 1 "Thông tin bệnh nhân":
   - Input SĐT (onBlur → auto-lookup: nếu tồn tại thì fill tên/ngày sinh/giới tính)
   - Input Họ tên (required)
@@ -243,12 +263,14 @@ Thêm tab hoặc modal "Tạo phiếu khám" với:
 - Nếu API trả 409: hiển thị modal xác nhận Override
 
 **API helper mới trong `api.ts`:**
+
 ```typescript
 createVisit: (data: CreateVisitRequest) => fetchApi<CreateVisitResponse>('/reception/create-visit', { method: 'POST', body: JSON.stringify(data) }),
 lookupPatient: (phone: string) => fetchApi<PatientLookupResponse | null>(`/reception/lookup?phone=${phone}`),
 ```
 
 **Types mới trong `types.ts`:**
+
 ```typescript
 interface CreateVisitRequest {
   patientName: string;
@@ -290,18 +312,20 @@ interface PatientLookupResponse {
 **Yêu cầu:** Ngoài view ngày hiện tại, thêm chế độ xem và tạo lịch theo tuần.
 
 **Backend API mới:** `POST /api/v1/admin/shifts/bulk`
+
 ```json
 // Tạo ca cho nhiều ngày cùng lúc
 {
   "doctorId": "uuid",
-  "weekStartDate": "2026-03-16",   // Monday
+  "weekStartDate": "2026-03-16", // Monday
   "shiftTypes": ["MORNING", "AFTERNOON"],
-  "daysOfWeek": [1, 2, 3, 4, 5]   // 1=Mon..7=Sun
+  "daysOfWeek": [1, 2, 3, 4, 5] // 1=Mon..7=Sun
 }
 // Response: danh sách shifts created + skipped (nếu đã tồn tại)
 ```
 
 **Frontend — thêm vào ShiftManagementPage.tsx:**
+
 - Toggle: "Ngày" / "Tuần"
 - Chế độ Tuần: calendar grid 7 cột × nhiều dòng (1 dòng / bác sĩ)
 - Mỗi cell: badge SÁNG / CHIỀU nếu đã có ca, trống nếu chưa
@@ -311,6 +335,7 @@ interface PatientLookupResponse {
 ### 3.3 Quản lý Bác Sĩ Nâng Cao (DoctorManagementPage)
 
 **Thêm vào Doctor profile:**
+
 - Ảnh đại diện (avatar_url — đã có trong DB)
 - Sơ yếu lý lịch / Giới thiệu (bio text)
 - Năm kinh nghiệm
@@ -318,6 +343,7 @@ interface PatientLookupResponse {
 - Link doctor ↔ services (multi-select từ danh sách services)
 
 **Migration cần:** Thêm columns vào `doctors`:
+
 ```sql
 ALTER TABLE doctors ADD COLUMN bio TEXT;
 ALTER TABLE doctors ADD COLUMN experience_years INTEGER DEFAULT 0;
@@ -325,16 +351,19 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 ```
 
 **Frontend — mở rộng modal Tạo/Sửa bác sĩ:**
+
 - Tabs trong modal: "Tài khoản" (SĐT, mật khẩu, chuyên khoa) và "Hồ sơ" (bio, kinh nghiệm, bằng cấp)
 - Section "Dịch vụ phụ trách": multi-select checkbox các services (lọc theo specialty)
 
 ### 3.4 Quản lý Dịch Vụ Nâng Cao (ServiceManagementPage)
 
 **Thêm trường mới:**
+
 - `specialty_id` → Select chuyên khoa (dropdown departments)
 - `room_count` (số phòng thực hiện dịch vụ này) — optional
 
 **Frontend — ServiceModal cần thêm:**
+
 - Dropdown chọn Khoa (Specialty/Department)
 - Input số phòng (optional)
 
@@ -346,12 +375,14 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 **Sidebar:** Thêm nav item "Phòng khám"
 
 **Backend:** `RoomController.java` tại `/api/v1/admin/rooms`
+
 - GET `/` — danh sách phòng (filter by status, room_type)
 - POST `/` — tạo phòng
 - PATCH `/{id}` — sửa phòng
 - POST `/{id}/toggle` — toggle ACTIVE/INACTIVE
 
 **Frontend:** `RoomManagementPage.tsx`
+
 - Table: mã phòng, tên, khu vực, loại, trạng thái, tài sản trong phòng
 - Modal tạo/sửa: code, name, area, room_type (select), status
 
@@ -363,6 +394,7 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 
 **Route mới:** `/admin/supplies`  
 **Backend:** `SupplyController.java` tại `/api/v1/admin/supplies`
+
 - GET `/` — danh sách (filter active, low-stock)
 - POST `/` — tạo vật tư
 - PATCH `/{id}` — sửa
@@ -376,11 +408,13 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 
 **Route mới:** `/admin/assets`  
 **Backend:** `AssetController.java` tại `/api/v1/admin/assets`
+
 - GET `/` — danh sách (filter category, status, room)
 - POST `/` — tạo tài sản → ghi finance_ledger EXPENSE (purchase_price)
 - PATCH `/{id}` — sửa (bao gồm đổi phòng, đổi status)
 
 **Frontend:** `AssetManagementPage.tsx`
+
 - Table: mã, tên, loại, phòng, ngày mua, giá mua, trạng thái
 - Filter by category, room, status
 - Nút "Bảo trì" → status = MAINTENANCE, nút "Ngừng sử dụng" → RETIRED
@@ -390,10 +424,12 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 **Thêm tab "Thu Chi"** vào `ReportsPage.tsx` hiện tại.
 
 **Backend API mới:**
+
 - `GET /api/v1/admin/reports/finance?from=&to=&category=&type=` — lấy ledger entries
 - `GET /api/v1/admin/reports/finance/summary?from=&to=` — tổng nhập/chi/xuất
 
 **UI tab Thu Chi:**
+
 - Filter: từ ngày – đến ngày, loại (INCOME/EXPENSE), danh mục (dropdown)
 - Bảng: Ngày | Loại | Danh mục | Mô tả | Số lượng | Đơn vị | Số tiền | Người thực hiện
 - Tổng kết cuối trang: Tổng thu / Tổng chi / Chênh lệch
@@ -404,13 +440,12 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 **Yêu cầu:** Thu ngân tạo đơn thuốc thủ công cho khách không qua khám (mua lẻ).
 
 **Backend API mới:** `POST /api/v1/admin/cashier/retail-sale`
+
 ```json
 {
   "customerName": "Nguyễn Văn A",
-  "customerPhone": "0901234567",  // optional
-  "items": [
-    { "medicationId": "uuid", "qty": 2 }
-  ]
+  "customerPhone": "0901234567", // optional
+  "items": [{ "medicationId": "uuid", "qty": 2 }]
 }
 // Logic: validate stock, HELD → PAID ngay (không qua HELD vì không cần đợi bác sĩ)
 // Ghi finance_ledger INCOME/MEDICATION_SALE
@@ -418,6 +453,7 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 ```
 
 **Frontend — tab mới "Bán Lẻ"** trong `CashierPage.tsx`:
+
 - Form: tên khách (optional), SĐT (optional)
 - Medication picker: search + select + qty
 - Realtime tổng tiền
@@ -428,6 +464,7 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 **Implement cho cả 2 luồng: thanh toán sau khám + bán lẻ**
 
 **Cách làm:**
+
 ```typescript
 // Dùng window.print() với CSS @media print
 // Tạo component PrintableInvoice.tsx
@@ -439,11 +476,13 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 ### 4.6 Báo Cáo Nâng Cao (ReportsPage)
 
 **Thêm vào tab "Thống kê":**
+
 - **Hóa đơn ngày**: list tất cả bookings PAID trong ngày, click xem chi tiết
 - **Lượt khám theo bác sĩ**: bar chart hoặc table (bác sĩ | sáng | chiều | tổng)
 - **Cảnh báo thuốc sắp hết**: section riêng hiển thị medications có `stock_real - stock_hold <= min_stock` (cần thêm `min_stock` column vào medications hoặc dùng ngưỡng cố định)
 
 **Backend API mới:**
+
 - `GET /api/v1/admin/reports/daily-invoices?date=` — hóa đơn trong ngày
 - `GET /api/v1/admin/reports/visits-by-doctor?from=&to=` — lượt khám per bác sĩ
 - `GET /api/v1/admin/medications/low-stock` — thuốc sắp hết (tốt nhất dùng ngưỡng `stock_real - stock_hold <= 10` hoặc thêm `min_stock` column)
@@ -455,6 +494,7 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 **Backend:** Endpoint `GET /api/v1/admin/medications/low-stock` trả danh sách thuốc có `(stock_real - stock_hold) <= min_stock`
 
 **Frontend:**
+
 - Badge đỏ/amber số thuốc sắp hết trên AdminSidebar nav item "Thuốc"
 - Section "Cảnh báo" trên AdminDashboardPage
 - Filter "Sắp hết" trên MedicationManagementPage
@@ -468,16 +508,17 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 **Hiện tại:** `audit_logs` ghi chung chung.  
 **Yêu cầu:** Các sự kiện sau phải được ghi bắt buộc với đủ thông tin:
 
-| Sự kiện | `action` | `entity_type` | `meta_json` |
-|---------|----------|---------------|-------------|
-| Override slot | `OVERRIDE_SLOT` | `BOOKING` | `{doctorName, shiftId, reason}` |
-| Sửa kho thuốc | `STOCK_EDIT` | `MEDICATION` | `{medicationName, oldQty, newQty, type: 'RESTOCK'/'ADJUST'}` |
-| Hủy lịch khám | `CANCEL_BOOKING` | `BOOKING` | `{patientName, doctorName, reason}` |
-| Reset mật khẩu | `RESET_PASSWORD` | `USER` | `{targetPhone, targetRole}` |
-| Khóa/mở tài khoản | `LOCK_ACCOUNT` / `UNLOCK_ACCOUNT` | `USER` | `{targetPhone}` |
-| Xóa thuốc khỏi đơn | `REMOVE_PRESCRIPTION_ITEM` | `PRESCRIPTION` | `{medicationName, qty}` |
+| Sự kiện            | `action`                          | `entity_type`  | `meta_json`                                                  |
+| ------------------ | --------------------------------- | -------------- | ------------------------------------------------------------ |
+| Override slot      | `OVERRIDE_SLOT`                   | `BOOKING`      | `{doctorName, shiftId, reason}`                              |
+| Sửa kho thuốc      | `STOCK_EDIT`                      | `MEDICATION`   | `{medicationName, oldQty, newQty, type: 'RESTOCK'/'ADJUST'}` |
+| Hủy lịch khám      | `CANCEL_BOOKING`                  | `BOOKING`      | `{patientName, doctorName, reason}`                          |
+| Reset mật khẩu     | `RESET_PASSWORD`                  | `USER`         | `{targetPhone, targetRole}`                                  |
+| Khóa/mở tài khoản  | `LOCK_ACCOUNT` / `UNLOCK_ACCOUNT` | `USER`         | `{targetPhone}`                                              |
+| Xóa thuốc khỏi đơn | `REMOVE_PRESCRIPTION_ITEM`        | `PRESCRIPTION` | `{medicationName, qty}`                                      |
 
 **Frontend — ReportsPage tab "Audit Log":**
+
 - Thêm filter `action` dropdown (OVERRIDE_SLOT, STOCK_EDIT, CANCEL_BOOKING, ...)
 - Hiển thị `meta_json` parsed ra columns riêng
 
@@ -486,6 +527,7 @@ ALTER TABLE doctors ADD COLUMN qualifications TEXT;
 ## TÓM TẮT CÁC FILE CẦN TẠO MỚI
 
 ### Backend (Java)
+
 ```
 apps/backend/src/main/java/com/clinic/backend/modules/admin/
   ├── AutoDispatchService.java          (Phase 3.1)
@@ -514,6 +556,7 @@ apps/backend/src/main/resources/db/migration/
 ```
 
 ### Frontend (TypeScript/React)
+
 ```
 apps/web/src/modules/admin/pages/
   ├── RoomManagementPage.tsx            (Phase 3.5)
@@ -526,29 +569,29 @@ apps/web/src/modules/admin/components/
 
 ### Files cần SỬA
 
-| File | Thay đổi |
-|------|---------|
-| `ReceptionPage.tsx` | Thêm form "Tạo phiếu khám" mới (Phase 3.1) |
-| `PatientManagementPage.tsx` | Tích hợp hồ sơ khám (Phase 2.1) |
-| `DoctorManagementPage.tsx` | Thêm bio/CV/services (Phase 3.3) |
-| `ShiftManagementPage.tsx` | Thêm weekly view (Phase 3.2) |
-| `ServiceManagementPage.tsx` | Thêm specialty field (Phase 3.4) |
-| `CashierPage.tsx` | Thêm tab bán lẻ + in hóa đơn (Phase 4.4, 4.5) |
-| `MedicationManagementPage.tsx` | Thêm min_stock + cảnh báo (Phase 4.7) |
-| `PrescriptionTemplatePage.tsx` | Fix bug sửa/xóa (Phase 0.1) |
-| `DepartmentManagementPage.tsx` | Nâng cấp UI (Phase 2.2) |
-| `ReportsPage.tsx` | Thêm tabs thu chi, báo cáo nâng cao (Phase 4.3, 4.6) |
-| `AdminSidebar.tsx` | Thêm nav Phòng khám, Vật tư, Tài sản; cảnh báo thuốc (Phase 3.5, 4.1, 4.2, 4.7) |
-| `router.tsx` | Gộp records vào patients, thêm rooms/supplies/assets (Phase 2.1, 3.5) |
-| `types.ts` | Thêm tất cả interfaces mới |
-| `api.ts` | Thêm tất cả API methods mới |
-| `login.page.tsx` + các form PW | Show/hide password (Phase 0.2) |
-| `doctors` entity / migration | Thêm bio, experience_years, qualifications (Phase 3.3) |
-| `medications` migration | Thêm min_stock (Phase 4.7) |
-| `ReceptionService.java` | Thêm lookupPatient + createVisit (Phase 3.1) |
-| `ShiftManagementService.java` | Thêm bulkCreate (Phase 3.2) |
-| `CashierService.java` | Thêm retailSale (Phase 4.4) |
-| `AdminService.java` | Thêm lowStockMedications, dailyInvoices, visitsByDoctor (Phase 4.6, 4.7) |
+| File                           | Thay đổi                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `ReceptionPage.tsx`            | Thêm form "Tạo phiếu khám" mới (Phase 3.1)                                      |
+| `PatientManagementPage.tsx`    | Tích hợp hồ sơ khám (Phase 2.1)                                                 |
+| `DoctorManagementPage.tsx`     | Thêm bio/CV/services (Phase 3.3)                                                |
+| `ShiftManagementPage.tsx`      | Thêm weekly view (Phase 3.2)                                                    |
+| `ServiceManagementPage.tsx`    | Thêm specialty field (Phase 3.4)                                                |
+| `CashierPage.tsx`              | Thêm tab bán lẻ + in hóa đơn (Phase 4.4, 4.5)                                   |
+| `MedicationManagementPage.tsx` | Thêm min_stock + cảnh báo (Phase 4.7)                                           |
+| `PrescriptionTemplatePage.tsx` | Fix bug sửa/xóa (Phase 0.1)                                                     |
+| `DepartmentManagementPage.tsx` | Nâng cấp UI (Phase 2.2)                                                         |
+| `ReportsPage.tsx`              | Thêm tabs thu chi, báo cáo nâng cao (Phase 4.3, 4.6)                            |
+| `AdminSidebar.tsx`             | Thêm nav Phòng khám, Vật tư, Tài sản; cảnh báo thuốc (Phase 3.5, 4.1, 4.2, 4.7) |
+| `router.tsx`                   | Gộp records vào patients, thêm rooms/supplies/assets (Phase 2.1, 3.5)           |
+| `types.ts`                     | Thêm tất cả interfaces mới                                                      |
+| `api.ts`                       | Thêm tất cả API methods mới                                                     |
+| `login.page.tsx` + các form PW | Show/hide password (Phase 0.2)                                                  |
+| `doctors` entity / migration   | Thêm bio, experience_years, qualifications (Phase 3.3)                          |
+| `medications` migration        | Thêm min_stock (Phase 4.7)                                                      |
+| `ReceptionService.java`        | Thêm lookupPatient + createVisit (Phase 3.1)                                    |
+| `ShiftManagementService.java`  | Thêm bulkCreate (Phase 3.2)                                                     |
+| `CashierService.java`          | Thêm retailSale (Phase 4.4)                                                     |
+| `AdminService.java`            | Thêm lowStockMedications, dailyInvoices, visitsByDoctor (Phase 4.6, 4.7)        |
 
 ---
 
