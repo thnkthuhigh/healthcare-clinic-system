@@ -50,6 +50,13 @@ export function HealthProfilePage() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: (bookingId: string) => customerApi.cancelBooking(bookingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient-bookings', patientId] });
+    },
+  });
+
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim()) return;
@@ -113,6 +120,16 @@ export function HealthProfilePage() {
                 onViewPrescription={() => setViewPrescription(booking.prescription)}
                 onViewLabResults={() => setViewMedRecord(booking.medicalRecord)}
                 onRate={() => setRatingBooking(booking)}
+                onCancel={async () => {
+                  if (!window.confirm('Xác nhận hủy lịch? (áp dụng luật hủy backend)')) return;
+                  try {
+                    await cancelMutation.mutateAsync(booking.bookingId);
+                  } catch (e) {
+                    // show error
+                    const msg = e instanceof Error ? e.message : String(e);
+                    alert('Hủy thất bại: ' + msg);
+                  }
+                }}
               />
             ))}
           </>

@@ -1,0 +1,20 @@
+## Example mail configuration for SMTP (Gmail)
+# Copy this file to application-mail.yml or merge values into application.yml
+
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your@gmail.com    # your Gmail address
+    password: APP_PASSWORD_HERE # use an App Password (recommended)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Optional: set a test recipient where OTP emails will be delivered during dev
+otp:
+  test:
+    recipient: yourtestrecipient@example.com

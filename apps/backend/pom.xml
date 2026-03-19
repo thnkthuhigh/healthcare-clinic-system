@@ -16,10 +16,11 @@
   <name>clinic-backend</name>
   <description>Clinic Management Backend (Spring Boot)</description>
 
-  <properties>
+    <properties>
     <java.version>17</java.version>
     <springdoc.version>2.3.0</springdoc.version>
-    <jjwt.version>0.12.5</jjwt.version>
+    <!-- Bump jjwt to latest release to address vulnerability reports -->
+    <jjwt.version>0.13.0</jjwt.version>
   </properties>
 
   <dependencies>
@@ -74,6 +75,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+      <version>42.7.10</version>
       <scope>runtime</scope>
     </dependency>
 
@@ -87,6 +89,12 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
+    </dependency>
+    
+    <!-- Mail sender for OTP / forgot-password emails -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
   </dependencies>
 

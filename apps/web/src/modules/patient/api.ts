@@ -79,4 +79,10 @@ export const customerApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Cancel booking (expects backend to enforce >24h rule)
+  cancelBooking: (bookingId: string) =>
+    fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/cancel`, {
+      method: 'POST',
+    }),
 };
