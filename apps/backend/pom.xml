@@ -90,7 +90,7 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <!-- Mail sender for OTP / forgot-password emails -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

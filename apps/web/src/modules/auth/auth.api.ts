@@ -48,28 +48,32 @@ export const authApi = {
 
   // Forgot password / OTP
   sendResetOtp: async (phone: string): Promise<{ message: string }> => {
-      const response = await fetch(`${API_BASE}/forgot/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Lỗi gửi OTP' }));
-        throw new Error(error.message || 'Lỗi gửi OTP');
-      }
-      return response.json();
-    },
+    const response = await fetch(`${API_BASE}/forgot/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Lỗi gửi OTP' }));
+      throw new Error(error.message || 'Lỗi gửi OTP');
+    }
+    return response.json();
+  },
 
-  resetPassword: async (phone: string, otp: string, newPassword: string): Promise<{ message: string }> => {
-      const response = await fetch(`${API_BASE}/forgot/reset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp, newPassword }),
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Lỗi reset' }));
-        throw new Error(error.message || 'Lỗi reset');
-      }
-      return response.json();
-    },
+  resetPassword: async (
+    phone: string,
+    otp: string,
+    newPassword: string,
+  ): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE}/forgot/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp, newPassword }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Lỗi reset' }));
+      throw new Error(error.message || 'Lỗi reset');
+    }
+    return response.json();
+  },
 };

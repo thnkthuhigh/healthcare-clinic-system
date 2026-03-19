@@ -149,18 +149,14 @@ export function ReceptionPage() {
         parent.appendChild(container);
       }
       const html5QrCode = new Html5Qrcode(qrRegionId);
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        { fps: 10 },
-        (decodedText: string) => {
-          // on success
-          if (decodedText) {
-            checkInMutation.mutate(decodedText);
-            html5QrCode.stop().catch(() => {});
-            setScannerOpen(false);
-          }
-        },
-      );
+      await html5QrCode.start({ facingMode: 'environment' }, { fps: 10 }, (decodedText: string) => {
+        // on success
+        if (decodedText) {
+          checkInMutation.mutate(decodedText);
+          html5QrCode.stop().catch(() => {});
+          setScannerOpen(false);
+        }
+      });
       setScannerOpen(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -419,12 +415,9 @@ export function ReceptionPage() {
               <span className="material-symbols-outlined text-blue-600">qr_code_scanner</span>
               Check-in Khách Đặt Web
             </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Nhập SĐT hoặc **quét QR** để check-in
-            </p>
+            <p className="mt-1 text-sm text-slate-500">Nhập SĐT hoặc **quét QR** để check-in</p>
 
             <div className="flex gap-3">
-
               <input
                 type="tel"
                 value={searchPhone}
@@ -438,7 +431,11 @@ export function ReceptionPage() {
                 type="text"
                 value={bookingIdInput}
                 onChange={(e) => setBookingIdInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && bookingIdInput.trim() && checkInMutation.mutate(bookingIdInput.trim())}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' &&
+                  bookingIdInput.trim() &&
+                  checkInMutation.mutate(bookingIdInput.trim())
+                }
                 placeholder="Nhập hoặc dán mã vé (bookingId)"
                 className="hidden sm:inline-block w-64 rounded-lg border border-slate-300 px-3 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
@@ -478,9 +475,7 @@ export function ReceptionPage() {
                     Dừng quét
                   </button>
                 )}
-                {scannerError && (
-                  <p className="ml-2 text-sm text-red-600">{scannerError}</p>
-                )}
+                {scannerError && <p className="ml-2 text-sm text-red-600">{scannerError}</p>}
               </div>
             </div>
 
@@ -494,7 +489,9 @@ export function ReceptionPage() {
                 className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
               <button
-                onClick={() => bookingIdInput.trim() && checkInMutation.mutate(bookingIdInput.trim())}
+                onClick={() =>
+                  bookingIdInput.trim() && checkInMutation.mutate(bookingIdInput.trim())
+                }
                 disabled={!bookingIdInput.trim() || checkInMutation.isPending}
                 className="mt-2 w-full rounded-lg bg-green-600 px-4 py-2.5 text-white font-medium hover:bg-green-700 disabled:opacity-50"
               >
@@ -752,7 +749,9 @@ export function ReceptionPage() {
                     <span className="text-amber-600">Dự phòng: {s.reserveAvailable}</span>
                     <span
                       className={`rounded-full px-2 py-0.5 font-medium ${
-                        s.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        s.status === 'OPEN'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
                       }`}
                     >
                       {s.status === 'OPEN' ? 'Mở' : 'Đóng'}

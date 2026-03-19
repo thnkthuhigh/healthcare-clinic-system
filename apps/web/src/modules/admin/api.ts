@@ -29,15 +29,20 @@ export const adminApi = {
       `${API_BASE}/reception/bookings?date=${date}${shiftId ? `&shiftId=${shiftId}` : ''}`,
     ),
 
-  checkIn: (bookingId: string) => fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/checkin`, { method: 'POST' }),
+  checkIn: (bookingId: string) =>
+    fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/checkin`, { method: 'POST' }),
 
-  walkIn: (data: WalkInRequest) => fetchApi<{ poolUsed: string; isOverride: boolean; queueNumber: number }>(
-    `${API_BASE}/walkin`,
-    { method: 'POST', body: JSON.stringify(data) },
-  ),
+  walkIn: (data: WalkInRequest) =>
+    fetchApi<{ poolUsed: string; isOverride: boolean; queueNumber: number }>(`${API_BASE}/walkin`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
-  markNoShow: (bookingId: string) => fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/no-show`, { method: 'POST' }),
+  markNoShow: (bookingId: string) =>
+    fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/no-show`, { method: 'POST' }),
 
   searchBookingsByPhone: (phone: string, date: string) =>
-    fetchApi<ReceptionBooking[]>(`${API_BASE}/bookings/search?phone=${encodeURIComponent(phone)}&date=${date}`),
+    fetchApi<ReceptionBooking[]>(
+      `${API_BASE}/bookings/search?phone=${encodeURIComponent(phone)}&date=${date}`,
+    ),
 };

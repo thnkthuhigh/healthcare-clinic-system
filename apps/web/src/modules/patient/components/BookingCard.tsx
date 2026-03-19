@@ -39,6 +39,7 @@ export function BookingCard({
   onViewPrescription,
   onViewLabResults,
   onRate,
+  onCancel,
 }: BookingCardProps) {
   const isPaid = booking.paymentStatus === 'PAID';
   const isCompleted = booking.status === 'COMPLETED';
@@ -135,7 +136,7 @@ export function BookingCard({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => onCancel && onCancel()}
+              onClick={() => onCancel?.()}
               className="flex-1 rounded-lg border border-red-200 text-red-600 text-xs font-medium py-2 hover:bg-red-50 transition-colors"
             >
               Hủy lịch
