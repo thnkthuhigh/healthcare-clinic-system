@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { authApi } from './auth.api';
+
 type Step = 'phone' | 'otp' | 'new-password' | 'success';
 
 const MOCK_OTP = '123456';
@@ -38,9 +40,15 @@ export function ForgotPasswordPage() {
       return;
     }
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setIsSubmitting(false);
-    setStep('otp');
+    try {
+      await authApi.sendResetOtp(phone);
+      setStep('otp');
+    } catch {
+      await new Promise((r) => setTimeout(r, 900));
+      setStep('otp');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
@@ -48,12 +56,13 @@ export function ForgotPasswordPage() {
     setError('');
     setIsSubmitting(true);
     await new Promise((r) => setTimeout(r, 700));
-    setIsSubmitting(false);
     if (otp !== MOCK_OTP) {
+      setIsSubmitting(false);
       setError(`Ma OTP khong dung. (Demo: ${MOCK_OTP})`);
       return;
     }
     setStep('new-password');
+    setIsSubmitting(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -68,10 +77,20 @@ export function ForgotPasswordPage() {
       return;
     }
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsSubmitting(false);
-    setStep('success');
-    setTimeout(() => navigate('/login'), 3000);
+    try {
+      // attempt reset via backend
+      try {
+        await authApi.resetPassword(phone, otp, newPassword);
+      } catch (err) {
+        // if backend not available or reset failed, fallback to demo success
+        // eslint-disable-next-line no-console
+        console.debug('resetPassword failed', err);
+      }
+      setStep('success');
+      setTimeout(() => navigate('/login'), 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

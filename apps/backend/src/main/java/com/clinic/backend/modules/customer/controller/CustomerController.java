@@ -138,4 +138,14 @@ public class CustomerController {
         bookingService.submitRating(bookingId, request);
         return ResponseEntity.ok(Map.of("message", "Đánh giá đã được ghi nhận. Cảm ơn bạn!"));
     }
+
+    // =====================================================
+    // Cancel booking
+    // POST /api/customer/bookings/{bookingId}/cancel
+    // =====================================================
+    @PostMapping("/bookings/{bookingId}/cancel")
+    public ResponseEntity<Map<String, String>> cancelBooking(@PathVariable UUID bookingId) {
+        bookingService.cancelBooking(bookingId);
+        return ResponseEntity.ok(Map.of("message", "Booking canceled"));
+    }
 }

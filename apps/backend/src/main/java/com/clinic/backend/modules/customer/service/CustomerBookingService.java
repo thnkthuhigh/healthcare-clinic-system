@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -308,6 +309,38 @@ public class CustomerBookingService {
         rating.setComment(req.comment());
         ratingRepository.save(rating);
     }
+
+        // =====================================================
+        // Cancel booking (allowed only if more than 24 hours before shift start)
+        // =====================================================
+
+        public void cancelBooking(UUID bookingId) {
+                Booking booking = bookingRepository.findByIdWithDetails(bookingId)
+                                .orElseThrow(() -> new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Booking not found"));
+
+                if (booking.getStatus() == Booking.BookingStatus.CANCELED) {
+                        return; // already canceled
+                }
+
+                Instant now = Instant.now();
+                Instant shiftStart = booking.getShift().getStartTime();
+                if (now.isAfter(shiftStart.minus(24, ChronoUnit.HOURS))) {
+                        throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                                        "Không thể hủy lịch trong vòng 24 giờ trước giờ khám.");
+                }
+
+                // mark booking canceled
+                booking.setStatus(Booking.BookingStatus.CANCELED);
+                bookingRepository.save(booking);
+
+                // release slot (if exists)
+                if (booking.getSlotId() != null) {
+                        slotRepository.findById(booking.getSlotId()).ifPresent(slot -> {
+                                slot.setStatus(Slot.SlotStatus.OPEN);
+                                slotRepository.save(slot);
+                        });
+                }
+        }
 
     // =====================================================
     // Mappers

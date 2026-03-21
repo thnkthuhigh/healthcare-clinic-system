@@ -68,7 +68,9 @@ export function ShiftPicker({
         <div className="space-y-2">
           {shifts.map((shift) => {
             const isSelected = shift.id === selectedShiftId;
-            const isFull = shift.isFull || shift.status === 'CLOSED';
+            // Treat availableSlots as common pool available; cap display at 12
+            const commonAvailable = Math.max(0, Math.min(12, shift.availableSlots));
+            const isFull = commonAvailable <= 0 || shift.status === 'CLOSED';
             return (
               <button
                 key={shift.id}
@@ -97,7 +99,7 @@ export function ShiftPicker({
                     </span>
                   ) : (
                     <span className="text-xs text-slate-500">
-                      Còn <strong className="text-primary">{shift.availableSlots}</strong> chỗ
+                      Chung: <strong className="text-primary">{commonAvailable}</strong>/12
                     </span>
                   )}
                 </div>
