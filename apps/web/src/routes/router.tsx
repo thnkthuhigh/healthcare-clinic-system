@@ -35,6 +35,7 @@ import { HomePage } from '../modules/home/home.page';
 import { AccountManagementPage } from '../modules/owner/pages';
 import {
   BookingPage,
+  HealthProfilePage,
   HealthRecordsPage,
   ProfilePage,
   DoctorsPage,
@@ -81,7 +82,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/health-profile',
-    element: <HealthRecordsPage />,
+    element: <HealthProfilePage />,
   },
   {
     path: '/doctors',

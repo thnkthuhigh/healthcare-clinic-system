@@ -235,32 +235,10 @@ export function ConsultationPage() {
     }
   };
 
-  const handleSendToLab = async () => {
-    if (!bookingId) return;
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      // Save current progress first
-      const formData = watch();
-      if (formData.symptoms || formData.diagnosis) {
-        await consultationApi.saveMedicalRecord(bookingId, {
-          symptoms: formData.symptoms,
-          diagnosis: formData.diagnosis,
-          conclusion: formData.conclusion,
-        });
-      }
-
-      // TODO: Implement send to lab API
-      setSuccessMessage('Đã gửi yêu cầu xét nghiệm');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      console.error('Failed to send to lab:', err);
-      setError('Không thể gửi yêu cầu xét nghiệm');
-    } finally {
-      setSaving(false);
-    }
+  const handleSendToLab = () => {
+    setError(
+      'Chức năng gửi xét nghiệm đang được hoàn thiện, vui lòng dùng Lưu nháp hoặc Lưu & Hoàn thành.',
+    );
   };
 
   if (loading) {
@@ -808,8 +786,9 @@ export function ConsultationPage() {
           <button
             type="button"
             onClick={handleSendToLab}
-            disabled={saving}
-            className="px-5 py-2.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-semibold text-sm hover:bg-primary/20 transition-colors border border-transparent disabled:opacity-50"
+            disabled
+            title="Tính năng đang được hoàn thiện"
+            className="px-5 py-2.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-semibold text-sm transition-colors border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Gửi xét nghiệm
           </button>
