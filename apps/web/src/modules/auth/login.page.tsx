@@ -1,18 +1,18 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from './useAuth';
 
 export function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, user } = useAuth();
 
-  // If already authenticated, redirect
   if (isAuthenticated && user) {
     const redirectTo = getRedirectPath(user.role);
     return <Navigate to={redirectTo} replace />;
@@ -25,47 +25,41 @@ export function LoginPage() {
 
     try {
       const loggedInUser = await login({ phone, password });
-
-      // Redirect to the page user was trying to access, or default by role
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
       navigate(from || getRedirectPath(loggedInUser.role), { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại');
+      setError(err instanceof Error ? err.message : 'Dang nhap that bai');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 px-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
             <span className="material-symbols-outlined text-3xl text-white">local_hospital</span>
           </div>
           <h1 className="text-3xl font-bold text-slate-900">Healthcare Clinic</h1>
-          <p className="text-slate-600 mt-2">Đăng nhập vào hệ thống</p>
+          <p className="mt-2 text-slate-600">Dang nhap vao he thong</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="rounded-lg bg-white p-8 shadow-lg">
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex gap-2 items-center">
-                  <span className="material-symbols-outlined text-red-600 text-sm">error</span>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm text-red-600">error</span>
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
               </div>
             )}
 
-            {/* Phone Input */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Số điện thoại</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">So dien thoai</label>
               <input
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="0900000000"
                 value={phone}
@@ -75,68 +69,76 @@ export function LoginPage() {
               />
             </div>
 
-            {/* Password Input */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Mật khẩu</label>
-              <input
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                autoComplete="current-password"
-                disabled={isSubmitting}
-              />
+              <label className="mb-2 block text-sm font-medium text-slate-700">Mat khau</label>
+              <div className="relative">
+                <input
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="********"
+                  value={password}
+                  autoComplete="current-password"
+                  disabled={isSubmitting}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                  tabIndex={-1}
+                >
+                  <span className="material-symbols-outlined text-base">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            {/* Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
               <div className="flex gap-2">
-                <span className="material-symbols-outlined text-blue-600 text-sm">info</span>
+                <span className="material-symbols-outlined text-sm text-blue-600">info</span>
                 <div className="flex-1">
-                  <p className="text-xs text-blue-800 font-medium">Tài khoản mặc định</p>
-                  <p className="text-xs text-blue-700 mt-1">Owner: 0900000000 / owner123</p>
+                  <p className="text-xs font-medium text-blue-800">Tai khoan mac dinh</p>
+                  <p className="mt-1 text-xs text-blue-700">Owner: 0900000000 / owner123</p>
                   <p className="text-xs text-blue-700">Admin: 0903456789 / password123</p>
-                  <p className="text-xs text-blue-700">BS. Lê Văn Minh: 0901234567 / password123</p>
+                  <p className="text-xs text-blue-700">BS. Le Van Minh: 0901234567 / password123</p>
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={!phone || !password || isSubmitting}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Đang đăng nhập...
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Dang dang nhap...
                 </>
               ) : (
-                'Đăng nhập'
+                'Dang nhap'
               )}
             </button>
           </form>
 
-          {/* Footer Links */}
-          <div className="mt-6 text-center text-sm space-y-2">
+          <div className="mt-6 space-y-2 text-center text-sm">
             <p className="text-slate-600">
-              Chưa có tài khoản?{' '}
-              <Link to="/register" className="text-blue-600 hover:underline font-medium">
-                Đăng ký ngay
+              Chua co tai khoan?{' '}
+              <Link to="/register" className="font-medium text-blue-600 hover:underline">
+                Dang ky ngay
               </Link>
             </p>
             <p>
               <Link
                 to="/forgot-password"
-                className="text-slate-500 hover:text-blue-600 hover:underline transition-colors"
+                className="text-slate-500 transition-colors hover:text-blue-600 hover:underline"
               >
-                Quên mật khẩu?
+                Quen mat khau?
               </Link>
             </p>
-            <Link to="/" className="text-blue-600 hover:underline block">
-              ← Về trang chủ
+            <Link to="/" className="block text-blue-600 hover:underline">
+              ? Ve trang chu
             </Link>
           </div>
         </div>

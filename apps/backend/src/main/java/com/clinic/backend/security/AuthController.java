@@ -43,4 +43,28 @@ public class AuthController {
         Map<String, Object> user = authService.me(token);
         return ResponseEntity.ok(user);
     }
+
+    @Operation(summary = "Send reset OTP", description = "Gửi mã OTP để đặt lại mật khẩu (demo: logs OTP if email not configured)")
+    @PostMapping("/forgot/send-otp")
+    public ResponseEntity<Void> sendResetOtp(@RequestBody Map<String, String> body) {
+        String phone = body.get("phone");
+        if (phone == null || phone.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        authService.sendResetOtp(phone);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Reset password using OTP", description = "Xác minh OTP và đặt lại mật khẩu")
+    @PostMapping("/forgot/reset")
+    public ResponseEntity<Void> resetPassword(@RequestBody Map<String, String> body) {
+        String phone = body.get("phone");
+        String otp = body.get("otp");
+        String newPassword = body.get("newPassword");
+        if (phone == null || otp == null || newPassword == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        authService.resetPassword(phone, otp, newPassword);
+        return ResponseEntity.ok().build();
+    }
 }

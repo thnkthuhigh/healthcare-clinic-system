@@ -37,9 +37,6 @@ function ServiceRowSkeleton() {
         </div>
       </td>
       <td className="py-4 px-4">
-        <div className="h-4 bg-slate-200 rounded w-16" />
-      </td>
-      <td className="py-4 px-4">
         <div className="h-4 bg-slate-200 rounded w-24" />
       </td>
       <td className="py-4 px-4">
@@ -63,12 +60,6 @@ function ServiceCard({ service, index }: { service: ClinicService; index: number
             </span>
           </div>
           <span className="font-medium text-slate-900">{service.name}</span>
-        </div>
-      </td>
-      <td className="py-4 px-4 text-slate-600 text-sm">
-        <div className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-slate-400 text-base">schedule</span>
-          {service.durationMin} phút
         </div>
       </td>
       <td className="py-4 px-4">
@@ -157,9 +148,6 @@ export function ServicesPage() {
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                       Dịch vụ
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Thời gian
                     </th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                       Giá khám

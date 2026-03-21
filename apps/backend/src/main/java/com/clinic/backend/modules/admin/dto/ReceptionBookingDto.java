@@ -20,6 +20,8 @@ public class ReceptionBookingDto {
     private Instant checkInAt;
     private Instant createdAt;
     private int priorityScore;
+    private String roomName;
+    private String slotPool;
 
     // Getters and Setters
     public String getId() { return id; }
@@ -63,4 +65,10 @@ public class ReceptionBookingDto {
 
     public int getPriorityScore() { return priorityScore; }
     public void setPriorityScore(int priorityScore) { this.priorityScore = priorityScore; }
+
+    public String getRoomName() { return roomName; }
+    public void setRoomName(String roomName) { this.roomName = roomName; }
+
+    public String getSlotPool() { return slotPool; }
+    public void setSlotPool(String slotPool) { this.slotPool = slotPool; }
 }

@@ -58,7 +58,6 @@ public class CustomerController {
                 .map(s -> Map.<String, Object>of(
                         "id", s.getId(),
                         "name", s.getName(),
-                        "durationMin", s.getDurationMin(),
                         "priceCents", s.getPriceCents()))
                 .toList();
         return ResponseEntity.ok(result);
@@ -138,5 +137,15 @@ public class CustomerController {
             @Valid @RequestBody RatingRequest request) {
         bookingService.submitRating(bookingId, request);
         return ResponseEntity.ok(Map.of("message", "Đánh giá đã được ghi nhận. Cảm ơn bạn!"));
+    }
+
+    // =====================================================
+    // Cancel booking
+    // POST /api/customer/bookings/{bookingId}/cancel
+    // =====================================================
+    @PostMapping("/bookings/{bookingId}/cancel")
+    public ResponseEntity<Map<String, String>> cancelBooking(@PathVariable UUID bookingId) {
+        bookingService.cancelBooking(bookingId);
+        return ResponseEntity.ok(Map.of("message", "Booking canceled"));
     }
 }

@@ -7,6 +7,8 @@ import java.util.UUID;
 public record QueueItemDto(
     UUID id,
     Integer queueNumber,
+    Instant appointmentTime,
+    Integer slotSequence,
     PatientDto patient,
     String serviceName,
     Booking.BookingStatus status,

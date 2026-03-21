@@ -8,6 +8,12 @@ const FOOTER_LINKS = [
   { to: '/appointments', label: 'Lịch khám của tôi' },
 ];
 
+const SOCIAL_ICONS = [
+  { icon: 'group', label: 'Facebook' },
+  { icon: 'smart_display', label: 'YouTube' },
+  { icon: 'mail', label: 'Email' },
+];
+
 export function PatientFooter() {
   return (
     <footer className="bg-slate-900 text-slate-400 mt-16">
@@ -25,13 +31,17 @@ export function PatientFooter() {
               Hệ thống phòng khám đa chức năng, cung cấp dịch vụ y tế chất lượng cao với đội ngũ bác
               sĩ giàu kinh nghiệm, tận tâm.
             </p>
-            <div className="flex gap-3 mt-5">
-              {['facebook', 'youtube', 'email'].map((icon) => (
+            <div className="flex gap-3 mt-10">
+              {SOCIAL_ICONS.map((social) => (
                 <button
-                  key={icon}
+                  key={social.label}
+                  type="button"
+                  aria-label={social.label}
                   className="w-9 h-9 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition-colors"
                 >
-                  <span className="material-symbols-outlined text-slate-300 text-base">{icon}</span>
+                  <span className="material-symbols-outlined text-slate-300 text-base leading-none">
+                    {social.icon}
+                  </span>
                 </button>
               ))}
             </div>

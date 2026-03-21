@@ -5,6 +5,7 @@ interface BookingCardProps {
   onViewPrescription: () => void;
   onViewLabResults: () => void;
   onRate: () => void;
+  onCancel?: () => void;
 }
 
 const SHIFT_LABEL: Record<string, string> = { MORNING: 'Buổi sáng', AFTERNOON: 'Buổi chiều' };
@@ -38,6 +39,7 @@ export function BookingCard({
   onViewPrescription,
   onViewLabResults,
   onRate,
+  onCancel,
 }: BookingCardProps) {
   const isPaid = booking.paymentStatus === 'PAID';
   const isCompleted = booking.status === 'COMPLETED';
@@ -126,6 +128,20 @@ export function BookingCard({
               )}
             </div>
           )}
+        </div>
+      )}
+      {/* Cancel action for BOOKED (if allowed) */}
+      {booking.status === 'BOOKED' && (
+        <div className="px-4 pb-3 mt-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onCancel?.()}
+              className="flex-1 rounded-lg border border-red-200 text-red-600 text-xs font-medium py-2 hover:bg-red-50 transition-colors"
+            >
+              Hủy lịch
+            </button>
+          </div>
         </div>
       )}
     </div>

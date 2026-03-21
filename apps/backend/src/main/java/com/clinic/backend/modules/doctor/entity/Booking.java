@@ -18,6 +18,10 @@ public class Booking {
     
     @Column(name = "slot_id", nullable = false)
     private UUID slotId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "slot_id", insertable = false, updatable = false)
+    private Slot slot;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
@@ -89,6 +93,9 @@ public class Booking {
     
     public UUID getSlotId() { return slotId; }
     public void setSlotId(UUID slotId) { this.slotId = slotId; }
+
+    public Slot getSlot() { return slot; }
+    public void setSlot(Slot slot) { this.slot = slot; }
     
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }

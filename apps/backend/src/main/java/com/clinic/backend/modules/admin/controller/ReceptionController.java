@@ -1,6 +1,10 @@
 package com.clinic.backend.modules.admin.controller;
 
 import com.clinic.backend.modules.admin.dto.CheckInRequest;
+import com.clinic.backend.modules.admin.dto.CreateVisitRequest;
+import com.clinic.backend.modules.admin.dto.CreateVisitResponse;
+import com.clinic.backend.modules.admin.dto.DispatchOptionDto;
+import com.clinic.backend.modules.admin.dto.PatientLookupResponse;
 import com.clinic.backend.modules.admin.dto.ReceptionBookingDto;
 import com.clinic.backend.modules.admin.dto.WalkInRequest;
 import com.clinic.backend.modules.admin.service.ReceptionService;
@@ -51,6 +55,24 @@ public class ReceptionController {
     }
 
     /**
+     * Lookup patient profile by phone for auto-dispatch reception form.
+     * GET /api/v1/admin/reception/lookup?phone=0901234567
+     */
+    @GetMapping("/lookup")
+    public ResponseEntity<PatientLookupResponse> lookupPatient(@RequestParam String phone) {
+        return ResponseEntity.ok(receptionService.lookupPatient(phone));
+    }
+
+    /**
+     * List dispatch options (doctor + shift + room) for selected service.
+     * GET /api/v1/admin/reception/dispatch-options?serviceId=...
+     */
+    @GetMapping("/dispatch-options")
+    public ResponseEntity<List<DispatchOptionDto>> getDispatchOptions(@RequestParam String serviceId) {
+        return ResponseEntity.ok(receptionService.getDispatchOptions(serviceId));
+    }
+
+    /**
      * Check-in a web-booked patient: BOOKED → CHECKED_IN.
      * POST /api/v1/admin/reception/check-in
      */
@@ -75,6 +97,15 @@ public class ReceptionController {
                 request.getShiftId(),
                 request.getServiceId());
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Auto dispatch reception flow by service.
+     * POST /api/v1/admin/reception/create-visit
+     */
+    @PostMapping("/create-visit")
+    public ResponseEntity<CreateVisitResponse> createVisit(@Valid @RequestBody CreateVisitRequest request) {
+        return ResponseEntity.ok(receptionService.createVisit(request));
     }
 
     /**

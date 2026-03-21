@@ -8,6 +8,8 @@ export function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +20,7 @@ export function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
+      setError('Mat khau xac nhan khong khop');
       return;
     }
 
@@ -28,55 +30,51 @@ export function RegisterPage() {
       setSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng ký thất bại');
+      setError(err instanceof Error ? err.message : 'Dang ky that bai');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 px-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
             <span className="material-symbols-outlined text-3xl text-white">local_hospital</span>
           </div>
           <h1 className="text-3xl font-bold text-slate-900">Healthcare Clinic</h1>
-          <p className="text-slate-600 mt-2">Đăng ký tài khoản bệnh nhân</p>
+          <p className="mt-2 text-slate-600">Dang ky tai khoan benh nhan</p>
         </div>
 
-        {/* Register Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="rounded-lg bg-white p-8 shadow-lg">
           {success ? (
-            <div className="text-center space-y-3">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-green-100 rounded-full">
-                <span className="material-symbols-outlined text-green-600 text-3xl">
+            <div className="space-y-3 text-center">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                <span className="material-symbols-outlined text-3xl text-green-600">
                   check_circle
                 </span>
               </div>
-              <p className="text-slate-900 font-semibold text-lg">Đăng ký thành công!</p>
-              <p className="text-slate-600 text-sm">Đang chuyển đến trang đăng nhập...</p>
+              <p className="text-lg font-semibold text-slate-900">Dang ky thanh cong!</p>
+              <p className="text-sm text-slate-600">Dang chuyen den trang dang nhap...</p>
             </div>
           ) : (
             <form onSubmit={handleRegister} className="space-y-5">
-              {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <div className="flex gap-2 items-center">
-                    <span className="material-symbols-outlined text-red-600 text-sm">error</span>
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-red-600">error</span>
                     <p className="text-sm text-red-700">{error}</p>
                   </div>
                 </div>
               )}
 
-              {/* Full Name Input */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Họ và tên</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Ho va ten</label>
                 <input
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nguyễn Văn A"
+                  placeholder="Nguyen Van A"
                   value={fullName}
                   type="text"
                   autoComplete="name"
@@ -84,13 +82,12 @@ export function RegisterPage() {
                 />
               </div>
 
-              {/* Phone Input */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Số điện thoại
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  So dien thoai
                 </label>
                 <input
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="0912345678"
                   value={phone}
@@ -100,64 +97,84 @@ export function RegisterPage() {
                 />
               </div>
 
-              {/* Password Input */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Mật khẩu</label>
-                <input
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  autoComplete="new-password"
-                  disabled={isSubmitting}
-                />
+                <label className="mb-2 block text-sm font-medium text-slate-700">Mat khau</label>
+                <div className="relative">
+                  <input
+                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setPassword(e.target.value)}
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="********"
+                    value={password}
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                    tabIndex={-1}
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              {/* Confirm Password Input */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Xác nhận mật khẩu
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Xac nhan mat khau
                 </label>
-                <input
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  autoComplete="new-password"
-                  disabled={isSubmitting}
-                />
+                <div className="relative">
+                  <input
+                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="********"
+                    value={confirmPassword}
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                    tabIndex={-1}
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={!fullName || !phone || !password || !confirmPassword || isSubmitting}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Đang đăng ký...
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Dang dang ky...
                   </>
                 ) : (
-                  'Đăng ký'
+                  'Dang ky'
                 )}
               </button>
             </form>
           )}
 
-          {/* Footer Links */}
-          <div className="mt-6 text-center text-sm space-y-2">
+          <div className="mt-6 space-y-2 text-center text-sm">
             <p className="text-slate-600">
-              Đã có tài khoản?{' '}
-              <Link to="/login" className="text-blue-600 hover:underline font-medium">
-                Đăng nhập
+              Da co tai khoan?{' '}
+              <Link to="/login" className="font-medium text-blue-600 hover:underline">
+                Dang nhap
               </Link>
             </p>
-            <Link to="/" className="text-blue-600 hover:underline block">
-              ← Về trang chủ
+            <Link to="/" className="block text-blue-600 hover:underline">
+              ? Ve trang chu
             </Link>
           </div>
         </div>

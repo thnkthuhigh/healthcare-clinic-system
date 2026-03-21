@@ -22,10 +22,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Query("""
                         SELECT b FROM Booking b
                         JOIN FETCH b.patient p
+                        JOIN FETCH b.slot sl
                         LEFT JOIN FETCH b.service s
                         WHERE b.shift.id = :shiftId
                         AND CAST(b.status AS string) IN :statuses
-                        ORDER BY b.priorityScore DESC, b.checkInAt ASC
+                        ORDER BY b.priorityScore DESC, b.checkInAt ASC, sl.sequence ASC
                         """)
         List<Booking> findQueueByShiftId(
                         @Param("shiftId") UUID shiftId,
@@ -37,9 +38,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Query("""
                         SELECT b FROM Booking b
                         JOIN FETCH b.patient
+                        JOIN FETCH b.slot sl
                         LEFT JOIN FETCH b.service
                         WHERE b.shift.id = :shiftId
-                        ORDER BY b.queueNumber ASC
+                        ORDER BY sl.sequence ASC, b.createdAt ASC
                         """)
         List<Booking> findAllByShiftId(@Param("shiftId") UUID shiftId);
 
@@ -62,6 +64,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                         SELECT b FROM Booking b
                         JOIN FETCH b.patient
                         JOIN FETCH b.shift s
+                        JOIN FETCH b.slot
                         JOIN FETCH s.doctor d
                         JOIN FETCH d.user
                         LEFT JOIN FETCH b.service
@@ -75,12 +78,24 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Query("""
                         SELECT b FROM Booking b
                         JOIN FETCH b.patient p
+                        JOIN FETCH b.slot sl
                         WHERE b.shift.id = :shiftId
                         AND CAST(b.status AS string) IN ('CHECKED_IN', 'WAITING', 'RESULTS_READY')
-                        ORDER BY b.priorityScore DESC, b.checkInAt ASC
+                        ORDER BY b.priorityScore DESC, b.checkInAt ASC, sl.sequence ASC
                         LIMIT 1
                         """)
         Optional<Booking> findNextInQueue(@Param("shiftId") UUID shiftId);
+
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.patient
+                        JOIN FETCH b.shift s
+                        JOIN FETCH b.slot sl
+                        LEFT JOIN FETCH b.service
+                        WHERE s.id IN :shiftIds
+                        ORDER BY s.date ASC, s.startTime ASC, sl.sequence ASC, b.createdAt ASC
+                        """)
+        List<Booking> findScheduleByShiftIds(@Param("shiftIds") List<UUID> shiftIds);
 
         /**
          * Get patient's booking history (COMPLETED bookings)

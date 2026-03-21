@@ -51,7 +51,6 @@ export function ConsultationPage() {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm<ConsultationForm>({
     defaultValues: {
       symptoms: '',
@@ -242,22 +241,16 @@ export function ConsultationPage() {
       setSaving(true);
       setError(null);
 
-      // Save current progress first
-      const formData = watch();
-      if (formData.symptoms || formData.diagnosis) {
-        await consultationApi.saveMedicalRecord(bookingId, {
-          symptoms: formData.symptoms,
-          diagnosis: formData.diagnosis,
-          conclusion: formData.conclusion,
-        });
-      }
+      await consultationApi.sendToLab(bookingId);
 
-      // TODO: Implement send to lab API
-      setSuccessMessage('Đã gửi yêu cầu xét nghiệm');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      setSuccessMessage('Đã gửi bệnh nhân đến khu xét nghiệm.');
+      setTimeout(() => {
+        setSuccessMessage(null);
+        navigate('/doctor/queue');
+      }, 1800);
     } catch (err) {
       console.error('Failed to send to lab:', err);
-      setError('Không thể gửi yêu cầu xét nghiệm');
+      setError('Không thể gửi bệnh nhân đến xét nghiệm');
     } finally {
       setSaving(false);
     }
