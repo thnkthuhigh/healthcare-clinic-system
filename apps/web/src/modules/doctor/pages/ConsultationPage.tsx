@@ -234,10 +234,26 @@ export function ConsultationPage() {
     }
   };
 
-  const handleSendToLab = () => {
-    setError(
-      'Chức năng gửi xét nghiệm đang được hoàn thiện, vui lòng dùng Lưu nháp hoặc Lưu & Hoàn thành.',
-    );
+  const handleSendToLab = async () => {
+    if (!bookingId) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      await consultationApi.sendToLab(bookingId);
+
+      setSuccessMessage('Đã gửi bệnh nhân đến khu xét nghiệm.');
+      setTimeout(() => {
+        setSuccessMessage(null);
+        navigate('/doctor/queue');
+      }, 1800);
+    } catch (err) {
+      console.error('Failed to send to lab:', err);
+      setError('Không thể gửi bệnh nhân đến xét nghiệm');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -785,9 +801,8 @@ export function ConsultationPage() {
           <button
             type="button"
             onClick={handleSendToLab}
-            disabled
-            title="Tính năng đang được hoàn thiện"
-            className="px-5 py-2.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-semibold text-sm transition-colors border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving}
+            className="px-5 py-2.5 rounded-lg bg-primary/10 text-primary dark:text-primary font-semibold text-sm hover:bg-primary/20 transition-colors border border-transparent disabled:opacity-50"
           >
             Gửi xét nghiệm
           </button>

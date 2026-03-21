@@ -47,7 +47,7 @@ export const authApi = {
   },
 
   // Forgot password / OTP
-  sendResetOtp: async (phone: string): Promise<{ message: string }> => {
+  sendResetOtp: async (phone: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/forgot/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,14 +57,11 @@ export const authApi = {
       const error = await response.json().catch(() => ({ message: 'Lỗi gửi OTP' }));
       throw new Error(error.message || 'Lỗi gửi OTP');
     }
-    return response.json();
+    if (response.status === 204) return;
+    await response.text().catch(() => '');
   },
 
-  resetPassword: async (
-    phone: string,
-    otp: string,
-    newPassword: string,
-  ): Promise<{ message: string }> => {
+  resetPassword: async (phone: string, otp: string, newPassword: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/forgot/reset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -74,6 +71,7 @@ export const authApi = {
       const error = await response.json().catch(() => ({ message: 'Lỗi reset' }));
       throw new Error(error.message || 'Lỗi reset');
     }
-    return response.json();
+    if (response.status === 204) return;
+    await response.text().catch(() => '');
   },
 };

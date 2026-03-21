@@ -5,8 +5,6 @@ import { authApi } from './auth.api';
 
 type Step = 'phone' | 'otp' | 'new-password' | 'success';
 
-const MOCK_OTP = '123456';
-
 const STEPS = [
   { key: 'phone', label: 'So dien thoai' },
   { key: 'otp', label: 'Xac minh OTP' },
@@ -55,14 +53,16 @@ export function ForgotPasswordPage() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 700));
-    if (otp !== MOCK_OTP) {
-      setIsSubmitting(false);
-      setError(`Ma OTP khong dung. (Demo: ${MOCK_OTP})`);
+    try {
+      await authApi.resetPassword(phone, otp, '__verify_only__');
+      setStep('new-password');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Ma OTP khong dung hoac da het han';
+      setError(message);
       return;
+    } finally {
+      setIsSubmitting(false);
     }
-    setStep('new-password');
-    setIsSubmitting(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -78,16 +78,12 @@ export function ForgotPasswordPage() {
     }
     setIsSubmitting(true);
     try {
-      // attempt reset via backend
-      try {
-        await authApi.resetPassword(phone, otp, newPassword);
-      } catch (err) {
-        // if backend not available or reset failed, fallback to demo success
-        // eslint-disable-next-line no-console
-        console.debug('resetPassword failed', err);
-      }
+      await authApi.resetPassword(phone, otp, newPassword);
       setStep('success');
       setTimeout(() => navigate('/login'), 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Dat lai mat khau that bai';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -193,9 +189,6 @@ export function ForgotPasswordPage() {
               <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
                 <p className="text-sm text-blue-800">
                   Ma OTP da gui den <span className="font-semibold">{phone}</span>
-                </p>
-                <p className="mt-0.5 text-xs text-blue-500">
-                  Demo: dung ma <strong>123456</strong>
                 </p>
               </div>
               <div>
