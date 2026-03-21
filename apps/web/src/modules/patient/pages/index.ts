@@ -1,6 +1,8 @@
 export { BookingPage } from './BookingPage';
 export { PatientHomePage } from './PatientHomePage';
 export { HealthProfilePage } from './HealthProfilePage';
+export { ProfilePage } from './ProfilePage';
+export { HealthRecordsPage } from './HealthRecordsPage';
 export { DoctorsPage } from './DoctorsPage';
 export { ServicesPage } from './ServicesPage';
 export { AboutPage } from './AboutPage';

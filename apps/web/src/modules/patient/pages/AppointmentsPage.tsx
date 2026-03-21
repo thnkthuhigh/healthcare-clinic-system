@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
-import type { PatientBooking } from '../types';
+import { QRTicket } from '../components/QRTicket';
+import type { BookingTicket, PatientBooking } from '../types';
 
 // ─── Status config ───────────────────────────────────────────────────────────
 
@@ -147,22 +148,49 @@ function formatDate(dateStr: string) {
   });
 }
 
+function toBookingTicket(
+  booking: PatientBooking,
+  patientName: string,
+  phone: string,
+): BookingTicket {
+  return {
+    bookingId: booking.bookingId,
+    queueNumber: booking.queueNumber,
+    patientName,
+    patientPhone: phone,
+    doctorName: booking.doctorName,
+    specialty: booking.specialty,
+    date: booking.date,
+    shiftType: booking.shiftType,
+    timeRange: booking.timeRange,
+    serviceName: booking.serviceName,
+    status: booking.status,
+    paymentStatus: booking.paymentStatus,
+    createdAt: booking.createdAt,
+  };
+}
+
 // ─── Booking card ─────────────────────────────────────────────────────────────
 
 function BookingCard({
   booking,
   phone,
+  patientName,
   onCanceled,
 }: {
   booking: PatientBooking;
   phone: string;
+  patientName: string;
   onCanceled: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const displayStatus = getDisplayStatus(booking.status);
   const cfg = STATUS_CONFIG[displayStatus];
   const cancelAllowed = canCancel(booking);
   const queryClient = useQueryClient();
+  const canShowQr = displayStatus !== 'CANCELED';
+  const ticket = toBookingTicket(booking, patientName, phone);
 
   const cancelMutation = useMutation({
     mutationFn: () => customerApi.cancelBooking(booking.bookingId, phone),
@@ -203,15 +231,27 @@ function BookingCard({
           </div>
         </div>
 
-        {/* Right: cancel btn */}
-        {cancelAllowed && !confirmOpen && (
-          <button
-            onClick={() => setConfirmOpen(true)}
-            className="flex-shrink-0 text-sm text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium"
-          >
-            Hủy lịch
-          </button>
-        )}
+        {/* Right: actions */}
+        <div className="flex items-center gap-2">
+          {canShowQr && (
+            <button
+              type="button"
+              onClick={() => setQrOpen(true)}
+              className="flex-shrink-0 text-sm text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium inline-flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-base">qr_code_2</span>
+              Mã QR
+            </button>
+          )}
+          {cancelAllowed && !confirmOpen && (
+            <button
+              onClick={() => setConfirmOpen(true)}
+              className="flex-shrink-0 text-sm text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium"
+            >
+              Hủy lịch
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Details row */}
@@ -278,6 +318,24 @@ function BookingCard({
             >
               Giữ lại
             </button>
+          </div>
+        </div>
+      )}
+
+      {qrOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-4 sm:p-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-base font-semibold text-slate-900">Mã QR lịch khám</h4>
+              <button
+                type="button"
+                onClick={() => setQrOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center justify-center"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+            <QRTicket ticket={ticket} />
           </div>
         </div>
       )}
@@ -521,6 +579,7 @@ export function AppointmentsPage() {
                     key={b.bookingId}
                     booking={b}
                     phone={phone}
+                    patientName={patientQuery.data.fullName}
                     onCanceled={() => setCanceledMsg(true)}
                   />
                 ))}
