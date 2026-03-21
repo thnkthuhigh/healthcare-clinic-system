@@ -2,17 +2,19 @@ import { useLocation } from 'react-router-dom';
 
 const routeTitles: Record<string, { title: string; icon: string }> = {
   '/admin/dashboard': { title: 'Dashboard', icon: 'dashboard' },
-  '/admin/reception': { title: 'Điều phối khám', icon: 'assignment_ind' },
-  '/admin/cashier': { title: 'Thu ngân', icon: 'point_of_sale' },
-  '/admin/doctors': { title: 'Quản lý Bác sĩ', icon: 'medical_information' },
-  '/admin/patients': { title: 'Quản lý Bệnh nhân', icon: 'group' },
-  '/admin/records': { title: 'Hồ sơ Bệnh nhân', icon: 'folder_shared' },
-  '/admin/shifts': { title: 'Ca làm việc', icon: 'calendar_month' },
-  '/admin/services': { title: 'Dịch vụ & Chuyên khoa', icon: 'medical_services' },
-  '/admin/medications': { title: 'Danh mục Thuốc', icon: 'medication' },
-  '/admin/templates': { title: 'Toa thuốc mẫu', icon: 'description' },
-  '/admin/departments': { title: 'Quản lý Khoa', icon: 'domain' },
-  '/admin/reports': { title: 'Báo cáo & Audit', icon: 'bar_chart' },
+  '/admin/reception': { title: 'Dieu phoi kham', icon: 'assignment_ind' },
+  '/admin/cashier': { title: 'Thu ngan', icon: 'point_of_sale' },
+  '/admin/doctors': { title: 'Quan ly Bac si', icon: 'medical_information' },
+  '/admin/patients': { title: 'Quan ly Ho so kham', icon: 'folder_shared' },
+  '/admin/shifts': { title: 'Ca lam viec', icon: 'calendar_month' },
+  '/admin/services': { title: 'Dich vu va Chuyen khoa', icon: 'medical_services' },
+  '/admin/rooms': { title: 'Quan ly Phong kham', icon: 'meeting_room' },
+  '/admin/supplies': { title: 'Quan ly Vat tu', icon: 'inventory_2' },
+  '/admin/assets': { title: 'Quan ly Tai san', icon: 'inventory' },
+  '/admin/medications': { title: 'Danh muc Thuoc', icon: 'medication' },
+  '/admin/templates': { title: 'Toa thuoc mau', icon: 'description' },
+  '/admin/departments': { title: 'Quan ly Khoa', icon: 'domain' },
+  '/admin/reports': { title: 'Bao cao va Audit', icon: 'bar_chart' },
 };
 
 export function AdminHeader() {
@@ -24,6 +26,7 @@ export function AdminHeader() {
         return info;
       }
     }
+
     return { title: 'Admin', icon: 'admin_panel_settings' };
   };
 
@@ -37,16 +40,16 @@ export function AdminHeader() {
   });
 
   return (
-    <header className="h-16 px-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-sm z-10 sticky top-0">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-sm dark:border-slate-700 dark:bg-surface-dark/80">
       <div className="flex items-center gap-3">
-        <span className="material-symbols-outlined text-primary text-[24px]">{icon}</span>
+        <span className="material-symbols-outlined text-[24px] text-primary">{icon}</span>
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
       </div>
 
       <div className="flex items-center gap-4">
-        <span className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">{today}</span>
-        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-          <span className="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[18px]">
+        <span className="hidden text-sm text-slate-500 dark:text-slate-400 sm:block">{today}</span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700">
+          <span className="material-symbols-outlined text-[18px] text-slate-500 dark:text-slate-400">
             notifications
           </span>
         </div>

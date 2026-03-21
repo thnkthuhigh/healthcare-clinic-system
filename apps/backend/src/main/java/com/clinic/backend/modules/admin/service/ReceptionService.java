@@ -1,8 +1,13 @@
 package com.clinic.backend.modules.admin.service;
 
+import com.clinic.backend.modules.admin.dto.CreateVisitRequest;
+import com.clinic.backend.modules.admin.dto.CreateVisitResponse;
+import com.clinic.backend.modules.admin.dto.DispatchOptionDto;
+import com.clinic.backend.modules.admin.dto.PatientLookupResponse;
 import com.clinic.backend.modules.admin.dto.ReceptionBookingDto;
 import com.clinic.backend.modules.doctor.entity.*;
 import com.clinic.backend.modules.doctor.repository.*;
+import com.clinic.backend.modules.doctor.service.QueueNumberService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +16,7 @@ import jakarta.persistence.PersistenceContext;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Service
@@ -23,15 +29,24 @@ public class ReceptionService {
     private final ShiftRepository shiftRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
+    private final AutoDispatchService autoDispatchService;
+    private final QueueNumberService queueNumberService;
+    private final AuditLogService auditLogService;
 
     public ReceptionService(BookingRepository bookingRepository,
                             ShiftRepository shiftRepository,
                             PatientRepository patientRepository,
-                            UserRepository userRepository) {
+                            UserRepository userRepository,
+                            AutoDispatchService autoDispatchService,
+                            QueueNumberService queueNumberService,
+                            AuditLogService auditLogService) {
         this.bookingRepository = bookingRepository;
         this.shiftRepository = shiftRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
+        this.autoDispatchService = autoDispatchService;
+        this.queueNumberService = queueNumberService;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -41,12 +56,15 @@ public class ReceptionService {
     public List<ReceptionBookingDto> getTodayBookings(LocalDate date, UUID shiftId) {
         String sql = "SELECT b.id, b.queue_number, p.full_name, p.phone, d.display_name, " +
                 "s.id AS shift_id, s.type, sv.name AS service_name, b.status, b.channel, " +
-                "b.payment_status, b.check_in_at, b.created_at, b.priority_score " +
+                "b.payment_status, b.check_in_at, b.created_at, b.priority_score, " +
+                "COALESCE(r.name, 'Chua gan phong') AS room_name, CAST(sl.pool AS text) AS slot_pool " +
                 "FROM bookings b " +
                 "JOIN shifts s ON b.shift_id = s.id " +
                 "JOIN patients p ON b.patient_id = p.id " +
                 "JOIN doctors d ON s.doctor_id = d.id " +
                 "LEFT JOIN services sv ON b.service_id = sv.id " +
+                "LEFT JOIN rooms r ON r.id = s.room_id " +
+                "LEFT JOIN slots sl ON sl.id = b.slot_id " +
                 "WHERE s.date = :date ";
 
         if (shiftId != null) {
@@ -77,9 +95,11 @@ public class ReceptionService {
             dto.setStatus(row[8].toString());
             dto.setChannel(row[9].toString());
             dto.setPaymentStatus(row[10].toString());
-            dto.setCheckInAt(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null);
-            dto.setCreatedAt(row[12] != null ? ((java.sql.Timestamp) row[12]).toInstant() : null);
+            dto.setCheckInAt(toInstant(row[11]));
+            dto.setCreatedAt(toInstant(row[12]));
             dto.setPriorityScore(((Number) row[13]).intValue());
+            dto.setRoomName(row[14] != null ? row[14].toString() : null);
+            dto.setSlotPool(row[15] != null ? row[15].toString() : null);
             result.add(dto);
         }
         return result;
@@ -92,12 +112,15 @@ public class ReceptionService {
     public List<ReceptionBookingDto> searchBookingsByPhone(String phone, LocalDate date) {
         String sql = "SELECT b.id, b.queue_number, p.full_name, p.phone, d.display_name, " +
                 "s.id AS shift_id, s.type, sv.name AS service_name, b.status, b.channel, " +
-                "b.payment_status, b.check_in_at, b.created_at, b.priority_score " +
+                "b.payment_status, b.check_in_at, b.created_at, b.priority_score, " +
+                "COALESCE(r.name, 'Chua gan phong') AS room_name, CAST(sl.pool AS text) AS slot_pool " +
                 "FROM bookings b " +
                 "JOIN shifts s ON b.shift_id = s.id " +
                 "JOIN patients p ON b.patient_id = p.id " +
                 "JOIN doctors d ON s.doctor_id = d.id " +
                 "LEFT JOIN services sv ON b.service_id = sv.id " +
+                "LEFT JOIN rooms r ON r.id = s.room_id " +
+                "LEFT JOIN slots sl ON sl.id = b.slot_id " +
                 "WHERE p.phone = :phone AND s.date = :date AND b.status = 'BOOKED' " +
                 "ORDER BY s.start_time ASC";
 
@@ -121,12 +144,29 @@ public class ReceptionService {
             dto.setStatus(row[8].toString());
             dto.setChannel(row[9].toString());
             dto.setPaymentStatus(row[10].toString());
-            dto.setCheckInAt(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null);
-            dto.setCreatedAt(row[12] != null ? ((java.sql.Timestamp) row[12]).toInstant() : null);
+            dto.setCheckInAt(toInstant(row[11]));
+            dto.setCreatedAt(toInstant(row[12]));
             dto.setPriorityScore(((Number) row[13]).intValue());
+            dto.setRoomName(row[14] != null ? row[14].toString() : null);
+            dto.setSlotPool(row[15] != null ? row[15].toString() : null);
             result.add(dto);
         }
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public PatientLookupResponse lookupPatient(String phone) {
+        return autoDispatchService.lookupPatient(phone);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DispatchOptionDto> getDispatchOptions(String serviceId) {
+        return autoDispatchService.getDispatchOptions(serviceId);
+    }
+
+    @Transactional
+    public CreateVisitResponse createVisit(CreateVisitRequest request) {
+        return autoDispatchService.createVisit(request);
     }
 
     /**
@@ -141,14 +181,14 @@ public class ReceptionService {
             throw new IllegalArgumentException("Lịch khám không ở trạng thái chờ check-in (hiện tại: " + booking.getStatus() + ")");
         }
 
-        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        booking.setStatus(Booking.BookingStatus.WAITING);
         booking.setCheckInAt(Instant.now());
         // Web on-time = priority 50 (Logic B)
         booking.setPriorityScore(50);
 
         // Assign queue number if missing
         if (booking.getQueueNumber() == null) {
-            int nextQueue = getNextQueueNumber(booking.getShift().getId());
+            int nextQueue = queueNumberService.allocateNextForShift(booking.getShift().getId());
             booking.setQueueNumber(nextQueue);
         }
 
@@ -194,7 +234,7 @@ public class ReceptionService {
         booking.setSlotId(slotId);
         booking.setPatient(patient);
         booking.setChannel(Booking.BookingChannel.WALK_IN);
-        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        booking.setStatus(Booking.BookingStatus.WAITING);
         booking.setCheckInAt(Instant.now());
         booking.setPriorityScore(0); // Walk-in = priority 0
 
@@ -204,7 +244,7 @@ public class ReceptionService {
             if (service != null) booking.setService(service);
         }
 
-        int nextQueue = getNextQueueNumber(shiftId);
+        int nextQueue = queueNumberService.allocateNextForShift(shiftId);
         booking.setQueueNumber(nextQueue);
 
         bookingRepository.save(booking);
@@ -223,11 +263,13 @@ public class ReceptionService {
     @Transactional
     public void markNoShow(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch khám"));
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich kham"));
+
+        String previousStatus = booking.getStatus().name();
 
         if (booking.getStatus() == Booking.BookingStatus.COMPLETED ||
             booking.getStatus() == Booking.BookingStatus.IN_CONSULTATION) {
-            throw new IllegalArgumentException("Không thể đánh dấu NO_SHOW cho lịch đang khám hoặc đã hoàn thành");
+            throw new IllegalArgumentException("Khong the danh dau NO_SHOW cho lich dang kham hoac da hoan thanh");
         }
 
         booking.setStatus(Booking.BookingStatus.NO_SHOW);
@@ -235,6 +277,19 @@ public class ReceptionService {
 
         // Release the slot back to available
         releaseSlot(booking.getSlotId());
+
+        auditLogService.log(
+            "CANCEL_BOOKING",
+            "BOOKING",
+            booking.getId(),
+            Map.of(
+                "patientName", booking.getPatient().getFullName(),
+                "doctorName", booking.getShift().getDoctor().getDisplayName(),
+                "reason", "NO_SHOW",
+                "fromStatus", previousStatus,
+                "toStatus", booking.getStatus().name()
+            )
+        );
     }
 
     // ========== Private Helpers ==========
@@ -311,14 +366,6 @@ public class ReceptionService {
         return slotId;
     }
 
-    private int getNextQueueNumber(UUID shiftId) {
-        Object result = em.createNativeQuery(
-                "SELECT COALESCE(MAX(queue_number), 0) + 1 FROM bookings WHERE shift_id = :shiftId")
-                .setParameter("shiftId", shiftId)
-                .getSingleResult();
-        return ((Number) result).intValue();
-    }
-
     /**
      * Auto-create user account so walk-in patient can login on web later (PRD §2.7).
      */
@@ -358,6 +405,48 @@ public class ReceptionService {
         dto.setCheckInAt(booking.getCheckInAt());
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setPriorityScore(booking.getPriorityScore());
+        dto.setRoomName(fetchRoomName(booking.getShift().getId()));
+        dto.setSlotPool(fetchSlotPool(booking.getSlotId()));
         return dto;
     }
+
+    private String fetchRoomName(UUID shiftId) {
+        @SuppressWarnings("unchecked")
+        List<Object> rows = em.createNativeQuery(
+                "SELECT COALESCE(r.name, 'Chua gan phong') " +
+                "FROM shifts s LEFT JOIN rooms r ON r.id = s.room_id " +
+                "WHERE s.id = :shiftId")
+            .setParameter("shiftId", shiftId)
+            .getResultList();
+        return rows.isEmpty() ? "Chua gan phong" : rows.get(0).toString();
+    }
+
+    private String fetchSlotPool(UUID slotId) {
+        @SuppressWarnings("unchecked")
+        List<Object> rows = em.createNativeQuery(
+                "SELECT CAST(pool AS text) FROM slots WHERE id = :slotId")
+            .setParameter("slotId", slotId)
+            .getResultList();
+        return rows.isEmpty() ? null : rows.get(0).toString();
+    }
+
+    private Instant toInstant(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Instant instant) {
+            return instant;
+        }
+        if (value instanceof java.sql.Timestamp timestamp) {
+            return timestamp.toInstant();
+        }
+        if (value instanceof OffsetDateTime offsetDateTime) {
+            return offsetDateTime.toInstant();
+        }
+        if (value instanceof java.util.Date date) {
+            return date.toInstant();
+        }
+        return null;
+    }
 }
+

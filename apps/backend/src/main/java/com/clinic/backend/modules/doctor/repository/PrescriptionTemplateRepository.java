@@ -2,6 +2,7 @@ package com.clinic.backend.modules.doctor.repository;
 
 import com.clinic.backend.modules.doctor.entity.PrescriptionTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,4 +20,10 @@ public interface PrescriptionTemplateRepository extends JpaRepository<Prescripti
     Optional<PrescriptionTemplate> findByIdWithItems(@Param("id") UUID id);
 
     boolean existsByName(String name);
+
+    boolean existsByNameIgnoreCase(String name);
+
+    @Modifying
+    @Query("DELETE FROM PrescriptionTemplateItem i WHERE i.template.id = :templateId")
+    void deleteItemsByTemplateId(@Param("templateId") UUID templateId);
 }

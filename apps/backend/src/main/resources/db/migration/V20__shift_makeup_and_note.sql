@@ -1,0 +1,5 @@
+ALTER TABLE shifts
+  ADD COLUMN IF NOT EXISTS is_makeup BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE shifts
+  ADD COLUMN IF NOT EXISTS adjustment_note TEXT;

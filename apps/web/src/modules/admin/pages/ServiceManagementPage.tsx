@@ -1,26 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { adminApi } from '../api';
-import type { AdminServiceDto, CreateServiceRequest, UpdateServiceRequest } from '../types';
+import type {
+  AdminServiceDto,
+  CreateServiceRequest,
+  DepartmentDto,
+  UpdateServiceRequest,
+} from '../types';
 
 function priceLabel(cents: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cents * 10);
 }
 
-// ── Service Modal ────────────────────────────────────────────────────────────
-
 interface ServiceModalProps {
+  departments: DepartmentDto[];
   initial?: AdminServiceDto | undefined;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function ServiceModal({ initial, onClose, onSaved }: ServiceModalProps) {
+function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalProps) {
   const isEdit = !!initial;
   const [name, setName] = useState(initial?.name ?? '');
-  const [durationMin, setDurationMin] = useState(String(initial?.durationMin ?? ''));
   const [priceCents, setPriceCents] = useState(String(initial?.priceCents ?? ''));
+  const [specialtyId, setSpecialtyId] = useState(initial?.specialtyId ?? '');
   const [error, setError] = useState('');
 
   const createMutation = useMutation({
@@ -47,118 +51,110 @@ function ServiceModal({ initial, onClose, onSaved }: ServiceModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const dur = parseInt(durationMin, 10);
+
+    const normalizedName = name.trim();
     const price = parseInt(priceCents, 10);
-    if (!name.trim()) {
-      setError('Tên dịch vụ không được để trống');
+
+    if (!normalizedName) {
+      setError('Ten dich vu khong duoc de trong');
       return;
     }
-    if (!dur || dur < 1) {
-      setError('Thời gian ít nhất 1 phút');
-      return;
-    }
-    if (isNaN(price) || price < 0) {
-      setError('Giá không hợp lệ');
+    if (Number.isNaN(price) || price < 0) {
+      setError('Gia khong hop le');
       return;
     }
 
     if (isEdit) {
       const data: UpdateServiceRequest = {};
-      if (name !== initial!.name) data.name = name;
-      if (dur !== initial!.durationMin) data.durationMin = dur;
+      if (normalizedName !== initial!.name) data.name = normalizedName;
       if (price !== initial!.priceCents) data.priceCents = price;
+      if ((specialtyId || '') !== (initial!.specialtyId ?? '')) {
+        data.specialtyId = specialtyId || '';
+      }
       updateMutation.mutate({ id: initial!.id, data });
-    } else {
-      createMutation.mutate({ name: name.trim(), durationMin: dur, priceCents: price });
+      return;
     }
+
+    createMutation.mutate({
+      name: normalizedName,
+      priceCents: price,
+      ...(specialtyId ? { specialtyId } : {}),
+    });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-card-dark rounded-xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-900 dark:text-white">
-            {isEdit ? 'Sửa dịch vụ' : 'Thêm dịch vụ'}
+      <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-200 p-4">
+          <h2 className="font-semibold text-slate-900">
+            {isEdit ? 'Sua dich vu' : 'Them dich vu'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-3 p-4">
+          {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Tên dịch vụ <span className="text-red-500">*</span>
-            </label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Ten dich vu *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Khám tổng quát"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm"
+              placeholder="Kham tong quat"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Thời gian (phút) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={durationMin}
-                onChange={(e) => setDurationMin(e.target.value)}
-                placeholder="30"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600
-                  bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Giá (cents) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={priceCents}
-                onChange={(e) => setPriceCents(e.target.value)}
-                placeholder="20000"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600
-                  bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm"
-              />
-            </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Gia (cents) *</label>
+            <input
+              type="number"
+              min={0}
+              value={priceCents}
+              onChange={(e) => setPriceCents(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+            />
           </div>
 
-          {priceCents && !isNaN(parseInt(priceCents, 10)) && (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              ≈ {priceLabel(parseInt(priceCents, 10))}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Khoa chuyen mon</label>
+            <select
+              value={specialtyId}
+              onChange={(e) => setSpecialtyId(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+            >
+              <option value="">-- Chua gan khoa --</option>
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {priceCents && !Number.isNaN(parseInt(priceCents, 10)) && (
+            <p className="text-xs text-slate-500">
+              Gia hien thi: {priceLabel(parseInt(priceCents, 10))}
             </p>
           )}
 
-          <div className="pt-2 flex gap-2 justify-end">
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600
-                text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
             >
-              Hủy
+              Huy
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-sky-600 text-white hover:bg-sky-700
-                disabled:opacity-50 font-medium"
+              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
             >
-              {isPending ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Thêm dịch vụ'}
+              {isPending ? 'Dang luu...' : isEdit ? 'Luu thay doi' : 'Them dich vu'}
             </button>
           </div>
         </form>
@@ -166,8 +162,6 @@ function ServiceModal({ initial, onClose, onSaved }: ServiceModalProps) {
     </div>
   );
 }
-
-// ── Main Page ────────────────────────────────────────────────────────────────
 
 export function ServiceManagementPage() {
   const queryClient = useQueryClient();
@@ -179,137 +173,124 @@ export function ServiceManagementPage() {
     queryFn: adminApi.getServices,
   });
 
+  const { data: departments = [] } = useQuery({
+    queryKey: ['admin-departments-service'],
+    queryFn: adminApi.getDepartments,
+  });
+
   const toggleMutation = useMutation({
     mutationFn: adminApi.toggleServiceActive,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-services'] }),
   });
 
-  const handleOpenCreate = () => {
-    setEditTarget(undefined);
-    setShowModal(true);
-  };
-
-  const handleOpenEdit = (svc: AdminServiceDto) => {
-    setEditTarget(svc);
-    setShowModal(true);
-  };
+  const stats = useMemo(
+    () => ({
+      total: services.length,
+      active: services.filter((service) => service.active).length,
+      mappedSpecialty: services.filter((service) => !!service.specialtyId).length,
+    }),
+    [services],
+  );
 
   const handleSaved = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-services'] });
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 dark:bg-background-dark">
-      {/* Header */}
-      <div
-        className="px-6 py-4 bg-white dark:bg-card-dark border-b border-slate-200 dark:border-slate-700
-        flex items-center gap-4 flex-wrap"
-      >
-        <div>
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white">Quản lý Dịch vụ khám</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {services.length} dịch vụ · {services.filter((s) => s.active).length} đang hoạt động
-          </p>
+    <div className="flex h-full flex-col bg-slate-50">
+      <div className="border-b border-slate-200 bg-white px-6 py-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">Quan ly dich vu</h1>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {stats.active}/{stats.total} dang hoat dong - {stats.mappedSpecialty} da gan khoa
+            </p>
+          </div>
+          <div className="flex-1" />
+          <button
+            onClick={() => {
+              setEditTarget(undefined);
+              setShowModal(true);
+            }}
+            className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+          >
+            <span className="material-symbols-outlined text-sm">add</span>
+            Them dich vu
+          </button>
         </div>
-        <div className="flex-1" />
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700
-            text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <span className="material-symbols-outlined text-sm">add</span>
-          Thêm dịch vụ
-        </button>
       </div>
 
-      {/* Table */}
       <div className="flex-1 overflow-auto p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center h-40 gap-2 text-slate-400">
+          <div className="flex h-40 items-center justify-center gap-2 text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
-            Đang tải...
+            Dang tai...
           </div>
         ) : services.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-center text-slate-400">
-            <span className="material-symbols-outlined text-5xl mb-2">medical_services</span>
-            <p className="text-sm">Chưa có dịch vụ nào</p>
-            <button
-              onClick={handleOpenCreate}
-              className="mt-3 text-xs text-sky-600 hover:underline"
-            >
-              + Thêm dịch vụ đầu tiên
-            </button>
+          <div className="flex h-40 flex-col items-center justify-center text-center text-slate-400">
+            <span className="material-symbols-outlined mb-2 text-5xl">medical_services</span>
+            <p className="text-sm">Chua co dich vu nao</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Tên dịch vụ
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Ten dich vu
                   </th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Thời gian
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Khoa
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Giá dịch vụ
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Gia
                   </th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Trạng thái
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Trang thai
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Thao tác
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Thao tac
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {services.map((svc) => (
+              <tbody className="divide-y divide-slate-100">
+                {services.map((service) => (
                   <tr
-                    key={svc.id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors
-                      ${!svc.active ? 'opacity-50' : ''}`}
+                    key={service.id}
+                    className={`${!service.active ? 'opacity-50' : ''} hover:bg-slate-50`}
                   >
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
-                      {svc.name}
+                    <td className="px-4 py-3 font-medium text-slate-900">{service.name}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {service.specialtyName ?? 'Chua gan'}
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400">
-                      <span className="flex items-center justify-center gap-1">
-                        <span className="material-symbols-outlined text-sm">schedule</span>
-                        {svc.durationMin} phút
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-white">
-                      {priceLabel(svc.priceCents)}
+                    <td className="px-4 py-3 text-right font-medium text-slate-900">
+                      {priceLabel(service.priceCents)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
-                        onClick={() => toggleMutation.mutate(svc.id)}
+                        onClick={() => toggleMutation.mutate(service.id)}
                         disabled={toggleMutation.isPending}
-                        title={svc.active ? 'Nhấn để tắt' : 'Nhấn để bật'}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-                          transition-colors disabled:opacity-50 cursor-pointer
-                          ${
-                            svc.active
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
-                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'
-                          }`}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-50 ${
+                          service.active
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
                       >
-                        <span className="material-symbols-outlined text-xs">
-                          {svc.active ? 'check_circle' : 'cancel'}
-                        </span>
-                        {svc.active ? 'Hoạt động' : 'Tắt'}
+                        {service.active ? 'Hoat dong' : 'Tam tat'}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleOpenEdit(svc)}
-                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md
-                          bg-slate-100 text-slate-600 hover:bg-slate-200
-                          dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-sm">edit</span>
-                        Sửa
-                      </button>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => {
+                            setEditTarget(service);
+                            setShowModal(true);
+                          }}
+                          className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-200"
+                        >
+                          Sua
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -319,9 +300,9 @@ export function ServiceManagementPage() {
         )}
       </div>
 
-      {/* Modal */}
       {showModal && (
         <ServiceModal
+          departments={departments}
           initial={editTarget}
           onClose={() => setShowModal(false)}
           onSaved={handleSaved}

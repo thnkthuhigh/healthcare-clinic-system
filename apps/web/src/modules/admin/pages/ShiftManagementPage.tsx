@@ -1,29 +1,117 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { adminApi } from '../api';
-import type { AdminDoctorDto, AdminShiftDto, AdminSlotDto, CreateShiftRequest } from '../types';
+import type {
+  AdminDoctorDto,
+  AdminShiftDto,
+  AdminSlotDto,
+  BulkShiftRequest,
+  DayShiftConfig,
+  SyncWeekShiftRequest,
+} from '../types';
+
+const WEEKDAY_LABELS = ['Thu 2', 'Thu 3', 'Thu 4', 'Thu 5', 'Thu 6', 'Thu 7', 'Chu nhat'];
+
+type ViewMode = 'DAY' | 'WEEK';
+type ShiftType = 'MORNING' | 'AFTERNOON';
+type DayShiftMap = Record<number, { MORNING: boolean; AFTERNOON: boolean }>;
 
 const TYPE_LABEL: Record<string, string> = {
-  MORNING: 'Buổi sáng (7:00–11:00)',
-  AFTERNOON: 'Buổi chiều (13:00–17:00)',
+  MORNING: 'Sang (07:00-11:00)',
+  AFTERNOON: 'Chieu (13:00-17:00)',
 };
 
-const TYPE_ICON: Record<string, string> = {
-  MORNING: 'wb_sunny',
-  AFTERNOON: 'partly_cloudy_day',
-};
+function toLocalDateString(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function formatDate(iso: string) {
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
 }
 
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function addDays(isoDate: string, days: number) {
+  const base = new Date(`${isoDate}T00:00:00`);
+  base.setDate(base.getDate() + days);
+  return toLocalDateString(base);
 }
 
-// ── Slot Grid ───────────────────────────────────────────────────────────────
+function startOfWeekMonday(isoDate: string) {
+  const d = new Date(`${isoDate}T00:00:00`);
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return toLocalDateString(d);
+}
+
+function getWeekDates(weekStartDate: string) {
+  return Array.from({ length: 7 }, (_, i) => addDays(weekStartDate, i));
+}
+
+function toMonthValue(isoDate: string) {
+  return isoDate.slice(0, 7);
+}
+
+function getWeekStartFromMonthWeek(monthValue: string, weekNo: number) {
+  const parts = monthValue.split('-').map(Number);
+  const year = parts[0] ?? new Date().getFullYear();
+  const month = parts[1] ?? 1;
+  const firstDay = new Date(year, month - 1, 1);
+  const day = firstDay.getDay();
+  const shiftToMonday = day === 0 ? -6 : 1 - day;
+  firstDay.setDate(firstDay.getDate() + shiftToMonday + (weekNo - 1) * 7);
+  return toLocalDateString(firstDay);
+}
+
+function getWeekNoFromDate(isoDate: string) {
+  const parts = isoDate.split('-').map(Number);
+  const year = parts[0] ?? new Date().getFullYear();
+  const month = parts[1] ?? 1;
+  const day = parts[2] ?? 1;
+  const target = new Date(year, month - 1, day);
+  const firstDay = new Date(year, month - 1, 1);
+  const firstWeekMonday = new Date(firstDay);
+  const firstWeekDay = firstDay.getDay();
+  const shiftToMonday = firstWeekDay === 0 ? -6 : 1 - firstWeekDay;
+  firstWeekMonday.setDate(firstWeekMonday.getDate() + shiftToMonday);
+  const diffDays = Math.floor((target.getTime() - firstWeekMonday.getTime()) / 86400000);
+  const weekNo = Math.floor(diffDays / 7) + 1;
+  return Math.min(5, Math.max(1, weekNo));
+}
+
+function createEmptyDayShiftMap(): DayShiftMap {
+  return {
+    1: { MORNING: false, AFTERNOON: false },
+    2: { MORNING: false, AFTERNOON: false },
+    3: { MORNING: false, AFTERNOON: false },
+    4: { MORNING: false, AFTERNOON: false },
+    5: { MORNING: false, AFTERNOON: false },
+    6: { MORNING: false, AFTERNOON: false },
+    7: { MORNING: false, AFTERNOON: false },
+  };
+}
+
+function mapToDayConfigs(dayShifts: DayShiftMap, includeEmptyDays: boolean): DayShiftConfig[] {
+  const out: DayShiftConfig[] = [];
+  for (let day = 1; day <= 7; day++) {
+    const row = dayShifts[day] ?? { MORNING: false, AFTERNOON: false };
+    const shiftTypes: ShiftType[] = [];
+    if (row.MORNING) shiftTypes.push('MORNING');
+    if (row.AFTERNOON) shiftTypes.push('AFTERNOON');
+    if (!includeEmptyDays && shiftTypes.length === 0) continue;
+    out.push({ dayOfWeek: day, shiftTypes });
+  }
+  return out;
+}
+
+function countSelected(dayShifts: DayShiftMap) {
+  let c = 0;
+  for (let d = 1; d <= 7; d++) {
+    if (dayShifts[d]?.MORNING) c += 1;
+    if (dayShifts[d]?.AFTERNOON) c += 1;
+  }
+  return c;
+}
 
 interface SlotGridProps {
   shiftId: string;
@@ -38,61 +126,34 @@ function SlotGrid({ shiftId, onToggle, toggling }: SlotGridProps) {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-slate-400 text-xs p-2">
-        <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-        Đang tải slot...
-      </div>
-    );
+    return <div className="p-2 text-xs text-slate-400">Dang tai slot...</div>;
   }
 
   return (
-    <div>
-      <div className="flex gap-2 mb-2 text-xs text-slate-500 dark:text-slate-400">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-sky-500 inline-block" />
-          Thường
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />
-          Dự phòng
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 inline-block" />
-          Khóa
-        </span>
-      </div>
-      <div className="grid grid-cols-8 gap-1.5">
-        {(slots ?? []).map((slot: AdminSlotDto) => {
-          const isLocked = slot.status === 'LOCKED';
-          const isReserve = slot.pool === 'RESERVE';
-          const isToggling = toggling === slot.id;
-
-          const bg = isLocked
-            ? 'bg-slate-200 dark:bg-slate-700 text-slate-400'
-            : isReserve
-              ? 'bg-amber-400 text-white hover:bg-amber-500'
-              : 'bg-sky-500 text-white hover:bg-sky-600';
-
-          return (
-            <button
-              key={slot.id}
-              onClick={() => onToggle(slot.id)}
-              disabled={isToggling}
-              title={`Slot ${slot.sequence} — ${isReserve ? 'Dự phòng' : 'Thường'} — ${isLocked ? 'Khóa' : 'Mở'}`}
-              className={`w-full aspect-square rounded-md text-xs font-bold flex items-center justify-center
-                transition-colors cursor-pointer ${bg} ${isToggling ? 'opacity-50 cursor-wait' : ''}`}
-            >
-              {slot.sequence}
-            </button>
-          );
-        })}
-      </div>
+    <div className="grid grid-cols-8 gap-1.5">
+      {(slots ?? []).map((slot: AdminSlotDto) => {
+        const isLocked = slot.status === 'LOCKED';
+        const isReserve = slot.pool === 'RESERVE';
+        const bg = isLocked
+          ? 'bg-slate-200 text-slate-400'
+          : isReserve
+            ? 'bg-amber-400 text-white hover:bg-amber-500'
+            : 'bg-sky-500 text-white hover:bg-sky-600';
+        return (
+          <button
+            key={slot.id}
+            onClick={() => onToggle(slot.id)}
+            disabled={toggling === slot.id}
+            className={`aspect-square rounded-md text-xs font-bold ${bg}`}
+            title={`Slot ${slot.sequence}`}
+          >
+            {slot.sequence}
+          </button>
+        );
+      })}
     </div>
   );
 }
-
-// ── Shift Card ───────────────────────────────────────────────────────────────
 
 interface ShiftCardProps {
   shift: AdminShiftDto;
@@ -116,260 +177,314 @@ function ShiftCard({
   const [showSlots, setShowSlots] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-card-dark rounded-xl border border-slate-200 dark:border-slate-700">
-      {/* Header */}
+    <div className="rounded-xl border border-slate-200 bg-white">
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-sky-600 dark:text-sky-400 text-lg">
-                {TYPE_ICON[shift.type] ?? 'schedule'}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-900 dark:text-white truncate">
-                {shift.doctorName}
-              </p>
-              {shift.doctorSpecialty && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {shift.doctorSpecialty}
-                </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-slate-900">{shift.doctorName}</p>
+              {shift.isMakeup && (
+                <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-[11px] font-medium text-fuchsia-700">
+                  Ca bu
+                </span>
               )}
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {TYPE_LABEL[shift.type]}
-              </p>
             </div>
+            <p className="text-xs text-slate-500">{TYPE_LABEL[shift.type]}</p>
+            {shift.adjustmentNote && (
+              <p className="mt-1 line-clamp-2 text-[11px] text-fuchsia-700">
+                Ghi chu: {shift.adjustmentNote}
+              </p>
+            )}
           </div>
-
           <span
-            className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
-              ${
-                shift.status === 'OPEN'
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-              }`}
+            className={`rounded-full px-2 py-0.5 text-xs ${shift.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
           >
-            <span className="material-symbols-outlined text-xs">
-              {shift.status === 'OPEN' ? 'lock_open' : 'lock'}
-            </span>
-            {shift.status === 'OPEN' ? 'Đang mở' : 'Đã khóa'}
+            {shift.status === 'OPEN' ? 'Dang mo' : 'Da khoa'}
           </span>
         </div>
 
-        {/* Slot stats */}
-        <div className="mt-3 flex gap-3 text-center">
-          <div className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2">
-            <p className="text-base font-bold text-slate-900 dark:text-white">{shift.totalSlots}</p>
-            <p className="text-xs text-slate-500">Tổng slot</p>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="rounded bg-slate-50 p-2">
+            <p className="text-sm font-bold">{shift.totalSlots}</p>
+            <p>Tong</p>
           </div>
-          <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
-            <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-              {shift.openSlots}
-            </p>
-            <p className="text-xs text-slate-500">Còn trống</p>
+          <div className="rounded bg-emerald-50 p-2">
+            <p className="text-sm font-bold text-emerald-700">{shift.openSlots}</p>
+            <p>Trong</p>
           </div>
-          <div className="flex-1 bg-sky-50 dark:bg-sky-900/20 rounded-lg p-2">
-            <p className="text-base font-bold text-sky-600 dark:text-sky-400">
-              {shift.bookedSlots}
-            </p>
-            <p className="text-xs text-slate-500">Đã đặt</p>
+          <div className="rounded bg-sky-50 p-2">
+            <p className="text-sm font-bold text-sky-700">{shift.bookedSlots}</p>
+            <p>Da dat</p>
           </div>
         </div>
       </div>
 
-      {/* Slot grid (collapsible) */}
       {showSlots && (
-        <div className="px-4 pb-3 border-t border-slate-100 dark:border-slate-700 pt-3">
+        <div className="border-t border-slate-100 px-4 pb-3 pt-3">
           <SlotGrid shiftId={shift.id} onToggle={onToggleSlot} toggling={togglingSlot} />
         </div>
       )}
 
-      {/* Actions */}
-      <div className="px-4 pb-4 flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-4">
         <button
           onClick={() => setShowSlots((v) => !v)}
-          className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300
-            hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+          className="text-xs text-slate-600 hover:text-sky-600"
         >
-          <span className="material-symbols-outlined text-sm">
-            {showSlots ? 'expand_less' : 'grid_view'}
-          </span>
-          {showSlots ? 'Ẩn slot' : 'Xem slot'}
+          {showSlots ? 'An slot' : 'Xem slot'}
         </button>
-
         <div className="flex-1" />
-
         {shift.status === 'OPEN' ? (
           <button
             onClick={onLock}
             disabled={mutating}
-            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md
-              bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400
-              disabled:opacity-50 transition-colors"
+            className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-700"
           >
-            <span className="material-symbols-outlined text-sm">lock</span>
-            Khóa ca
+            Khoa ca
           </button>
         ) : (
           <button
             onClick={onOpen}
             disabled={mutating}
-            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md
-              bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400
-              disabled:opacity-50 transition-colors"
+            className="rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-700"
           >
-            <span className="material-symbols-outlined text-sm">lock_open</span>
-            Mở ca
+            Mo ca
           </button>
         )}
-
         <button
           onClick={onDelete}
           disabled={mutating}
-          className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md
-            bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400
-            disabled:opacity-50 transition-colors"
+          className="rounded bg-red-50 px-2 py-1 text-xs text-red-600"
         >
-          <span className="material-symbols-outlined text-sm">delete</span>
-          Xóa
+          Xoa
         </button>
       </div>
     </div>
   );
 }
 
-// ── Create Shift Modal ───────────────────────────────────────────────────────
+interface DayShiftMatrixProps {
+  weekStartDate: string;
+  dayShifts: DayShiftMap;
+  onToggle: (day: number, type: ShiftType) => void;
+}
 
-interface CreateShiftModalProps {
+function DayShiftMatrix({ weekStartDate, dayShifts, onToggle }: DayShiftMatrixProps) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200">
+      <table className="w-full text-sm">
+        <thead className="border-b border-slate-200 bg-slate-50">
+          <tr>
+            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Ngay</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Sang</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Chieu</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {Array.from({ length: 7 }, (_, idx) => {
+            const day = idx + 1;
+            return (
+              <tr key={day}>
+                <td className="px-3 py-2 text-sm text-slate-700">
+                  <div className="font-medium">{WEEKDAY_LABELS[idx]}</div>
+                  <div className="text-xs text-slate-400">
+                    {formatDate(addDays(weekStartDate, idx))}
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onToggle(day, 'MORNING')}
+                    className={`rounded-full px-3 py-1 text-xs ${dayShifts[day]?.MORNING ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}
+                  >
+                    {dayShifts[day]?.MORNING ? 'Da chon' : 'Bo trong'}
+                  </button>
+                </td>
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => onToggle(day, 'AFTERNOON')}
+                    className={`rounded-full px-3 py-1 text-xs ${dayShifts[day]?.AFTERNOON ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}
+                  >
+                    {dayShifts[day]?.AFTERNOON ? 'Da chon' : 'Bo trong'}
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+interface WeekRow {
+  date: string;
+  shifts: AdminShiftDto[];
+}
+
+interface WeeklyPatternModalProps {
   doctors: AdminDoctorDto[];
-  initialDate: string;
+  initialWeekStart: string;
   onClose: () => void;
   onCreated: () => void;
 }
 
-function CreateShiftModal({ doctors, initialDate, onClose, onCreated }: CreateShiftModalProps) {
-  const [form, setForm] = useState<CreateShiftRequest>({
-    doctorId: doctors[0]?.id ?? '',
-    date: initialDate,
-    type: 'MORNING',
-  });
+function WeeklyPatternModal({
+  doctors,
+  initialWeekStart,
+  onClose,
+  onCreated,
+}: WeeklyPatternModalProps) {
+  const [doctorId, setDoctorId] = useState(doctors[0]?.id ?? '');
+  const [monthValue, setMonthValue] = useState(toMonthValue(initialWeekStart));
+  const [weekNo, setWeekNo] = useState(getWeekNoFromDate(initialWeekStart));
+  const [repeatWeeks, setRepeatWeeks] = useState(12);
+  const [dayShifts, setDayShifts] = useState<DayShiftMap>(createEmptyDayShiftMap());
   const [error, setError] = useState('');
 
+  const weekStartDate = useMemo(
+    () => getWeekStartFromMonthWeek(monthValue, weekNo),
+    [monthValue, weekNo],
+  );
+
   const mutation = useMutation({
-    mutationFn: adminApi.createShift,
-    onSuccess: () => {
+    mutationFn: adminApi.createShiftsBulk,
+    onSuccess: (data) => {
       onCreated();
       onClose();
+      alert(`Da tao ${data.created.length} ca, bo qua ${data.skipped.length} ca.`);
     },
     onError: (e: Error) => setError(e.message),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!form.doctorId) {
-      setError('Vui lòng chọn bác sĩ');
-      return;
-    }
-    mutation.mutate(form);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-card-dark rounded-xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-900 dark:text-white">Tạo ca trực</h2>
+      <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-200 p-4">
+          <h2 className="font-semibold text-slate-900">Tao ca truc theo tuan trong thang</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!doctorId) return setError('Vui long chon bac si');
+            if (countSelected(dayShifts) === 0) return setError('Vui long chon it nhat 1 ca');
+            if (repeatWeeks < 1 || repeatWeeks > 52) return setError('So tuan ap dung 1..52');
+            const dayConfigs = mapToDayConfigs(dayShifts, false);
+            const daysOfWeek = dayConfigs.map((cfg) => cfg.dayOfWeek);
+            const shiftTypes = Array.from(new Set(dayConfigs.flatMap((cfg) => cfg.shiftTypes)));
+            setError('');
+            const payload: BulkShiftRequest = {
+              doctorId,
+              weekStartDate,
+              repeatWeeks,
+              dayConfigs,
+              daysOfWeek,
+              shiftTypes,
+            };
+            mutation.mutate(payload);
+          }}
+          className="space-y-4 p-4"
+        >
+          {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-              {error}
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-slate-600">Bac si *</label>
+              <select
+                value={doctorId}
+                onChange={(e) => setDoctorId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">-- Chon bac si --</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.displayName}
+                    {d.specialty ? ` - ${d.specialty}` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Bác sĩ <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={form.doctorId}
-              onChange={(e) => setForm({ ...form, doctorId: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm"
-            >
-              <option value="">-- Chọn bác sĩ --</option>
-              {doctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.displayName}
-                  {d.specialty ? ` — ${d.specialty}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Ngày <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Buổi <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['MORNING', 'AFTERNOON'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setForm({ ...form, type: t })}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-colors
-                    flex flex-col items-center gap-1
-                    ${
-                      form.type === t
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                    }`}
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    {t === 'MORNING' ? 'wb_sunny' : 'partly_cloudy_day'}
-                  </span>
-                  {t === 'MORNING' ? 'Buổi sáng' : 'Buổi chiều'}
-                  <span className="text-xs font-normal opacity-70">
-                    {t === 'MORNING' ? '7:00–11:00' : '13:00–17:00'}
-                  </span>
-                </button>
-              ))}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Thang *</label>
+              <input
+                type="month"
+                value={monthValue}
+                onChange={(e) => setMonthValue(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Tuan trong thang *
+              </label>
+              <select
+                value={weekNo}
+                onChange={(e) => setWeekNo(Number(e.target.value))}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value={1}>Tuan 1</option>
+                <option value={2}>Tuan 2</option>
+                <option value={3}>Tuan 3</option>
+                <option value={4}>Tuan 4</option>
+                <option value={5}>Tuan 5</option>
+              </select>
             </div>
           </div>
 
-          <div className="pt-2 flex gap-2 justify-end">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Tuan duoc ap dung: {formatDate(weekStartDate)} -{' '}
+              {formatDate(addDays(weekStartDate, 6))}
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                So tuan ap dung lap *
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={52}
+                value={repeatWeeks}
+                onChange={(e) => setRepeatWeeks(Number(e.target.value))}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <DayShiftMatrix
+            weekStartDate={weekStartDate}
+            dayShifts={dayShifts}
+            onToggle={(day, type) =>
+              setDayShifts((prev) => {
+                const row = prev[day] ?? { MORNING: false, AFTERNOON: false };
+                return {
+                  ...prev,
+                  [day]: {
+                    MORNING: type === 'MORNING' ? !row.MORNING : row.MORNING,
+                    AFTERNOON: type === 'AFTERNOON' ? !row.AFTERNOON : row.AFTERNOON,
+                  },
+                };
+              })
+            }
+          />
+
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600
-                text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600"
             >
-              Hủy
+              Huy
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="px-4 py-2 text-sm rounded-lg bg-sky-600 text-white hover:bg-sky-700
-                disabled:opacity-50 font-medium"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
-              {mutation.isPending ? 'Đang tạo...' : 'Tạo ca'}
+              {mutation.isPending ? 'Dang tao...' : 'Tao lich lap'}
             </button>
           </div>
         </form>
@@ -378,16 +493,305 @@ function CreateShiftModal({ doctors, initialDate, onClose, onCreated }: CreateSh
   );
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+interface SyncWeekModalProps {
+  doctors: AdminDoctorDto[];
+  initialWeekStart: string;
+  onClose: () => void;
+  onSynced: () => void;
+}
+
+function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWeekModalProps) {
+  const [doctorId, setDoctorId] = useState(doctors[0]?.id ?? '');
+  const [monthValue, setMonthValue] = useState(toMonthValue(initialWeekStart));
+  const [weekNo, setWeekNo] = useState(getWeekNoFromDate(initialWeekStart));
+  const [note, setNote] = useState('');
+  const [dayShifts, setDayShifts] = useState<DayShiftMap>(createEmptyDayShiftMap());
+  const [error, setError] = useState('');
+
+  const weekStartDate = useMemo(
+    () => getWeekStartFromMonthWeek(monthValue, weekNo),
+    [monthValue, weekNo],
+  );
+  const weekDates = useMemo(() => getWeekDates(weekStartDate), [weekStartDate]);
+
+  const { data: weekRows = [] } = useQuery({
+    queryKey: ['admin-shifts-week-modal', weekStartDate],
+    queryFn: async () =>
+      Promise.all(
+        weekDates.map(async (date) => ({
+          date,
+          shifts: await adminApi.getShifts(date),
+        })),
+      ),
+  });
+
+  useEffect(() => {
+    if (!doctorId) return;
+    const nextMap = createEmptyDayShiftMap();
+    for (let day = 1; day <= 7; day++) {
+      const date = addDays(weekStartDate, day - 1);
+      const row = weekRows.find((r) => r.date === date);
+      const doctorShifts = row?.shifts.filter((s) => s.doctorId === doctorId) ?? [];
+      for (const s of doctorShifts) {
+        const rowState = nextMap[day] ?? { MORNING: false, AFTERNOON: false };
+        if (s.type === 'MORNING') rowState.MORNING = true;
+        if (s.type === 'AFTERNOON') rowState.AFTERNOON = true;
+        nextMap[day] = rowState;
+      }
+    }
+    setDayShifts(nextMap);
+  }, [doctorId, weekRows, weekStartDate]);
+
+  const mutation = useMutation({
+    mutationFn: adminApi.syncWeekShifts,
+    onSuccess: (data) => {
+      onSynced();
+      onClose();
+      alert(
+        `Da cap nhat tuan: tao ${data.created.length}, xoa ${data.deleted.length}, bo qua ${data.skipped.length}.`,
+      );
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-200 p-4">
+          <h2 className="font-semibold text-slate-900">Doi ca truc tuan nay</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!doctorId) return setError('Vui long chon bac si');
+            if (!note.trim()) return setError('Vui long nhap ghi chu doi ca/ca bu');
+            setError('');
+            const payload: SyncWeekShiftRequest = {
+              doctorId,
+              weekStartDate,
+              note: note.trim(),
+              dayConfigs: mapToDayConfigs(dayShifts, true),
+            };
+            mutation.mutate(payload);
+          }}
+          className="space-y-4 p-4"
+        >
+          {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-slate-600">Bac si *</label>
+              <select
+                value={doctorId}
+                onChange={(e) => setDoctorId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">-- Chon bac si --</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.displayName}
+                    {d.specialty ? ` - ${d.specialty}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Thang *</label>
+              <input
+                type="month"
+                value={monthValue}
+                onChange={(e) => setMonthValue(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Tuan trong thang *
+              </label>
+              <select
+                value={weekNo}
+                onChange={(e) => setWeekNo(Number(e.target.value))}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value={1}>Tuan 1</option>
+                <option value={2}>Tuan 2</option>
+                <option value={3}>Tuan 3</option>
+                <option value={4}>Tuan 4</option>
+                <option value={5}>Tuan 5</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Pham vi dieu chinh: {formatDate(weekStartDate)} -{' '}
+            {formatDate(addDays(weekStartDate, 6))}. Tuan sau khong doi.
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Ghi chu doi ca / ca bu *
+            </label>
+            <textarea
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="VD: Nghi co phep Thu 2, bu Thu 4 tuan 2"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <DayShiftMatrix
+            weekStartDate={weekStartDate}
+            dayShifts={dayShifts}
+            onToggle={(day, type) =>
+              setDayShifts((prev) => {
+                const row = prev[day] ?? { MORNING: false, AFTERNOON: false };
+                return {
+                  ...prev,
+                  [day]: {
+                    MORNING: type === 'MORNING' ? !row.MORNING : row.MORNING,
+                    AFTERNOON: type === 'AFTERNOON' ? !row.AFTERNOON : row.AFTERNOON,
+                  },
+                };
+              })
+            }
+          />
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600"
+            >
+              Huy
+            </button>
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+            >
+              {mutation.isPending ? 'Dang cap nhat...' : 'Luu doi ca'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface WeekCalendarProps {
+  doctors: AdminDoctorDto[];
+  weekDates: string[];
+  weekRows: WeekRow[];
+}
+
+function WeekCalendar({ doctors, weekDates, weekRows }: WeekCalendarProps) {
+  const map = useMemo(() => {
+    const byDate: Record<
+      string,
+      Record<string, { MORNING?: AdminShiftDto; AFTERNOON?: AdminShiftDto }>
+    > = {};
+    for (const date of weekDates) {
+      byDate[date] = {};
+      for (const d of doctors) byDate[date][d.id] = {};
+    }
+    for (const row of weekRows) {
+      for (const s of row.shifts) {
+        if (!byDate[row.date]?.[s.doctorId]) continue;
+        const doctorDay = byDate[row.date]![s.doctorId] ?? {};
+        byDate[row.date]![s.doctorId] = {
+          ...doctorDay,
+          ...(s.type === 'MORNING' ? { MORNING: s } : { AFTERNOON: s }),
+        };
+      }
+    }
+    return byDate;
+  }, [doctors, weekDates, weekRows]);
+
+  const badgeClass = (shift: AdminShiftDto | undefined, normalColor: string) => {
+    if (!shift) return 'bg-slate-50 text-slate-400';
+    if (shift.isMakeup) return 'bg-fuchsia-100 text-fuchsia-700';
+    return normalColor;
+  };
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <table className="min-w-[980px] w-full text-sm">
+        <thead className="border-b border-slate-200 bg-slate-50">
+          <tr>
+            <th className="px-3 py-3 text-left font-medium text-slate-600">Thu / Ngay</th>
+            {doctors.map((d) => (
+              <th key={d.id} className="px-3 py-3 text-left font-medium text-slate-600">
+                <div className="whitespace-nowrap">{d.displayName}</div>
+                <div className="text-xs font-normal text-slate-400">
+                  {d.specialty ?? 'Chua gan khoa'}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {weekDates.map((date, idx) => (
+            <tr key={date} className="align-top hover:bg-slate-50">
+              <td className="px-3 py-3">
+                <div className="font-medium text-slate-900">{WEEKDAY_LABELS[idx]}</div>
+                <div className="text-xs text-slate-400">{formatDate(date)}</div>
+              </td>
+              {doctors.map((d) => {
+                const cell = map[date]?.[d.id] ?? {};
+                return (
+                  <td key={`${date}-${d.id}`} className="px-3 py-3">
+                    <div className="space-y-1 text-xs">
+                      <div
+                        className={`inline-flex min-w-[120px] items-center justify-between rounded-full px-2 py-1 ${badgeClass(cell.MORNING, 'bg-amber-50 text-amber-700')}`}
+                        title={cell.MORNING?.adjustmentNote ?? ''}
+                      >
+                        <span>SANG</span>
+                        <span>
+                          {cell.MORNING
+                            ? `${cell.MORNING.bookedSlots}/${cell.MORNING.totalSlots}`
+                            : '-'}
+                        </span>
+                      </div>
+                      <div
+                        className={`inline-flex min-w-[120px] items-center justify-between rounded-full px-2 py-1 ${badgeClass(cell.AFTERNOON, 'bg-indigo-50 text-indigo-700')}`}
+                        title={cell.AFTERNOON?.adjustmentNote ?? ''}
+                      >
+                        <span>CHIEU</span>
+                        <span>
+                          {cell.AFTERNOON
+                            ? `${cell.AFTERNOON.bookedSlots}/${cell.AFTERNOON.totalSlots}`
+                            : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export function ShiftManagementPage() {
   const queryClient = useQueryClient();
   const today = toLocalDateString(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
-  const [showCreate, setShowCreate] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('DAY');
+  const [showPattern, setShowPattern] = useState(false);
+  const [showSyncWeek, setShowSyncWeek] = useState(false);
   const [togglingSlot, setTogglingSlot] = useState<string | null>(null);
 
-  const { data: shifts = [], isLoading } = useQuery({
+  const weekStartDate = useMemo(() => startOfWeekMonday(selectedDate), [selectedDate]);
+  const weekDates = useMemo(() => getWeekDates(weekStartDate), [weekStartDate]);
+
+  const { data: shifts = [], isLoading: isDayLoading } = useQuery({
     queryKey: ['admin-shifts', selectedDate],
     queryFn: () => adminApi.getShifts(selectedDate),
   });
@@ -397,84 +801,77 @@ export function ShiftManagementPage() {
     queryFn: adminApi.getDoctors,
   });
 
+  const { data: weekRows = [], isLoading: isWeekLoading } = useQuery({
+    queryKey: ['admin-shifts-week', weekStartDate],
+    queryFn: async () =>
+      Promise.all(
+        weekDates.map(async (date) => ({
+          date,
+          shifts: await adminApi.getShifts(date),
+        })),
+      ),
+  });
+
+  const invalidateShiftQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-shifts'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-shifts-week'] });
+  };
+
   const lockMutation = useMutation({
     mutationFn: adminApi.lockShift,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-shifts', selectedDate] }),
+    onSuccess: invalidateShiftQueries,
   });
-
   const openMutation = useMutation({
     mutationFn: adminApi.openShift,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-shifts', selectedDate] }),
+    onSuccess: invalidateShiftQueries,
   });
-
   const deleteMutation = useMutation({
     mutationFn: adminApi.deleteShift,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-shifts', selectedDate] }),
+    onSuccess: invalidateShiftQueries,
     onError: (e: Error) => alert(e.message),
   });
-
   const toggleSlotMutation = useMutation({
     mutationFn: adminApi.toggleSlot,
     onSuccess: () => {
       setTogglingSlot(null);
-      // invalidate slots queries for all shifts on this date
-      shifts.forEach((s) => {
-        queryClient.invalidateQueries({ queryKey: ['slots', s.id] });
-      });
+      shifts.forEach((s) => queryClient.invalidateQueries({ queryKey: ['slots', s.id] }));
+      invalidateShiftQueries();
     },
-    onError: () => {
-      setTogglingSlot(null);
-    },
+    onError: () => setTogglingSlot(null),
   });
-
-  const handleToggleSlot = (slotId: string) => {
-    setTogglingSlot(slotId);
-    toggleSlotMutation.mutate(slotId);
-  };
-
-  const handleDelete = (shift: AdminShiftDto) => {
-    if (shift.bookedSlots > 0) {
-      alert('Ca có lịch hẹn đang hoạt động, không thể xóa.');
-      return;
-    }
-    if (
-      !window.confirm(
-        `Xóa ca ${TYPE_LABEL[shift.type]} của BS. ${shift.doctorName} ngày ${formatDate(shift.date)}?`,
-      )
-    )
-      return;
-    deleteMutation.mutate(shift.id);
-  };
 
   const isMutating = lockMutation.isPending || openMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 dark:bg-background-dark">
-      {/* Header */}
-      <div
-        className="px-6 py-4 bg-white dark:bg-card-dark border-b border-slate-200 dark:border-slate-700
-        flex items-center gap-4 flex-wrap"
-      >
+    <div className="flex h-full flex-col bg-slate-50">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-6 py-4">
         <div>
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white">Quản lý Ca trực</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Tạo ca trực, tự động sinh 12 slot thường + 4 dự phòng (Logic A)
+          <h1 className="text-lg font-bold text-slate-900">Quan ly Ca lam viec</h1>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Tao lich theo tuan trong thang, doi ca co ghi chu va danh dau ca bu.
           </p>
         </div>
-
         <div className="flex-1" />
+
+        <div className="flex items-center rounded-lg bg-slate-100 p-1">
+          <button
+            onClick={() => setViewMode('DAY')}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${viewMode === 'DAY' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}
+          >
+            Ngay
+          </button>
+          <button
+            onClick={() => setViewMode('WEEK')}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${viewMode === 'WEEK' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}
+          >
+            Tuan
+          </button>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() =>
-              setSelectedDate(
-                toLocalDateString(
-                  new Date(new Date(selectedDate + 'T00:00:00').getTime() - 86400000),
-                ),
-              )
-            }
-            className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600
-              hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+            onClick={() => setSelectedDate(addDays(selectedDate, viewMode === 'WEEK' ? -7 : -1))}
+            className="rounded-lg border border-slate-300 p-1.5 text-slate-600"
           >
             <span className="material-symbols-outlined text-sm">chevron_left</span>
           </button>
@@ -482,88 +879,101 @@ export function ShiftManagementPage() {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="rounded-lg border border-slate-300 dark:border-slate-600
-              bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 text-sm"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900"
           />
           <button
-            onClick={() =>
-              setSelectedDate(
-                toLocalDateString(
-                  new Date(new Date(selectedDate + 'T00:00:00').getTime() + 86400000),
-                ),
-              )
-            }
-            className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600
-              hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+            onClick={() => setSelectedDate(addDays(selectedDate, viewMode === 'WEEK' ? 7 : 1))}
+            className="rounded-lg border border-slate-300 p-1.5 text-slate-600"
           >
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
           {selectedDate !== today && (
             <button
               onClick={() => setSelectedDate(today)}
-              className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800
-                text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600"
             >
-              Hôm nay
+              Hom nay
             </button>
           )}
         </div>
 
         <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700
-            text-white text-sm font-medium rounded-lg transition-colors"
+          onClick={() => setShowPattern(true)}
+          className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700"
         >
-          <span className="material-symbols-outlined text-sm">add</span>
-          Tạo ca mới
+          Tao lich lap
+        </button>
+        <button
+          onClick={() => setShowSyncWeek(true)}
+          className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
+        >
+          Doi ca tuan nay
         </button>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-40 gap-2 text-slate-400">
-            <span className="material-symbols-outlined animate-spin">progress_activity</span>
-            Đang tải...
-          </div>
-        ) : shifts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-center text-slate-400">
-            <span className="material-symbols-outlined text-5xl mb-2">calendar_today</span>
-            <p className="text-sm">Chưa có ca trực nào ngày {formatDate(selectedDate)}</p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-3 text-xs text-sky-600 hover:underline"
-            >
-              + Tạo ca mới
-            </button>
-          </div>
+        {viewMode === 'DAY' ? (
+          isDayLoading ? (
+            <div className="h-40 text-sm text-slate-400">Dang tai...</div>
+          ) : shifts.length === 0 ? (
+            <div className="h-40 text-sm text-slate-400">
+              Chua co ca truc ngay {formatDate(selectedDate)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {shifts.map((shift) => (
+                <ShiftCard
+                  key={shift.id}
+                  shift={shift}
+                  onLock={() => lockMutation.mutate(shift.id)}
+                  onOpen={() => openMutation.mutate(shift.id)}
+                  onDelete={() => {
+                    if (shift.bookedSlots > 0) return alert('Ca co booking khong the xoa');
+                    if (
+                      !window.confirm(
+                        `Xoa ca ${TYPE_LABEL[shift.type]} cua BS. ${shift.doctorName}?`,
+                      )
+                    )
+                      return;
+                    deleteMutation.mutate(shift.id);
+                  }}
+                  onToggleSlot={(slotId) => {
+                    setTogglingSlot(slotId);
+                    toggleSlotMutation.mutate(slotId);
+                  }}
+                  togglingSlot={togglingSlot}
+                  mutating={isMutating}
+                />
+              ))}
+            </div>
+          )
+        ) : isWeekLoading ? (
+          <div className="h-40 text-sm text-slate-400">Dang tai lich tuan...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {shifts.map((shift) => (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                onLock={() => lockMutation.mutate(shift.id)}
-                onOpen={() => openMutation.mutate(shift.id)}
-                onDelete={() => handleDelete(shift)}
-                onToggleSlot={handleToggleSlot}
-                togglingSlot={togglingSlot}
-                mutating={isMutating}
-              />
-            ))}
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              Tuan hien tai: {formatDate(weekStartDate)} - {formatDate(addDays(weekStartDate, 6))}
+            </p>
+            <WeekCalendar doctors={doctors} weekDates={weekDates} weekRows={weekRows} />
           </div>
         )}
       </div>
 
-      {/* Create Modal */}
-      {showCreate && (
-        <CreateShiftModal
+      {showPattern && (
+        <WeeklyPatternModal
           doctors={doctors}
-          initialDate={selectedDate}
-          onClose={() => setShowCreate(false)}
-          onCreated={() =>
-            queryClient.invalidateQueries({ queryKey: ['admin-shifts', selectedDate] })
-          }
+          initialWeekStart={weekStartDate}
+          onClose={() => setShowPattern(false)}
+          onCreated={invalidateShiftQueries}
+        />
+      )}
+
+      {showSyncWeek && (
+        <SyncWeekModal
+          doctors={doctors}
+          initialWeekStart={weekStartDate}
+          onClose={() => setShowSyncWeek(false)}
+          onSynced={invalidateShiftQueries}
         />
       )}
     </div>

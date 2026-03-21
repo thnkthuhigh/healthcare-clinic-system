@@ -2,7 +2,11 @@ package com.clinic.backend.modules.admin.controller;
 
 import com.clinic.backend.modules.admin.dto.AdminShiftDto;
 import com.clinic.backend.modules.admin.dto.AdminSlotDto;
+import com.clinic.backend.modules.admin.dto.BulkShiftRequest;
+import com.clinic.backend.modules.admin.dto.BulkShiftResponse;
 import com.clinic.backend.modules.admin.dto.CreateShiftRequest;
+import com.clinic.backend.modules.admin.dto.SyncWeekShiftRequest;
+import com.clinic.backend.modules.admin.dto.SyncWeekShiftResponse;
 import com.clinic.backend.modules.admin.service.ShiftManagementService;
 import com.clinic.backend.modules.doctor.entity.Shift;
 import jakarta.validation.Valid;
@@ -37,6 +41,18 @@ public class ShiftManagementController {
     @PostMapping
     public AdminShiftDto createShift(@Valid @RequestBody CreateShiftRequest request) {
         return shiftManagementService.createShift(request);
+    }
+
+    /** POST /api/v1/admin/shifts/bulk */
+    @PostMapping("/bulk")
+    public BulkShiftResponse createShiftsBulk(@Valid @RequestBody BulkShiftRequest request) {
+        return shiftManagementService.bulkCreateShifts(request);
+    }
+
+    /** POST /api/v1/admin/shifts/sync-week */
+    @PostMapping("/sync-week")
+    public SyncWeekShiftResponse syncWeekShifts(@Valid @RequestBody SyncWeekShiftRequest request) {
+        return shiftManagementService.syncWeekShifts(request);
     }
 
     /** POST /api/v1/admin/shifts/{id}/lock */
