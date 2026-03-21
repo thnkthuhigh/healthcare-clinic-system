@@ -100,6 +100,25 @@ public class DoctorController {
     }
 
     /**
+     * Get doctor's detailed schedule by date range with patient bookings.
+     * GET /api/doctor/{doctorId}/schedule-details?from=2026-03-01&to=2026-03-31
+     */
+    @GetMapping("/{doctorId}/schedule-details")
+    public ResponseEntity<List<ScheduleShiftDto>> getScheduleDetails(
+            @PathVariable UUID doctorId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+
+        if (from == null)
+            from = LocalDate.now().withDayOfMonth(1);
+        if (to == null)
+            to = from.plusMonths(1).minusDays(1);
+
+        List<ScheduleShiftDto> shifts = doctorService.getDetailedSchedule(doctorId, from, to);
+        return ResponseEntity.ok(shifts);
+    }
+
+    /**
      * Search patients
      * GET /api/doctor/patients/search?query=Nguyen
      */

@@ -8,6 +8,7 @@ import com.clinic.backend.modules.doctor.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -250,10 +251,13 @@ public class ConsultationService {
     private QueueItemDto toQueueItemDto(Booking booking) {
         Patient patient = booking.getPatient();
         PatientDto patientDto = toPatientDto(patient);
+        int slotSequence = getSlotSequence(booking);
         
         return new QueueItemDto(
             booking.getId(),
             booking.getQueueNumber(),
+            calculateAppointmentTime(booking.getShift(), slotSequence),
+            slotSequence,
             patientDto,
             booking.getService() != null ? booking.getService().getName() : null,
             booking.getStatus(),
@@ -377,5 +381,15 @@ public class ConsultationService {
             medicalRecord,
             prescription
         );
+    }
+
+    private Instant calculateAppointmentTime(Shift shift, int slotSequence) {
+        long minutesOffset = Math.max(slotSequence - 1, 0) * 15L;
+        return shift.getStartTime().plus(Duration.ofMinutes(minutesOffset));
+    }
+
+    private int getSlotSequence(Booking booking) {
+        Slot slot = booking.getSlot();
+        return slot != null && slot.getSequence() != null ? slot.getSequence() : 1;
     }
 }
