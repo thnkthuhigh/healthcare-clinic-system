@@ -82,8 +82,11 @@ export const customerApi = {
 
   cancelBooking: (bookingId: string, phone?: string) => {
     const query = phone ? `?phone=${encodeURIComponent(phone)}` : '';
-    return fetchApi<BookingTicket | { message: string }>(`${API_BASE}/bookings/${bookingId}/cancel${query}`, {
-      method: 'POST',
-    });
+    return fetchApi<BookingTicket | { message: string }>(
+      `${API_BASE}/bookings/${bookingId}/cancel${query}`,
+      {
+        method: 'POST',
+      },
+    );
   },
 };

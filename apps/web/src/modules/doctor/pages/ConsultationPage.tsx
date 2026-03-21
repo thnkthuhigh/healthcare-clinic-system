@@ -51,7 +51,6 @@ export function ConsultationPage() {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm<ConsultationForm>({
     defaultValues: {
       symptoms: '',

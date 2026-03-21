@@ -207,8 +207,11 @@ export function PatientQueuePage() {
   const counts = {
     ALL: queueItems.length,
     BOOKED: queueItems.filter((item) => item.status === 'BOOKED').length,
-    WAITING: queueItems.filter((item) =>
-      item.status === 'WAITING' || item.status === 'CHECKED_IN' || item.status === 'RESULTS_READY',
+    WAITING: queueItems.filter(
+      (item) =>
+        item.status === 'WAITING' ||
+        item.status === 'CHECKED_IN' ||
+        item.status === 'RESULTS_READY',
     ).length,
     IN_CONSULTATION: queueItems.filter((item) => item.status === 'IN_CONSULTATION').length,
     COMPLETED: queueItems.filter((item) => item.status === 'COMPLETED').length,
@@ -521,7 +524,9 @@ export function PatientQueuePage() {
                           Gio hen {formatTime(item.appointmentTime)}
                         </p>
                         <p className="text-xs text-slate-400 dark:text-slate-500">
-                          {item.checkInAt ? `Check-in ${formatTime(item.checkInAt)}` : 'Chua check-in'}
+                          {item.checkInAt
+                            ? `Check-in ${formatTime(item.checkInAt)}`
+                            : 'Chua check-in'}
                         </p>
                       </div>
                     </td>
@@ -582,12 +587,16 @@ export function PatientQueuePage() {
                           {invitingBookingId === item.id ? (
                             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                           ) : (
-                            <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                            <span className="material-symbols-outlined text-[18px]">
+                              play_arrow
+                            </span>
                           )}
                           Moi vao kham
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">Dang xu ly</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                          Dang xu ly
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -603,9 +612,7 @@ export function PatientQueuePage() {
                 assignment_turned_in
               </span>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              Khong co benh nhan
-            </h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Khong co benh nhan</h3>
             <p className="mt-2 max-w-xs text-slate-500 dark:text-slate-400">
               {searchQuery
                 ? 'Khong tim thay benh nhan phu hop voi tu khoa tim kiem.'
