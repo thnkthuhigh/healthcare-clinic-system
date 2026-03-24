@@ -17,13 +17,36 @@ public interface SlotRepository extends JpaRepository<Slot, UUID> {
     /**
      * Count available COMMON slots for a shift (used for availability display).
      */
-    @Query("SELECT COUNT(s) FROM Slot s WHERE s.shift.id = :shiftId AND s.pool = 'COMMON' AND s.status = 'OPEN'")
+    @Query("""
+        SELECT COUNT(s)
+        FROM Slot s
+        WHERE s.shift.id = :shiftId
+          AND s.pool = 'COMMON'
+          AND s.status = 'OPEN'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM Booking b
+            WHERE b.slotId = s.id
+          )
+        """)
     long countOpenCommonSlots(@Param("shiftId") UUID shiftId);
 
     /**
      * Fetch and lock the first available COMMON slot for booking (prevents double-booking).
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Slot s WHERE s.shift.id = :shiftId AND s.pool = 'COMMON' AND s.status = 'OPEN' ORDER BY s.sequence ASC")
+    @Query("""
+        SELECT s
+        FROM Slot s
+        WHERE s.shift.id = :shiftId
+          AND s.pool = 'COMMON'
+          AND s.status = 'OPEN'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM Booking b
+            WHERE b.slotId = s.id
+          )
+        ORDER BY s.sequence ASC
+        """)
     List<Slot> findOpenCommonSlotsForUpdate(@Param("shiftId") UUID shiftId);
 }

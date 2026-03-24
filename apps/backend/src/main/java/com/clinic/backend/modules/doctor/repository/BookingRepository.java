@@ -118,11 +118,20 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                         SELECT b FROM Booking b
                         JOIN FETCH b.shift s
                         JOIN FETCH s.doctor d
+                        LEFT JOIN FETCH b.slot sl
                         LEFT JOIN FETCH b.service sv
                         WHERE b.patient.id = :patientId
                         ORDER BY b.createdAt DESC
                         """)
         List<Booking> findByPatientIdOrderByCreatedAtDesc(@Param("patientId") UUID patientId);
+
+        @Query("""
+                        SELECT MIN(b.queueNumber) FROM Booking b
+                        WHERE b.shift.id = :shiftId
+                        AND b.queueNumber IS NOT NULL
+                        AND CAST(b.status AS string) IN ('CHECKED_IN', 'WAITING', 'IN_CONSULTATION', 'RESULTS_READY')
+                        """)
+        Integer findCurrentServingQueueNumber(@Param("shiftId") UUID shiftId);
 
         /**
          * Find today's BOOKED bookings for a patient (for phone check-in)

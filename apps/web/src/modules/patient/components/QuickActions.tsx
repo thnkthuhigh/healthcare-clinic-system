@@ -3,61 +3,63 @@ import { Link } from 'react-router-dom';
 const ACTIONS = [
   {
     title: 'Đặt lịch khám',
-    description: 'Đặt lịch với bác sĩ chỉ trong vài bước đơn giản',
+    description: 'Chọn bác sĩ, ca khám và gửi thông tin bệnh nhân trong một quy trình rõ ràng.',
     icon: 'calendar_add_on',
-    gradient: 'from-blue-500 to-blue-600',
     to: '/booking',
-    btnLabel: 'Đặt lịch ngay',
+    btnLabel: 'Bắt đầu đặt lịch',
   },
   {
-    title: 'Lịch khám của tôi',
-    description: 'Xem và quản lý các lịch khám đã đặt',
+    title: 'Lịch hẹn của tôi',
+    description: 'Theo dõi trạng thái lịch hẹn, số thứ tự và mã QR check-in trong ngày khám.',
     icon: 'event_note',
-    gradient: 'from-teal-500 to-teal-600',
     to: '/appointments',
-    btnLabel: 'Xem lịch',
+    btnLabel: 'Xem lịch hẹn',
   },
   {
-    title: 'Hồ sơ sức khỏe',
-    description: 'Xem lịch sử khám bệnh và đơn thuốc',
+    title: 'Tra cứu hồ sơ',
+    description: 'Xem lại lịch sử khám, đơn thuốc, kết quả điều trị bằng số điện thoại đã đăng ký.',
     icon: 'medical_information',
-    gradient: 'from-emerald-500 to-emerald-600',
     to: '/health-records',
-    btnLabel: 'Xem hồ sơ',
+    btnLabel: 'Mở hồ sơ',
   },
   {
-    title: 'Danh sách bác sĩ',
-    description: 'Tìm bác sĩ phù hợp theo chuyên khoa',
+    title: 'Tìm bác sĩ',
+    description: 'Tham khảo danh sách bác sĩ theo chuyên khoa trước khi đặt lịch trực tuyến.',
     icon: 'groups',
-    gradient: 'from-cyan-500 to-cyan-600',
     to: '/doctors',
-    btnLabel: 'Xem bác sĩ',
+    btnLabel: 'Xem đội ngũ',
   },
 ] as const;
 
 export function QuickActions() {
   return (
-    <section>
-      <h2 className="text-xl font-bold text-slate-900 mb-4">Truy cập nhanh</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <section className="clinic-card p-6 sm:p-8">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            Hành trình bệnh nhân
+          </p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-950">Các thao tác thường dùng</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+            Mỗi tác vụ được thiết kế theo đúng ngữ cảnh sử dụng thực tế để giảm bớt thao tác thừa
+            và giúp bệnh nhân dễ theo dõi thông tin hơn.
+          </p>
+        </div>
+      </div>
+
+      <div className="clinic-grid mt-6 sm:grid-cols-2 xl:grid-cols-4">
         {ACTIONS.map((action) => (
-          <div
-            key={action.to}
-            className={`bg-gradient-to-br ${action.gradient} rounded-2xl p-5 text-white flex flex-col justify-between min-h-[168px]`}
-          >
+          <div key={action.to} className="clinic-action-card min-h-[216px]">
             <div>
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-white">{action.icon}</span>
+              <div className="clinic-icon-badge">
+                <span className="material-symbols-outlined text-[22px]">{action.icon}</span>
               </div>
-              <h3 className="font-semibold text-base mb-1">{action.title}</h3>
-              <p className="text-xs text-white/80 leading-relaxed">{action.description}</p>
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">{action.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{action.description}</p>
             </div>
-            <Link
-              to={action.to}
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1.5 self-start"
-            >
-              {action.btnLabel}
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <Link to={action.to} className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+              <span>{action.btnLabel}</span>
+              <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>
           </div>
         ))}

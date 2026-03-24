@@ -26,10 +26,15 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:rebuild": "docker compose down && docker compose build --no-cache && docker compose up -d",
+    "test:e2e:prepare": "node tests/e2e/scripts/prepare.mjs",
+    "test:e2e": "node tests/e2e/scripts/prepare.mjs && playwright test",
+    "test:e2e:headed": "node tests/e2e/scripts/prepare.mjs && playwright test --headed",
+    "test:e2e:report": "playwright show-report playwright-report/e2e",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "concurrently": "^8.2.2",

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { FlatTaskHeader } from '../../../components/ClinicUI';
 import { useAuth } from '../../auth/useAuth';
 import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
@@ -42,10 +43,16 @@ export function ProfilePage() {
     enabled: !!patientQuery.data?.id,
   });
 
-  const initials = (user?.phone ?? 'U').slice(0, 2);
+  const initials = (patientQuery.data?.fullName ?? user?.phone ?? 'BN')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   const role = displayLabel(ROLE_LABEL, user?.role);
   const status = displayLabel(STATUS_LABEL, user?.status);
-
   const totalBookings = bookingsQuery.data?.length ?? 0;
   const completedBookings =
     bookingsQuery.data?.filter((booking) => booking.status === 'COMPLETED').length ?? 0;
@@ -54,109 +61,134 @@ export function ProfilePage() {
       ['BOOKED', 'CHECKED_IN', 'WAITING'].includes(booking.status),
     ).length ?? 0;
 
+  if (!user) {
+    return (
+      <div className="clinic-page">
+        <PatientNavbar />
+
+        <main className="clinic-section space-y-6">
+          <FlatTaskHeader
+            icon="person"
+            eyebrow="Tài khoản bệnh nhân"
+            title="Đăng nhập để xem hồ sơ cá nhân"
+            description="Trang này chỉ dành cho tài khoản đã đăng nhập. Nếu bạn chỉ cần mở lại hồ sơ khám, hãy dùng trang tra cứu bằng số điện thoại."
+          />
+
+          <section className="mx-auto max-w-3xl clinic-card p-6 text-center sm:p-8">
+            <span className="material-symbols-outlined text-5xl text-slate-300">person_off</span>
+            <h2 className="mt-4 text-xl font-semibold text-slate-950">Chưa đăng nhập</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Đăng nhập để xem thông tin tài khoản, hoặc dùng trang tra cứu nếu bạn cần mở lại hồ sơ khám bằng số điện thoại.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link to="/login" className="btn-primary">
+                Đăng nhập
+              </Link>
+              <Link to="/health-records" className="btn-secondary">
+                Tra cứu hồ sơ
+              </Link>
+            </div>
+          </section>
+        </main>
+
+        <PatientFooter />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="clinic-page" data-testid="patient-profile-page">
       <PatientNavbar />
 
-      <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-4">
-            <span className="material-symbols-outlined text-sm">person</span>
-            <span className="text-sm font-medium">Thông tin tài khoản</span>
+      <main className="clinic-section space-y-6">
+        <FlatTaskHeader
+          icon="person"
+          eyebrow="Tài khoản bệnh nhân"
+          title="Thông tin tài khoản và các chỉ số sử dụng"
+          description="Trang này chỉ giữ thông tin tài khoản, trạng thái sử dụng và các lối tắt thực sự cần."
+        />
+
+        <section className="mx-auto max-w-5xl space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="clinic-card p-6">
+              <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-700">
+                    {initials}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-950">
+                      {patientQuery.data?.fullName ?? user.phone}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">{role}</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  {status}
+                </span>
+              </div>
+
+              <div className="clinic-grid mt-5 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Số điện thoại</p>
+                  <p className="mt-2 font-semibold text-slate-800">{patientQuery.data?.phone ?? phone}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">CCCD / Hộ chiếu</p>
+                  <p className="mt-2 font-semibold text-slate-800">
+                    {patientQuery.data?.nationalId ?? 'Chưa cập nhật'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Vai trò</p>
+                  <p className="mt-2 font-semibold text-slate-800">{role}</p>
+                </div>
+              </div>
+
+              {(patientQuery.isLoading || bookingsQuery.isLoading) && (
+                <p className="mt-4 text-sm text-slate-500">Đang tải dữ liệu hồ sơ...</p>
+              )}
+              {(patientQuery.isError || bookingsQuery.isError) && (
+                <p className="mt-4 text-sm text-red-600">
+                  Không thể tải dữ liệu hồ sơ. Vui lòng thử lại.
+                </p>
+              )}
+            </div>
+
+            <aside className="clinic-card p-5">
+              <p className="text-sm font-semibold text-slate-950">Lối tắt</p>
+              <div className="mt-4 flex flex-col gap-3">
+                <Link to="/appointments" className="btn-secondary w-full justify-between">
+                  <span>Lịch hẹn</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </Link>
+                <Link to="/health-records" className="btn-secondary w-full justify-between">
+                  <span>Hồ sơ sức khỏe</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </Link>
+                <Link to="/booking" className="btn-secondary w-full justify-between">
+                  <span>Đặt lịch mới</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </Link>
+              </div>
+            </aside>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3">Hồ sơ cá nhân</h1>
-          <p className="text-blue-100 max-w-xl mx-auto">
-            Quản lý thông tin đăng nhập và truy cập nhanh đến dữ liệu khám bệnh của bạn.
-          </p>
-        </div>
-      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
-        <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 text-white flex items-center justify-center text-xl font-bold">
-              {initials}
+          <section className="clinic-grid sm:grid-cols-3">
+            <div className="clinic-stat-card">
+              <p className="text-sm text-slate-500">Tổng lượt khám</p>
+              <p className="mt-2 text-3xl font-bold text-slate-950">{totalBookings}</p>
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-slate-900">
-                {patientQuery.data?.fullName ?? user?.phone ?? 'Người dùng'}
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">Tài khoản đăng nhập Healthcare Clinic</p>
+            <div className="clinic-stat-card">
+              <p className="text-sm text-slate-500">Đã hoàn thành</p>
+              <p className="mt-2 text-3xl font-bold text-emerald-600">{completedBookings}</p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              {role}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            <div className="rounded-xl border border-slate-200 p-4">
-              <p className="text-xs text-slate-400 mb-1">Số điện thoại</p>
-              <p className="font-semibold text-slate-800">{patientQuery.data?.phone ?? phone}</p>
+            <div className="clinic-stat-card">
+              <p className="text-sm text-slate-500">Lịch sắp tới</p>
+              <p className="mt-2 text-3xl font-bold text-primary">{upcomingBookings}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 p-4">
-              <p className="text-xs text-slate-400 mb-1">Trạng thái tài khoản</p>
-              <p className="font-semibold text-slate-800">{status}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-4 sm:col-span-2">
-              <p className="text-xs text-slate-400 mb-1">CCCD / Passport</p>
-              <p className="font-semibold text-slate-800">
-                {patientQuery.data?.nationalId ?? 'Chưa cập nhật'}
-              </p>
-            </div>
-          </div>
-
-          {(patientQuery.isLoading || bookingsQuery.isLoading) && (
-            <p className="text-sm text-slate-500 mt-4">Đang tải dữ liệu hồ sơ từ hệ thống...</p>
-          )}
-
-          {(patientQuery.isError || bookingsQuery.isError) && (
-            <p className="text-sm text-red-600 mt-4">
-              Không thể tải dữ liệu hồ sơ từ database. Vui lòng thử lại.
-            </p>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
-              <p className="text-xs text-slate-500 mb-1">Tổng lượt khám</p>
-              <p className="text-2xl font-bold text-slate-900">{totalBookings}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
-              <p className="text-xs text-slate-500 mb-1">Đã hoàn thành</p>
-              <p className="text-2xl font-bold text-emerald-600">{completedBookings}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
-              <p className="text-xs text-slate-500 mb-1">Lịch sắp tới</p>
-              <p className="text-2xl font-bold text-blue-600">{upcomingBookings}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Thao tác nhanh</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link
-              to="/booking"
-              className="rounded-xl border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100 transition-colors"
-            >
-              <p className="text-sm font-semibold text-blue-700">Đặt lịch khám</p>
-              <p className="text-xs text-blue-600 mt-1">Đặt lịch mới với bác sĩ</p>
-            </Link>
-            <Link
-              to="/health-records"
-              className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 hover:bg-emerald-100 transition-colors"
-            >
-              <p className="text-sm font-semibold text-emerald-700">Hồ sơ sức khỏe</p>
-              <p className="text-xs text-emerald-600 mt-1">Xem lịch sử khám và đơn thuốc</p>
-            </Link>
-            <Link
-              to="/appointments"
-              className="rounded-xl border border-amber-200 bg-amber-50 p-4 hover:bg-amber-100 transition-colors"
-            >
-              <p className="text-sm font-semibold text-amber-700">Lịch khám của tôi</p>
-              <p className="text-xs text-amber-600 mt-1">Theo dõi trạng thái lịch hẹn</p>
-            </Link>
-          </div>
+          </section>
         </section>
       </main>
 

@@ -40,6 +40,7 @@ export interface CreateBookingRequest {
 export interface BookingTicket {
   bookingId: string;
   queueNumber: number | null;
+  slotSequence: number;
   patientName: string;
   patientPhone: string;
   doctorName: string;
@@ -51,6 +52,9 @@ export interface BookingTicket {
   status: string;
   paymentStatus: 'UNPAID' | 'PAID' | 'VOID';
   createdAt: string; // ISO instant
+  appointmentTime: string;
+  currentServingQueueNumber: number | null;
+  estimatedTurnAt: string;
 }
 
 export interface PatientSummary {
@@ -100,6 +104,7 @@ export interface MedicalRecord {
 export interface PatientBooking {
   bookingId: string;
   queueNumber: number | null;
+  slotSequence: number;
   date: string;
   shiftType: 'MORNING' | 'AFTERNOON';
   timeRange: string;
@@ -109,6 +114,9 @@ export interface PatientBooking {
   status: string;
   paymentStatus: 'UNPAID' | 'PAID' | 'VOID';
   createdAt: string;
+  appointmentTime: string;
+  currentServingQueueNumber: number | null;
+  estimatedTurnAt: string;
   medicalRecord: MedicalRecord | null;
   prescription: Prescription | null;
   ratingStars: number | null;

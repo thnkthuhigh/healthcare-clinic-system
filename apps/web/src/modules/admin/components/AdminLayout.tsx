@@ -5,12 +5,11 @@ import { AdminSidebar } from './AdminSidebar';
 
 export function AdminLayout() {
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-hidden">
+    <div className="ops-shell" data-testid="admin-layout">
       <AdminSidebar />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="ops-main" data-testid="admin-main">
         <AdminHeader />
-
         <div className="flex-1 overflow-y-auto">
           <Outlet />
         </div>

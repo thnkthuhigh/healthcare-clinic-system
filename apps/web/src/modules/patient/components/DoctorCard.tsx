@@ -7,16 +7,39 @@ interface DoctorCardProps {
 }
 
 function StarRating({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-xs text-slate-400">Chưa có đánh giá</span>;
+  if (value === null) {
+    return <span className="text-xs text-slate-400">Chưa có đánh giá</span>;
+  }
+
   const full = Math.round(value);
+
   return (
-    <span className="flex items-center gap-0.5 text-xs text-amber-400">
-      {Array.from({ length: 5 }, (_, i) => (
-        <span key={i}>{i < full ? '★' : '☆'}</span>
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }, (_, index) => (
+        <span
+          key={index}
+          className={`material-symbols-outlined text-sm ${
+            index < full ? 'text-amber-500' : 'text-slate-300'
+          }`}
+        >
+          star
+        </span>
       ))}
-      <span className="ml-1 text-slate-500">({value.toFixed(1)})</span>
-    </span>
+      <span className="ml-1 text-xs text-slate-500">{value.toFixed(1)} / 5</span>
+    </div>
   );
+}
+
+function getInitials(name: string) {
+  return name
+    .replace('BS.', '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 }
 
 export function DoctorCard({ doctor, selected, onSelect }: DoctorCardProps) {
@@ -24,31 +47,51 @@ export function DoctorCard({ doctor, selected, onSelect }: DoctorCardProps) {
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left rounded-xl border-2 p-4 transition-all
-        ${selected ? 'border-primary bg-primary/5 shadow-md' : 'border-slate-200 bg-white hover:border-primary/50'}`}
+      data-testid={`patient-booking-doctor-card-${doctor.id}`}
+      className={`w-full overflow-hidden rounded-[28px] border text-left transition-all ${
+        selected
+          ? 'border-primary bg-primary/5 shadow-soft'
+          : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-soft'
+      }`}
     >
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-xl font-bold text-primary overflow-hidden">
-          {doctor.avatarUrl ? (
-            <img
-              src={doctor.avatarUrl}
-              alt={doctor.displayName}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            doctor.displayName.charAt(0)
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-800 truncate">{doctor.displayName}</p>
-          <p className="text-sm text-slate-500 truncate">{doctor.specialty ?? 'Đa khoa'}</p>
-          <StarRating value={doctor.averageStars} />
-        </div>
-        {selected && (
-          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs">
-            ✓
+      <div className="flex items-start justify-between gap-4 p-5">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-lg font-bold text-primary shadow-soft">
+            {doctor.avatarUrl ? (
+              <img
+                src={doctor.avatarUrl}
+                alt={doctor.displayName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              getInitials(doctor.displayName)
+            )}
           </div>
-        )}
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-lg font-semibold text-slate-950">{doctor.displayName}</p>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                {doctor.specialty ?? 'Đa khoa'}
+              </span>
+            </div>
+            <div className="mt-3">
+              <StarRating value={doctor.averageStars} />
+            </div>
+            <p className="mt-4 text-sm text-slate-500">Chọn bác sĩ để xem các ca khám còn trống.</p>
+          </div>
+        </div>
+
+        <div
+          data-testid={`patient-booking-doctor-state-${doctor.id}`}
+          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-3 text-xs font-semibold ${
+            selected
+              ? 'bg-primary text-white'
+              : 'border border-slate-200 bg-white text-slate-500'
+          }`}
+        >
+          {selected ? 'Đã chọn' : 'Chọn'}
+        </div>
       </div>
     </button>
   );

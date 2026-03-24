@@ -7,10 +7,17 @@ interface QRTicketProps {
   ticket: BookingTicket;
 }
 
-const SHIFT_LABEL: Record<string, string> = { MORNING: 'Buổi sáng', AFTERNOON: 'Buổi chiều' };
+const SHIFT_LABEL: Record<string, string> = {
+  MORNING: 'Buổi sáng',
+  AFTERNOON: 'Buổi chiều',
+};
 
 export function QRTicket({ ticket }: QRTicketProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
+  const displayQueueNumber = ticket.queueNumber ?? ticket.slotSequence;
+  const displayQueueLabel =
+    ticket.queueNumber !== null ? 'Số thứ tự đến lượt' : 'Số thứ tự tham khảo';
+  const ticketCode = buildTicketCode(ticket.bookingId, ticket.date);
 
   const handleSave = () => {
     const svgEl = ticketRef.current?.querySelector<SVGElement>('svg');
@@ -23,12 +30,12 @@ export function QRTicket({ ticket }: QRTicketProps) {
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ve-kham-${ticket.bookingId.slice(0, 8)}.svg`;
+    link.download = `${ticketCode.toLowerCase()}.svg`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  const dateDisplay = new Date(ticket.date + 'T00:00:00').toLocaleDateString('vi-VN', {
+  const dateDisplay = new Date(`${ticket.date}T00:00:00`).toLocaleDateString('vi-VN', {
     weekday: 'long',
     day: '2-digit',
     month: '2-digit',
@@ -36,83 +43,111 @@ export function QRTicket({ ticket }: QRTicketProps) {
   });
 
   return (
-    <div className="space-y-4">
-      {/* Ticket card */}
+    <div className="space-y-4" data-testid="patient-booking-ticket">
       <div
         ref={ticketRef}
-        className="bg-white rounded-2xl border-2 border-primary shadow-card overflow-hidden"
+        className="clinic-card overflow-hidden rounded-[28px] border-primary/20"
+        data-testid="patient-booking-ticket-card"
       >
-        {/* Header */}
-        <div className="bg-primary px-5 py-3 text-white text-center">
-          <p className="text-xs uppercase tracking-widest opacity-80">Vé Khám Bệnh</p>
-          <p className="text-2xl font-extrabold mt-0.5">
-            #{ticket.queueNumber !== null ? String(ticket.queueNumber).padStart(3, '0') : '—'}
-          </p>
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Phiếu khám</p>
+              <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{ticketCode}</p>
+              <p className="mt-1 text-xs text-slate-500">ID đặt lịch: {ticket.bookingId}</p>
+            </div>
+            <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-4 text-center shadow-soft">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-400">{displayQueueLabel}</p>
+              <p className="mt-2 text-4xl font-bold tracking-tight text-slate-950">
+                #{String(displayQueueNumber).padStart(3, '0')}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="flex gap-4 px-5 py-4">
-          {/* QR */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-1">
-            <QRCode value={ticket.bookingId} size={100} level="M" />
-            <p className="text-[9px] text-slate-400 text-center max-w-[100px] truncate">
-              {ticket.bookingId}
+        <div className="grid gap-5 px-5 py-5 sm:grid-cols-[160px_minmax(0,1fr)]">
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className="rounded-2xl border border-slate-200 bg-white p-3"
+              data-testid="patient-booking-ticket-qr"
+            >
+              <QRCode value={ticket.bookingId} size={110} level="M" />
+            </div>
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Xuất trình tại quầy
             </p>
           </div>
 
-          {/* Info */}
-          <div className="flex-1 space-y-1.5 text-sm min-w-0">
-            <InfoRow label="Bệnh nhân" value={ticket.patientName} />
-            <InfoRow label="SĐT" value={ticket.patientPhone} />
-            <InfoRow label="Bác sĩ" value={ticket.doctorName} />
-            <InfoRow label="Chuyên khoa" value={ticket.specialty ?? 'Đa khoa'} />
-            <InfoRow
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InfoBlock label="Bệnh nhân" value={ticket.patientName} />
+            <InfoBlock label="Số điện thoại" value={ticket.patientPhone} />
+            <InfoBlock label="Bác sĩ" value={ticket.doctorName} />
+            <InfoBlock label="Chuyên khoa" value={ticket.specialty ?? 'Đa khoa'} />
+            <InfoBlock label="Ngày khám" value={dateDisplay} />
+            <InfoBlock
               label="Ca khám"
-              value={`${SHIFT_LABEL[ticket.shiftType] ?? ticket.shiftType} — ${ticket.timeRange}`}
+              value={`${SHIFT_LABEL[ticket.shiftType] ?? ticket.shiftType} • ${ticket.timeRange}`}
             />
-            <InfoRow label="Ngày" value={dateDisplay} />
-            {ticket.serviceName && <InfoRow label="Dịch vụ" value={ticket.serviceName} />}
+            <InfoBlock label="Giờ hẹn" value={formatClock(ticket.appointmentTime)} />
+            <InfoBlock
+              label="Đang phục vụ"
+              value={
+                ticket.currentServingQueueNumber !== null
+                  ? `#${String(ticket.currentServingQueueNumber).padStart(3, '0')}`
+                  : 'Chưa có dữ liệu'
+              }
+            />
+            <InfoBlock label="Giờ dự kiến tới lượt" value={formatClock(ticket.estimatedTurnAt)} />
+            <InfoBlock
+              label="Thanh toán"
+              value={ticket.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chờ thanh toán'}
+            />
+            {ticket.serviceName && <InfoBlock label="Dịch vụ" value={ticket.serviceName} />}
           </div>
-        </div>
-
-        {/* Status bar */}
-        <div className="bg-slate-50 border-t border-slate-100 px-5 py-2 flex justify-between text-xs text-slate-500">
-          <span>
-            Trạng thái:{' '}
-            <strong
-              className={ticket.paymentStatus === 'PAID' ? 'text-green-600' : 'text-amber-600'}
-            >
-              {ticket.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chờ thanh toán'}
-            </strong>
-          </span>
-          <span>{new Date(ticket.createdAt).toLocaleTimeString('vi-VN')}</span>
         </div>
       </div>
 
-      {/* Actions */}
+      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+        <p>
+          {ticket.queueNumber === null
+            ? 'Số hiện tại là mức tham khảo trước check-in. Khi đến quầy tiếp nhận, hệ thống sẽ cấp số chính thức.'
+            : 'Số hiện tại là số thứ tự đã được cấp cho bệnh nhân trong ca khám này.'}
+        </p>
+        <p className="mt-2">
+          Xuất trình mã QR hoặc đọc số điện thoại <strong>{ticket.patientPhone}</strong> cho nhân viên lễ tân.
+        </p>
+      </div>
+
       <button
         type="button"
         onClick={handleSave}
-        className="w-full rounded-lg border-2 border-primary text-primary font-semibold py-2.5 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+        className="btn-secondary w-full"
+        data-testid="patient-booking-ticket-download"
       >
-        💾 Lưu ảnh vé về máy
+        <span className="material-symbols-outlined text-base">download</span>
+        <span>Lưu ảnh phiếu khám</span>
       </button>
-
-      <p className="text-center text-xs text-slate-400">
-        Xuất trình mã QR này khi đến quầy check-in hoặc đọc SĐT{' '}
-        <strong>{ticket.patientPhone}</strong>
-        <br />
-        cho nhân viên lễ tân.
-      </p>
     </div>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex gap-1.5 min-w-0">
-      <span className="text-slate-400 flex-shrink-0 w-20">{label}:</span>
-      <span className="text-slate-700 font-medium truncate">{value}</span>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs uppercase tracking-[0.12em] text-slate-400">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
+}
+
+function buildTicketCode(bookingId: string, date: string) {
+  const compactDate = date.replaceAll('-', '').slice(2);
+  return `PK-${compactDate}-${bookingId.slice(0, 6).toUpperCase()}`;
+}
+
+function formatClock(value: string) {
+  return new Date(value).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

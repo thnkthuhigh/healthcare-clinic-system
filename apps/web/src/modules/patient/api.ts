@@ -11,8 +11,12 @@ import type {
 
 const API_BASE = 'http://localhost:4000/api/customer';
 
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('clinic_token');
+type FetchApiOptions = RequestInit & {
+  withAuth?: boolean;
+};
+
+async function fetchApi<T>(url: string, options?: FetchApiOptions): Promise<T> {
+  const token = options?.withAuth ? localStorage.getItem('clinic_token') : null;
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -77,16 +81,15 @@ export const customerApi = {
   submitRating: (bookingId: string, data: RatingRequest) =>
     fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/rating`, {
       method: 'POST',
+      withAuth: true,
       body: JSON.stringify(data),
     }),
 
-  cancelBooking: (bookingId: string, phone?: string) => {
-    const query = phone ? `?phone=${encodeURIComponent(phone)}` : '';
-    return fetchApi<BookingTicket | { message: string }>(
-      `${API_BASE}/bookings/${bookingId}/cancel${query}`,
+  cancelBooking: (bookingId: string, phone: string) =>
+    fetchApi<BookingTicket | { message: string }>(
+      `${API_BASE}/bookings/${bookingId}/cancel?phone=${encodeURIComponent(phone)}`,
       {
         method: 'POST',
       },
-    );
-  },
+    ),
 };

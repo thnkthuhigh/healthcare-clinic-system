@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
@@ -154,6 +155,7 @@ public class CustomerBookingService {
         Booking booking = new Booking();
         booking.setShift(shift);
         booking.setSlotId(slot.getId());
+        booking.setSlot(slot);
         booking.setPatient(patient);
         booking.setService(clinicService);
         booking.setChannel(Booking.BookingChannel.WEB);
@@ -314,9 +316,21 @@ public class CustomerBookingService {
         // Cancel booking (allowed only if more than 24 hours before shift start)
         // =====================================================
 
-        public void cancelBooking(UUID bookingId) {
+        public void cancelBooking(UUID bookingId, String phone) {
                 Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                                 .orElseThrow(() -> new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Booking not found"));
+
+                String normalizedPhone = phone == null ? "" : phone.trim();
+                if (normalizedPhone.isBlank()) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                        "Vui lòng cung cấp số điện thoại để hủy lịch.");
+                }
+
+                if (booking.getPatient() == null || booking.getPatient().getPhone() == null
+                                || !booking.getPatient().getPhone().equals(normalizedPhone)) {
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                        "Số điện thoại không khớp với lịch hẹn.");
+                }
 
                 if (booking.getStatus() == Booking.BookingStatus.CANCELED) {
                         return; // already canceled
@@ -350,10 +364,15 @@ public class CustomerBookingService {
         Shift shift = booking.getShift();
         Doctor doctor = shift.getDoctor();
         Patient patient = booking.getPatient();
+        int slotSequence = getSlotSequence(booking);
+        Instant appointmentTime = calculateAppointmentTime(shift, slotSequence);
+        Integer currentServingQueueNumber = resolveCurrentServingQueueNumber(shift.getId());
+        Instant estimatedTurnAt = calculateEstimatedTurnAt(booking, slotSequence, currentServingQueueNumber);
 
         return new BookingTicketDto(
                 booking.getId(),
                 booking.getQueueNumber(),
+                slotSequence,
                 patient.getFullName(),
                 patient.getPhone(),
                 doctor.getDisplayName(),
@@ -364,12 +383,19 @@ public class CustomerBookingService {
                 booking.getService() != null ? booking.getService().getName() : null,
                 booking.getStatus().name(),
                 booking.getPaymentStatus().name(),
-                booking.getCreatedAt());
+                booking.getCreatedAt(),
+                appointmentTime,
+                currentServingQueueNumber,
+                estimatedTurnAt);
     }
 
     private PatientBookingDto toPatientBookingDto(Booking booking) {
         Shift shift = booking.getShift();
         Doctor doctor = shift.getDoctor();
+        int slotSequence = getSlotSequence(booking);
+        Instant appointmentTime = calculateAppointmentTime(shift, slotSequence);
+        Integer currentServingQueueNumber = resolveCurrentServingQueueNumber(shift.getId());
+        Instant estimatedTurnAt = calculateEstimatedTurnAt(booking, slotSequence, currentServingQueueNumber);
 
         MedicalRecordDto medRecord = medicalRecordRepository.findByBookingId(booking.getId())
                 .map(mr -> new MedicalRecordDto(
@@ -404,6 +430,7 @@ public class CustomerBookingService {
         return new PatientBookingDto(
                 booking.getId(),
                 booking.getQueueNumber(),
+                slotSequence,
                 shift.getDate(),
                 shift.getType().name(),
                 shift.getTimeRange(),
@@ -413,9 +440,38 @@ public class CustomerBookingService {
                 booking.getStatus().name(),
                 booking.getPaymentStatus().name(),
                 booking.getCreatedAt(),
+                appointmentTime,
+                currentServingQueueNumber,
+                estimatedTurnAt,
                 medRecord,
                 prescDto,
                 rating != null ? rating.getStars() : null,
                 rating != null ? rating.getComment() : null);
+    }
+
+    private int getSlotSequence(Booking booking) {
+        Slot slot = booking.getSlot();
+        return slot != null && slot.getSequence() != null ? slot.getSequence() : 1;
+    }
+
+    private Instant calculateAppointmentTime(Shift shift, int slotSequence) {
+        long minutesOffset = Math.max(slotSequence - 1, 0) * 15L;
+        return shift.getStartTime().plus(Duration.ofMinutes(minutesOffset));
+    }
+
+    private Integer resolveCurrentServingQueueNumber(UUID shiftId) {
+        return bookingRepository.findCurrentServingQueueNumber(shiftId);
+    }
+
+    private Instant calculateEstimatedTurnAt(Booking booking, int slotSequence, Integer currentServingQueueNumber) {
+        Instant appointmentTime = calculateAppointmentTime(booking.getShift(), slotSequence);
+        if (!booking.getShift().getDate().equals(LocalDate.now()) || currentServingQueueNumber == null) {
+            return appointmentTime;
+        }
+
+        int referenceNumber = booking.getQueueNumber() != null ? booking.getQueueNumber() : slotSequence;
+        long slotsAhead = Math.max(referenceNumber - currentServingQueueNumber, 0);
+        Instant queueBasedTime = Instant.now().plus(Duration.ofMinutes(slotsAhead * 15L));
+        return queueBasedTime.isAfter(appointmentTime) ? queueBasedTime : appointmentTime;
     }
 }

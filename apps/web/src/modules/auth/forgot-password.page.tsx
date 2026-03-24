@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { AuthShell } from '../../components/ClinicUI';
+
 import { authApi } from './auth.api';
 
 type Step = 'phone' | 'otp' | 'new-password' | 'success';
 
 const STEPS = [
-  { key: 'phone', label: 'So dien thoai' },
-  { key: 'otp', label: 'Xac minh OTP' },
-  { key: 'new-password', label: 'Mat khau moi' },
+  { key: 'phone', label: 'Số điện thoại' },
+  { key: 'otp', label: 'Xác minh OTP' },
+  { key: 'new-password', label: 'Mật khẩu mới' },
 ] as const;
 
 function getStepIndex(step: Step) {
-  const index = STEPS.findIndex((s) => s.key === step);
+  const index = STEPS.findIndex((item) => item.key === step);
   return index === -1 ? 2 : index;
 }
 
@@ -33,16 +35,18 @@ export function ForgotPasswordPage() {
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
     if (!/^0[0-9]{9}$/.test(phone)) {
-      setError('So dien thoai khong hop le (vd: 0912345678)');
+      setError('Số điện thoại không hợp lệ, ví dụ 0912345678.');
       return;
     }
+
     setIsSubmitting(true);
     try {
       await authApi.sendResetOtp(phone);
       setStep('otp');
     } catch {
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((resolve) => setTimeout(resolve, 900));
       setStep('otp');
     } finally {
       setIsSubmitting(false);
@@ -57,9 +61,7 @@ export function ForgotPasswordPage() {
       await authApi.resetPassword(phone, otp, '__verify_only__');
       setStep('new-password');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Ma OTP khong dung hoac da het han';
-      setError(message);
-      return;
+      setError(err instanceof Error ? err.message : 'Mã OTP không đúng hoặc đã hết hạn.');
     } finally {
       setIsSubmitting(false);
     }
@@ -68,271 +70,264 @@ export function ForgotPasswordPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
     if (newPassword.length < 6) {
-      setError('Mat khau phai co it nhat 6 ky tu');
+      setError('Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Mat khau xac nhan khong khop');
+      setError('Mật khẩu xác nhận không khớp.');
       return;
     }
+
     setIsSubmitting(true);
     try {
       await authApi.resetPassword(phone, otp, newPassword);
       setStep('success');
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Dat lai mat khau that bai';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 shadow-lg">
-            <span className="material-symbols-outlined text-3xl text-white">lock_reset</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Quen mat khau</h1>
-          <p className="mt-1 text-sm text-slate-500">Dat lai mat khau cua ban</p>
-        </div>
+    <AuthShell
+      icon="lock_reset"
+      title="Khôi phục mật khẩu"
+      description="Xác minh số điện thoại và cập nhật lại mật khẩu cho tài khoản đã đăng ký."
+    >
+      {step !== 'success' && (
+        <div className="mb-6 flex items-center">
+          {STEPS.map((item, index) => {
+            const isDone = index < currentIndex;
+            const isActive = index === currentIndex;
 
-        {step !== 'success' && (
-          <div className="mb-6 flex items-center">
-            {STEPS.map((s, i) => {
-              const isDone = i < currentIndex;
-              const isActive = i === currentIndex;
-              return (
-                <div key={s.key} className="flex flex-1 items-center">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all ${
-                        isDone
-                          ? 'bg-green-500 text-white'
-                          : isActive
-                            ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                            : 'bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {isDone ? (
-                        <span className="material-symbols-outlined text-sm">check</span>
-                      ) : (
-                        i + 1
-                      )}
-                    </div>
-                    <span className="mt-1.5 whitespace-nowrap text-xs text-slate-500">
-                      {s.label}
-                    </span>
+            return (
+              <div key={item.key} className="flex flex-1 items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
+                      isDone
+                        ? 'bg-primary text-white'
+                        : isActive
+                          ? 'border border-primary bg-primary/10 text-primary'
+                          : 'bg-slate-200 text-slate-500'
+                    }`}
+                  >
+                    {isDone ? (
+                      <span className="material-symbols-outlined text-sm">check</span>
+                    ) : (
+                      index + 1
+                    )}
                   </div>
-                  {i < STEPS.length - 1 && (
-                    <div
-                      className={`mx-2 mb-4 h-0.5 flex-1 transition-colors ${isDone ? 'bg-green-400' : 'bg-slate-200'}`}
-                    />
-                  )}
+                  <span className="mt-1.5 whitespace-nowrap text-[11px] text-slate-500">{item.label}</span>
                 </div>
-              );
-            })}
+                {index < STEPS.length - 1 && (
+                  <div className={`mx-2 mb-4 h-px flex-1 ${isDone ? 'bg-primary' : 'bg-slate-200'}`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {error && (
+        <div className="surface-alert mb-5" data-testid="auth-forgot-error">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-sm">error</span>
+            <p>{error}</p>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="rounded-lg bg-white p-8 shadow-lg">
-          {error && (
-            <div className="mb-5 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-              <span className="material-symbols-outlined flex-shrink-0 text-sm text-red-500">
-                error
-              </span>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
+      {step === 'phone' && (
+        <form onSubmit={handlePhoneSubmit} className="space-y-5" data-testid="auth-forgot-phone-form">
+          <p className="text-sm leading-6 text-slate-600">
+            Nhập số điện thoại đã đăng ký. Hệ thống sẽ gửi mã OTP để xác minh yêu cầu khôi phục mật khẩu.
+          </p>
+          <div>
+            <label className="field-label">Số điện thoại</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="0912345678"
+              autoComplete="tel"
+              disabled={isSubmitting}
+              className="input-field"
+              data-testid="auth-forgot-phone"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!phone || isSubmitting}
+            className="btn-primary w-full"
+            data-testid="auth-forgot-send-otp"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Đang gửi OTP</span>
+              </>
+            ) : (
+              'Gửi OTP'
+            )}
+          </button>
+        </form>
+      )}
 
-          {step === 'phone' && (
-            <form onSubmit={handlePhoneSubmit} className="space-y-5">
-              <p className="text-sm leading-relaxed text-slate-600">
-                Nhap so dien thoai da dang ky. He thong se gui OTP de xac minh.
-              </p>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  So dien thoai
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0912345678"
-                  autoComplete="tel"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!phone || isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Dang gui OTP...
-                  </>
-                ) : (
-                  'Gui OTP'
-                )}
-              </button>
-            </form>
-          )}
+      {step === 'otp' && (
+        <form onSubmit={handleOtpSubmit} className="space-y-5" data-testid="auth-forgot-otp-form">
+          <div className="surface-note">
+            <p>
+              Mã OTP đã được gửi tới <span className="font-semibold text-slate-900">{phone}</span>.
+            </p>
+          </div>
+          <div>
+            <label className="field-label">Mã OTP</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              maxLength={6}
+              disabled={isSubmitting}
+              className="input-field text-center font-mono text-2xl tracking-[0.5em]"
+              data-testid="auth-forgot-otp"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={otp.length !== 6 || isSubmitting}
+            className="btn-primary w-full"
+            data-testid="auth-forgot-verify-otp"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Đang xác minh</span>
+              </>
+            ) : (
+              'Xác nhận OTP'
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStep('phone');
+              setOtp('');
+              setError('');
+            }}
+            className="w-full text-sm text-slate-500 transition-colors hover:text-primary"
+          >
+            Nhập lại số điện thoại
+          </button>
+        </form>
+      )}
 
-          {step === 'otp' && (
-            <form onSubmit={handleOtpSubmit} className="space-y-5">
-              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
-                <p className="text-sm text-blue-800">
-                  Ma OTP da gui den <span className="font-semibold">{phone}</span>
-                </p>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Ma OTP (6 so)
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="_ _ _ _ _ _"
-                  maxLength={6}
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-mono text-2xl tracking-[0.5em] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={otp.length !== 6 || isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Dang xac minh...
-                  </>
-                ) : (
-                  'Xac nhan OTP'
-                )}
-              </button>
+      {step === 'new-password' && (
+        <form
+          onSubmit={handlePasswordSubmit}
+          className="space-y-5"
+          data-testid="auth-forgot-reset-form"
+        >
+          <p className="text-sm text-slate-600">Tạo mật khẩu mới cho tài khoản của bạn.</p>
+          <div>
+            <label className="field-label">Mật khẩu mới</label>
+            <div className="relative">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nhập mật khẩu mới"
+                autoComplete="new-password"
+                disabled={isSubmitting}
+                className="input-field pr-11"
+                data-testid="auth-forgot-new-password"
+              />
               <button
                 type="button"
-                onClick={() => {
-                  setStep('phone');
-                  setOtp('');
-                  setError('');
-                }}
-                className="w-full py-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 px-3 text-slate-500 transition-colors hover:text-slate-700"
+                tabIndex={-1}
               >
-                ? Nhap lai so dien thoai
-              </button>
-            </form>
-          )}
-
-          {step === 'new-password' && (
-            <form onSubmit={handlePasswordSubmit} className="space-y-5">
-              <p className="text-sm text-slate-600">Tao mat khau moi cho tai khoan cua ban.</p>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Mat khau moi
-                </label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="********"
-                    autoComplete="new-password"
-                    disabled={isSubmitting}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
-                    tabIndex={-1}
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {showNewPassword ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-slate-400">Toi thieu 6 ky tu</p>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Xac nhan mat khau
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="********"
-                    autoComplete="new-password"
-                    disabled={isSubmitting}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 pr-11 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
-                    tabIndex={-1}
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={!newPassword || !confirmPassword || isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Dang cap nhat...
-                  </>
-                ) : (
-                  'Doi mat khau'
-                )}
-              </button>
-            </form>
-          )}
-
-          {step === 'success' && (
-            <div className="space-y-4 py-4 text-center">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <span className="material-symbols-outlined text-3xl text-green-600">
-                  check_circle
+                <span className="material-symbols-outlined text-base">
+                  {showNewPassword ? 'visibility_off' : 'visibility'}
                 </span>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-slate-900">Doi mat khau thanh cong!</p>
-                <p className="mt-1 text-sm text-slate-500">Dang chuyen ve trang dang nhap...</p>
-              </div>
-              <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-1 animate-[progress_3s_linear_forwards] rounded-full bg-blue-600" />
-              </div>
+              </button>
             </div>
-          )}
+            <p className="mt-1 text-xs text-slate-500">Tối thiểu 6 ký tự</p>
+          </div>
 
-          {step !== 'success' && (
-            <div className="mt-6 text-center text-sm">
-              <Link to="/login" className="text-blue-600 hover:underline">
-                ? Quay lai dang nhap
-              </Link>
+          <div>
+            <label className="field-label">Xác nhận mật khẩu</label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu"
+                autoComplete="new-password"
+                disabled={isSubmitting}
+                className="input-field pr-11"
+                data-testid="auth-forgot-confirm-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 px-3 text-slate-500 transition-colors hover:text-slate-700"
+                tabIndex={-1}
+              >
+                <span className="material-symbols-outlined text-base">
+                  {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
             </div>
-          )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={!newPassword || !confirmPassword || isSubmitting}
+            className="btn-primary w-full"
+            data-testid="auth-forgot-reset-submit"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Đang cập nhật</span>
+              </>
+            ) : (
+              'Đổi mật khẩu'
+            )}
+          </button>
+        </form>
+      )}
+
+      {step === 'success' && (
+        <div className="space-y-3 text-center" data-testid="auth-forgot-success">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <span className="material-symbols-outlined text-3xl">check_circle</span>
+          </div>
+          <p className="text-lg font-semibold text-slate-900">Đã cập nhật mật khẩu</p>
+          <p className="text-sm text-slate-600">Hệ thống sẽ chuyển bạn về màn đăng nhập sau ít giây.</p>
         </div>
+      )}
+
+      <div className="mt-6 space-y-2 text-center text-sm">
+        <p className="text-slate-600">
+          Đã nhớ mật khẩu?{' '}
+          <Link to="/login" className="font-semibold text-primary hover:underline">
+            Đăng nhập
+          </Link>
+        </p>
+        <Link to="/" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          <span>Về trang công khai</span>
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   );
 }

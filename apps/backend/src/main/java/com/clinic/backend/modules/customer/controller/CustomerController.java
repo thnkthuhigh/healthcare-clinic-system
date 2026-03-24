@@ -144,8 +144,10 @@ public class CustomerController {
     // POST /api/customer/bookings/{bookingId}/cancel
     // =====================================================
     @PostMapping("/bookings/{bookingId}/cancel")
-    public ResponseEntity<Map<String, String>> cancelBooking(@PathVariable UUID bookingId) {
-        bookingService.cancelBooking(bookingId);
+    public ResponseEntity<Map<String, String>> cancelBooking(
+            @PathVariable UUID bookingId,
+            @RequestParam String phone) {
+        bookingService.cancelBooking(bookingId, phone);
         return ResponseEntity.ok(Map.of("message", "Booking canceled"));
     }
 }

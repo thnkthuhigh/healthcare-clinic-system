@@ -8,3 +8,5 @@ target
 .idea
 *.md
 !README.md
+!target
+!target/*.jar

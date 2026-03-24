@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { OpsPageHeader } from '../../../components/ClinicUI';
 import { ownerApi } from '../api';
-import type { AccountInfo, CreateAccountData, AccountRole } from '../types';
+import type { AccountInfo, AccountRole, CreateAccountData } from '../types';
 
 const ROLE_LABELS: Record<AccountRole, string> = {
   OWNER: 'Owner',
@@ -43,7 +44,7 @@ export function AccountManagementPage() {
       const data = await ownerApi.getAccounts();
       setAccounts(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi tải danh sách');
+      setError(err instanceof Error ? err.message : 'Lỗi tải danh sách tài khoản');
     } finally {
       setLoading(false);
     }
@@ -56,9 +57,9 @@ export function AccountManagementPage() {
   const handleToggleLock = async (userId: string) => {
     try {
       const updated = await ownerApi.toggleLock(userId);
-      setAccounts((prev) => prev.map((a) => (a.id === userId ? updated : a)));
+      setAccounts((prev) => prev.map((item) => (item.id === userId ? updated : item)));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi');
+      alert(err instanceof Error ? err.message : 'Không thể đổi trạng thái tài khoản');
     }
   };
 
@@ -66,156 +67,137 @@ export function AccountManagementPage() {
     if (!confirm(`Xác nhận xóa tài khoản ${phone}?`)) return;
     try {
       await ownerApi.deleteAccount(userId);
-      setAccounts((prev) => prev.filter((a) => a.id !== userId));
+      setAccounts((prev) => prev.filter((item) => item.id !== userId));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Lỗi');
+      alert(err instanceof Error ? err.message : 'Không thể xóa tài khoản');
     }
   };
 
-  const filteredAccounts = accounts.filter((a) => {
-    if (filterRole !== 'ALL' && a.role !== filterRole) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        (a.fullName?.toLowerCase().includes(q) ?? false) ||
-        a.phone.includes(q) ||
-        a.role.toLowerCase().includes(q)
-      );
-    }
-    return true;
+  const filteredAccounts = accounts.filter((item) => {
+    if (filterRole !== 'ALL' && item.role !== filterRole) return false;
+    if (!search.trim()) return true;
+    const query = search.toLowerCase();
+    return (
+      (item.fullName?.toLowerCase().includes(query) ?? false) ||
+      item.phone.includes(query) ||
+      item.role.toLowerCase().includes(query)
+    );
   });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quản lý tài khoản</h1>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-              {accounts.length} tài khoản trong hệ thống
-            </p>
-          </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
-          >
-            <span className="material-symbols-outlined text-xl">person_add</span>
-            Tạo tài khoản
-          </button>
-        </div>
+    <div className="min-h-full bg-[#f4f7fa] p-6" data-testid="owner-accounts-page">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <OpsPageHeader
+          eyebrow="Owner"
+          title="Quản lý tài khoản hệ thống"
+          description={`${accounts.length} tài khoản đang có trong hệ thống.`}
+          actions={
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn-primary px-4 py-2.5"
+              data-testid="owner-create-account-open"
+            >
+              <span className="material-symbols-outlined text-base">person_add</span>
+              <span>Tạo tài khoản</span>
+            </button>
+          }
+        />
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <div className="surface-alert">{error}</div>}
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-4">
-          <div className="relative flex-1 min-w-[200px]">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Tìm theo tên, SĐT..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-            />
+        <section className="ops-panel">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Tìm theo tên, số điện thoại..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="input-field pl-10"
+                data-testid="owner-account-search"
+              />
+            </div>
+            <select
+              value={filterRole}
+              onChange={(event) => setFilterRole(event.target.value)}
+              className="input-field"
+              data-testid="owner-account-role-filter"
+            >
+              <option value="ALL">Tất cả vai trò</option>
+              <option value="OWNER">Owner</option>
+              <option value="ADMIN">Admin</option>
+              <option value="DOCTOR">Bác sĩ</option>
+              <option value="RECEPTIONIST">Lễ tân</option>
+              <option value="CASHIER">Thu ngân</option>
+              <option value="PATIENT">Bệnh nhân</option>
+            </select>
           </div>
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="ALL">Tất cả vai trò</option>
-            <option value="OWNER">Owner</option>
-            <option value="ADMIN">Admin</option>
-            <option value="DOCTOR">Bác sĩ</option>
-            <option value="RECEPTIONIST">Lễ tân</option>
-            <option value="CASHIER">Thu ngân</option>
-            <option value="PATIENT">Bệnh nhân</option>
-          </select>
-        </div>
+        </section>
 
-        {/* Table */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <section className="ops-panel overflow-hidden p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    Họ tên
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    SĐT
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    Vai trò
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    Chuyên khoa
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    Trạng thái
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    Ngày tạo
-                  </th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">
-                    Thao tác
-                  </th>
+            <table className="w-full text-sm" data-testid="owner-accounts-table">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr className="text-left text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <th className="px-4 py-3">Họ tên</th>
+                  <th className="px-4 py-3">SĐT</th>
+                  <th className="px-4 py-3">Vai trò</th>
+                  <th className="px-4 py-3">Chuyên khoa</th>
+                  <th className="px-4 py-3">Trạng thái</th>
+                  <th className="px-4 py-3">Ngày tạo</th>
+                  <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-100">
                 {filteredAccounts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                      Không tìm thấy tài khoản nào
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
+                      Không tìm thấy tài khoản phù hợp.
                     </td>
                   </tr>
                 ) : (
                   filteredAccounts.map((account) => (
-                    <tr key={account.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                      <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
-                        {account.fullName || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                        {account.phone}
-                      </td>
+                    <tr
+                      key={account.id}
+                      className="transition-colors hover:bg-slate-50"
+                      data-testid={`owner-account-row-${account.id}`}
+                    >
+                      <td className="px-4 py-3 font-medium text-slate-900">{account.fullName || '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">{account.phone}</td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[account.role]}`}
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${ROLE_COLORS[account.role]}`}
                         >
                           {ROLE_LABELS[account.role]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                        {account.specialty || '—'}
-                      </td>
+                      <td className="px-4 py-3 text-slate-600">{account.specialty || '—'}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                            account.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'
+                            account.status === 'ACTIVE' ? 'text-emerald-600' : 'text-red-600'
                           }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${account.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}`}
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              account.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-500'
+                            }`}
                           />
                           {account.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">
+                      <td className="px-4 py-3 text-xs text-slate-500">
                         {new Date(account.createdAt).toLocaleDateString('vi-VN')}
                       </td>
                       <td className="px-4 py-3">
@@ -224,25 +206,26 @@ export function AccountManagementPage() {
                             <button
                               onClick={() => handleToggleLock(account.id)}
                               title={account.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa'}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-amber-600"
+                              className="rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-amber-600"
+                              data-testid={`owner-account-toggle-lock-${account.id}`}
                             >
                               <span className="material-symbols-outlined text-lg">
                                 {account.status === 'ACTIVE' ? 'lock' : 'lock_open'}
                               </span>
                             </button>
                             <button
-                              onClick={() =>
-                                setResetModal({ userId: account.id, phone: account.phone })
-                              }
+                              onClick={() => setResetModal({ userId: account.id, phone: account.phone })}
                               title="Đặt lại mật khẩu"
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-blue-600"
+                              className="rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600"
+                              data-testid={`owner-account-open-reset-${account.id}`}
                             >
                               <span className="material-symbols-outlined text-lg">key</span>
                             </button>
                             <button
                               onClick={() => handleDelete(account.id, account.phone)}
                               title="Xóa"
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 hover:text-red-600"
+                              className="rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600"
+                              data-testid={`owner-account-delete-${account.id}`}
                             >
                               <span className="material-symbols-outlined text-lg">delete</span>
                             </button>
@@ -255,10 +238,9 @@ export function AccountManagementPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Create Account Modal */}
       {showCreateModal && (
         <CreateAccountModal
           onClose={() => setShowCreateModal(false)}
@@ -269,7 +251,6 @@ export function AccountManagementPage() {
         />
       )}
 
-      {/* Reset Password Modal */}
       {resetModal && (
         <ResetPasswordModal
           userId={resetModal.userId}
@@ -280,8 +261,6 @@ export function AccountManagementPage() {
     </div>
   );
 }
-
-// ----------- Create Account Modal -----------
 
 function CreateAccountModal({
   onClose,
@@ -299,8 +278,8 @@ function CreateAccountModal({
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
     setSubmitting(true);
     try {
@@ -314,112 +293,108 @@ function CreateAccountModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Tạo tài khoản mới</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+      data-testid="owner-create-account-modal"
+    >
+      <div className="clinic-card w-full max-w-lg p-0">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-bold text-slate-900">Tạo tài khoản mới</h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-4 p-6" data-testid="owner-create-account-form">
+          {error && <div className="surface-alert">{error}</div>}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Vai trò
-            </label>
+            <label className="field-label">Vai trò</label>
             <select
               value={form.role}
-              onChange={(e) =>
-                setForm({ ...form, role: e.target.value as CreateAccountData['role'] })
+              onChange={(event) =>
+                setForm({ ...form, role: event.target.value as CreateAccountData['role'] })
               }
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="input-field"
+              data-testid="owner-create-account-role"
             >
-              {CREATABLE_ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
+              {CREATABLE_ROLES.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Họ tên
-            </label>
+            <label className="field-label">Họ tên</label>
             <input
               type="text"
               required
               value={form.fullName}
-              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(event) => setForm({ ...form, fullName: event.target.value })}
+              data-testid="owner-create-account-full-name"
+              className="input-field"
               placeholder="Nguyễn Văn A"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Số điện thoại
-            </label>
+            <label className="field-label">Số điện thoại</label>
             <input
               type="tel"
               required
               pattern="^0[0-9]{9}$"
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(event) => setForm({ ...form, phone: event.target.value })}
+              data-testid="owner-create-account-phone"
+              className="input-field"
               placeholder="0912345678"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Mật khẩu
-            </label>
+            <label className="field-label">Mật khẩu</label>
             <input
               type="password"
               required
               minLength={6}
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              data-testid="owner-create-account-password"
+              className="input-field"
               placeholder="Tối thiểu 6 ký tự"
             />
           </div>
 
           {form.role === 'DOCTOR' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Chuyên khoa
-              </label>
+              <label className="field-label">Chuyên khoa</label>
               <input
                 type="text"
                 value={form.specialty || ''}
-                onChange={(e) => setForm({ ...form, specialty: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="VD: Nội khoa, Tim mạch, Da liễu..."
+                onChange={(event) => setForm({ ...form, specialty: event.target.value })}
+                data-testid="owner-create-account-specialty"
+                className="input-field"
+                placeholder="Ví dụ: Nội khoa, Tim mạch..."
               />
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              data-testid="owner-create-account-cancel"
+              className="btn-secondary flex-1"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-primary-dark disabled:opacity-50 transition-colors"
+              data-testid="owner-create-account-submit"
+              className="btn-primary flex-1"
             >
               {submitting ? 'Đang tạo...' : 'Tạo tài khoản'}
             </button>
@@ -429,8 +404,6 @@ function CreateAccountModal({
     </div>
   );
 }
-
-// ----------- Reset Password Modal -----------
 
 function ResetPasswordModal({
   userId,
@@ -446,66 +419,63 @@ function ResetPasswordModal({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
     setSubmitting(true);
     try {
       await ownerApi.resetPassword(userId, newPassword);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi');
+      setError(err instanceof Error ? err.message : 'Không thể đặt lại mật khẩu');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Đặt lại mật khẩu</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+      data-testid="owner-reset-password-modal"
+    >
+      <div className="clinic-card w-full max-w-md p-0">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-bold text-slate-900">Đặt lại mật khẩu</h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         {success ? (
           <div className="p-6 text-center">
-            <span className="material-symbols-outlined text-5xl text-green-500 mb-3">
-              check_circle
-            </span>
-            <p className="text-slate-700 dark:text-slate-300 font-medium">
+            <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
+            <p className="mt-3 text-sm font-medium text-slate-700">
               Đã đặt lại mật khẩu cho <strong>{phone}</strong>
             </p>
             <button
               onClick={onClose}
-              className="mt-4 px-6 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary-dark transition-colors"
+              data-testid="owner-reset-password-close"
+              className="btn-primary mt-5 px-6 py-2.5"
             >
               Đóng
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+          <form onSubmit={handleSubmit} className="space-y-4 p-6">
+            {error && <div className="surface-alert">{error}</div>}
+            <p className="text-sm text-slate-600">
               Đặt mật khẩu mới cho tài khoản <strong>{phone}</strong>
             </p>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Mật khẩu mới
-              </label>
+              <label className="field-label">Mật khẩu mới</label>
               <input
                 type="password"
                 required
                 minLength={6}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={(event) => setNewPassword(event.target.value)}
+                data-testid="owner-reset-password-input"
+                className="input-field"
                 placeholder="Tối thiểu 6 ký tự"
               />
             </div>
@@ -513,14 +483,16 @@ function ResetPasswordModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                data-testid="owner-reset-password-cancel"
+                className="btn-secondary flex-1"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                data-testid="owner-reset-password-submit"
+                className="btn-primary flex-1"
               >
                 {submitting ? 'Đang xử lý...' : 'Đặt lại'}
               </button>

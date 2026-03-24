@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 
+import { FlatTaskHeader } from '../../../components/ClinicUI';
 import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
 import { QRTicket } from '../components/QRTicket';
 import type { BookingTicket, PatientBooking } from '../types';
-
-// ─── Status config ───────────────────────────────────────────────────────────
 
 type DisplayStatus = 'BOOKED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED';
 
@@ -22,28 +23,28 @@ interface StatusCfg {
 const STATUS_CONFIG: Record<DisplayStatus, StatusCfg> = {
   BOOKED: {
     label: 'Đã đặt lịch',
-    bg: 'bg-blue-100',
-    text: 'text-blue-700',
-    dot: 'bg-blue-500',
+    bg: 'bg-primary/10',
+    text: 'text-primary',
+    dot: 'bg-primary',
     icon: 'event',
   },
   IN_PROGRESS: {
-    label: 'Đang khám',
-    bg: 'bg-green-100',
-    text: 'text-green-700',
-    dot: 'bg-green-500',
+    label: 'Đang xử lý',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    dot: 'bg-emerald-500',
     icon: 'stethoscope',
   },
   COMPLETED: {
-    label: 'Đã khám',
+    label: 'Đã hoàn tất',
     bg: 'bg-slate-100',
-    text: 'text-slate-600',
+    text: 'text-slate-700',
     dot: 'bg-slate-400',
     icon: 'check_circle',
   },
   CANCELED: {
     label: 'Đã hủy',
-    bg: 'bg-red-100',
+    bg: 'bg-red-50',
     text: 'text-red-600',
     dot: 'bg-red-400',
     icon: 'cancel',
@@ -58,6 +59,12 @@ const IN_PROGRESS_STATUSES = new Set([
   'RESULTS_READY',
 ]);
 
+const STATUS_STEPS = [
+  { key: 'BOOKED', label: 'Đã đặt lịch', icon: 'event' },
+  { key: 'IN_PROGRESS', label: 'Đang khám', icon: 'stethoscope' },
+  { key: 'COMPLETED', label: 'Hoàn thành', icon: 'check_circle' },
+] as const;
+
 function getDisplayStatus(raw: string): DisplayStatus {
   if (raw === 'BOOKED') return 'BOOKED';
   if (IN_PROGRESS_STATUSES.has(raw)) return 'IN_PROGRESS';
@@ -65,78 +72,14 @@ function getDisplayStatus(raw: string): DisplayStatus {
   return 'CANCELED';
 }
 
-// ─── Status stepper ──────────────────────────────────────────────────────────
-
-const STATUS_STEPS = [
-  { key: 'BOOKED', label: 'Đã đặt lịch', icon: 'event' },
-  { key: 'IN_PROGRESS', label: 'Đã check-in / Đang khám', icon: 'stethoscope' },
-  { key: 'COMPLETED', label: 'Đã khám xong', icon: 'check_circle' },
-];
-
-function StatusStepper({ rawStatus }: { rawStatus: string }) {
-  const current = getDisplayStatus(rawStatus);
-  if (current === 'CANCELED') return null;
-
-  const ORDER: DisplayStatus[] = ['BOOKED', 'IN_PROGRESS', 'COMPLETED'];
-  const currentIdx = ORDER.indexOf(current);
-
-  return (
-    <div className="flex items-center gap-0 mt-4 mb-1">
-      {STATUS_STEPS.map((step, idx) => {
-        const isDone = idx < currentIdx;
-        const isActive = idx === currentIdx;
-        return (
-          <div key={step.key} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                  isDone
-                    ? 'bg-blue-600 text-white'
-                    : isActive
-                      ? 'bg-blue-100 border-2 border-blue-600 text-blue-600'
-                      : 'bg-slate-100 text-slate-400'
-                }`}
-              >
-                {isDone ? (
-                  <span className="material-symbols-outlined text-sm">check</span>
-                ) : (
-                  <span className="material-symbols-outlined text-sm">{step.icon}</span>
-                )}
-              </div>
-              <span
-                className={`text-xs mt-1 whitespace-nowrap font-medium ${
-                  isActive ? 'text-blue-700' : isDone ? 'text-blue-500' : 'text-slate-400'
-                }`}
-              >
-                {step.label}
-              </span>
-            </div>
-            {idx < STATUS_STEPS.length - 1 && (
-              <div
-                className={`h-0.5 w-12 sm:w-20 mb-4 transition-colors ${
-                  idx < currentIdx ? 'bg-blue-600' : 'bg-slate-200'
-                }`}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Can cancel check ────────────────────────────────────────────────────────
-
 function canCancel(booking: PatientBooking): boolean {
   if (booking.status !== 'BOOKED') return false;
-  // date is YYYY-MM-DD; timeRange is e.g. "07:00 - 11:00"
   const startTime = booking.timeRange.split(' - ')[0] ?? '07:00';
-  const [h, m] = startTime.split(':').map(Number);
-  const apptDate = new Date(
-    `${booking.date}T${String(h).padStart(2, '0')}:${String(m ?? 0).padStart(2, '0')}:00`,
+  const [hour, minute] = startTime.split(':').map(Number);
+  const appointmentDate = new Date(
+    `${booking.date}T${String(hour).padStart(2, '0')}:${String(minute ?? 0).padStart(2, '0')}:00`,
   );
-  const diffMs = apptDate.getTime() - Date.now();
-  return diffMs > 24 * 60 * 60 * 1000;
+  return appointmentDate.getTime() - Date.now() > 24 * 60 * 60 * 1000;
 }
 
 function formatDate(dateStr: string) {
@@ -148,14 +91,11 @@ function formatDate(dateStr: string) {
   });
 }
 
-function toBookingTicket(
-  booking: PatientBooking,
-  patientName: string,
-  phone: string,
-): BookingTicket {
+function toBookingTicket(booking: PatientBooking, patientName: string, phone: string): BookingTicket {
   return {
     bookingId: booking.bookingId,
     queueNumber: booking.queueNumber,
+    slotSequence: booking.slotSequence,
     patientName,
     patientPhone: phone,
     doctorName: booking.doctorName,
@@ -167,12 +107,61 @@ function toBookingTicket(
     status: booking.status,
     paymentStatus: booking.paymentStatus,
     createdAt: booking.createdAt,
+    appointmentTime: booking.appointmentTime,
+    currentServingQueueNumber: booking.currentServingQueueNumber,
+    estimatedTurnAt: booking.estimatedTurnAt,
   };
 }
 
-// ─── Booking card ─────────────────────────────────────────────────────────────
+function StatusStepper({ rawStatus }: { rawStatus: string }) {
+  const current = getDisplayStatus(rawStatus);
+  if (current === 'CANCELED') return null;
 
-function BookingCard({
+  const order: DisplayStatus[] = ['BOOKED', 'IN_PROGRESS', 'COMPLETED'];
+  const currentIndex = order.indexOf(current);
+
+  return (
+    <div className="mt-4 flex items-center gap-0 overflow-x-auto">
+      {STATUS_STEPS.map((step, index) => {
+        const isDone = index < currentIndex;
+        const isActive = index === currentIndex;
+        return (
+          <div key={step.key} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                  isDone
+                    ? 'bg-primary text-white'
+                    : isActive
+                      ? 'border border-primary bg-primary/10 text-primary'
+                      : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {isDone ? 'check' : step.icon}
+                </span>
+              </div>
+              <span
+                className={`mt-1 whitespace-nowrap text-xs font-medium ${
+                  isActive ? 'text-primary' : isDone ? 'text-slate-700' : 'text-slate-400'
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {index < STATUS_STEPS.length - 1 && (
+              <div
+                className={`mb-4 h-px w-12 sm:w-20 ${index < currentIndex ? 'bg-primary' : 'bg-slate-200'}`}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BookingAppointmentCard({
   booking,
   phone,
   patientName,
@@ -189,7 +178,6 @@ function BookingCard({
   const cfg = STATUS_CONFIG[displayStatus];
   const cancelAllowed = canCancel(booking);
   const queryClient = useQueryClient();
-  const canShowQr = displayStatus !== 'CANCELED';
   const ticket = toBookingTicket(booking, patientName, phone);
 
   const cancelMutation = useMutation({
@@ -203,50 +191,46 @@ function BookingCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl border p-5 transition-all ${
-        displayStatus === 'CANCELED'
-          ? 'border-slate-200 opacity-60'
-          : 'border-slate-200 hover:shadow-md hover:border-blue-200'
-      }`}
+      className={`clinic-card p-5 ${displayStatus === 'CANCELED' ? 'opacity-70' : ''}`}
+      data-testid={`patient-appointments-card-${booking.bookingId}`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        {/* Left: doctor info */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-blue-600">person</span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-slate-700">
+            <span className="material-symbols-outlined">person</span>
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-slate-900 truncate">{booking.doctorName}</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate font-semibold text-slate-950">{booking.doctorName}</h3>
               <span
-                className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.text}`}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.bg} ${cfg.text}`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
               </span>
             </div>
-            {booking.specialty && (
-              <p className="text-xs text-slate-500 mt-0.5">{booking.specialty}</p>
-            )}
+            {booking.specialty && <p className="mt-1 text-xs text-slate-500">{booking.specialty}</p>}
           </div>
         </div>
 
-        {/* Right: actions */}
         <div className="flex items-center gap-2">
-          {canShowQr && (
+          {displayStatus !== 'CANCELED' && (
             <button
               type="button"
               onClick={() => setQrOpen(true)}
-              className="flex-shrink-0 text-sm text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium inline-flex items-center gap-1"
+              className="btn-secondary px-3 py-2"
+              data-testid={`patient-appointments-open-qr-${booking.bookingId}`}
             >
               <span className="material-symbols-outlined text-base">qr_code_2</span>
-              Mã QR
+              <span>Mã QR</span>
             </button>
           )}
           {cancelAllowed && !confirmOpen && (
             <button
+              type="button"
               onClick={() => setConfirmOpen(true)}
-              className="flex-shrink-0 text-sm text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium"
+              className="rounded-2xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+              data-testid={`patient-appointments-open-cancel-${booking.bookingId}`}
             >
               Hủy lịch
             </button>
@@ -254,67 +238,55 @@ function BookingCard({
         </div>
       </div>
 
-      {/* Details row */}
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-600">
+      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
         <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-slate-400 text-base">calendar_today</span>
+          <span className="material-symbols-outlined text-base text-slate-400">calendar_today</span>
           {formatDate(booking.date)}
         </span>
         <span className="flex items-center gap-1">
-          <span className="material-symbols-outlined text-slate-400 text-base">schedule</span>
+          <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
           {booking.timeRange}
-          {' · '}
-          {booking.shiftType === 'MORNING' ? 'Buổi sáng' : 'Buổi chiều'}
         </span>
         {booking.serviceName && (
           <span className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-slate-400 text-base">
-              medical_services
-            </span>
+            <span className="material-symbols-outlined text-base text-slate-400">medical_services</span>
             {booking.serviceName}
           </span>
         )}
         {booking.queueNumber && (
-          <span className="flex items-center gap-1 font-semibold text-blue-700">
-            <span className="material-symbols-outlined text-blue-400 text-base">
-              format_list_numbered
-            </span>
+          <span className="flex items-center gap-1 font-semibold text-primary">
+            <span className="material-symbols-outlined text-base">format_list_numbered</span>
             STT: {booking.queueNumber}
           </span>
         )}
       </div>
 
-      {/* Stepper — only for non-canceled */}
-      {displayStatus !== 'CANCELED' && (
-        <div className="mt-3 overflow-x-auto">
-          <StatusStepper rawStatus={booking.status} />
-        </div>
-      )}
+      {displayStatus !== 'CANCELED' && <StatusStepper rawStatus={booking.status} />}
 
-      {/* Confirm cancel dialog */}
       {confirmOpen && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-sm font-medium text-red-800 mb-1">Xác nhận hủy lịch khám?</p>
-          <p className="text-xs text-red-600 mb-3">
-            Thao tác này không thể hoàn tác. Lịch sẽ bị hủy ngay lập tức.
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-medium text-red-800">Xác nhận hủy lịch khám?</p>
+          <p className="mt-1 text-xs text-red-600">
+            Thao tác này không thể hoàn tác và lịch hẹn sẽ bị hủy ngay lập tức.
           </p>
           {cancelMutation.isError && (
-            <p className="text-xs text-red-700 bg-red-100 rounded p-2 mb-3">
-              {(cancelMutation.error as Error)?.message ?? 'Hủy lịch thất bại, thử lại sau'}
+            <p className="mt-3 rounded-xl bg-red-100 p-2 text-xs text-red-700">
+              {(cancelMutation.error as Error)?.message ?? 'Hủy lịch thất bại, vui lòng thử lại sau.'}
             </p>
           )}
-          <div className="flex gap-2">
+          <div className="mt-3 flex gap-2">
             <button
               onClick={() => cancelMutation.mutate()}
               disabled={cancelMutation.isPending}
-              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-60"
+              className="btn-danger px-4 py-2"
+              data-testid={`patient-appointments-confirm-cancel-${booking.bookingId}`}
             >
-              {cancelMutation.isPending ? 'Đang hủy...' : 'Xác nhận hủy'}
+              {cancelMutation.isPending ? 'Đang hủy' : 'Xác nhận hủy'}
             </button>
             <button
               onClick={() => setConfirmOpen(false)}
               disabled={cancelMutation.isPending}
-              className="px-4 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors"
+              className="btn-secondary px-4 py-2"
             >
               Giữ lại
             </button>
@@ -323,14 +295,14 @@ function BookingCard({
       )}
 
       {qrOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-4 sm:p-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-base font-semibold text-slate-900">Mã QR lịch khám</h4>
+        <div className="clinic-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="clinic-modal-panel max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-base font-semibold text-slate-900">Phiếu khám và mã QR</h4>
               <button
                 type="button"
                 onClick={() => setQrOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center justify-center"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100"
               >
                 <span className="material-symbols-outlined text-base">close</span>
               </button>
@@ -343,65 +315,74 @@ function BookingCard({
   );
 }
 
-// ─── Phone lookup form ────────────────────────────────────────────────────────
-
-function PhoneLookupForm({ onLookup }: { onLookup: (phone: string) => void }) {
+function PhoneLookupPanel({ onLookup }: { onLookup: (phone: string) => void }) {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
     const phone = input.trim();
     if (!phone) {
-      setError('Vui lòng nhập số điện thoại');
+      setError('Vui lòng nhập số điện thoại.');
       return;
     }
     if (!/^0\d{9}$/.test(phone)) {
-      setError('Số điện thoại không hợp lệ (ví dụ: 0901234567)');
+      setError('Số điện thoại không hợp lệ. Ví dụ: 0901234567.');
       return;
     }
     setError('');
     onLookup(phone);
-  }
+  };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md mx-auto shadow-sm">
-      <div className="text-center mb-6">
-        <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <span className="material-symbols-outlined text-blue-600 text-3xl">search</span>
+    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="clinic-card p-6 sm:p-7">
+        <div className="border-b border-slate-200 pb-5">
+          <h2 className="text-lg font-semibold text-slate-950">Tra cứu bằng số điện thoại</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Dùng đúng số điện thoại đã đặt lịch để mở lại các cuộc hẹn, phiếu khám và mã QR.
+          </p>
         </div>
-        <h2 className="text-xl font-bold text-slate-900">Tra cứu lịch khám</h2>
-        <p className="text-slate-500 text-sm mt-1">
-          Nhập số điện thoại đã đăng ký để xem lịch khám
-        </p>
+
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4" data-testid="patient-appointments-lookup-form">
+          <div>
+            <label className="field-label">Số điện thoại</label>
+            <input
+              type="tel"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Ví dụ: 0901234567"
+              className={`input-field ${error ? 'border-red-300 bg-red-50' : ''}`}
+              data-testid="patient-appointments-phone"
+            />
+            {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+          </div>
+          <button type="submit" className="btn-primary" data-testid="patient-appointments-submit">
+            Tra cứu lịch hẹn
+          </button>
+        </form>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Số điện thoại</label>
-          <input
-            type="tel"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ví dụ: 0901234567"
-            className={`w-full px-4 py-3 rounded-xl border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-              error ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-white'
-            }`}
-          />
-          {error && <p className="text-xs text-red-600 mt-1.5">{error}</p>}
+      <aside className="clinic-card p-5">
+        <p className="text-sm font-semibold text-slate-950">Từ trang này bạn có thể</p>
+        <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Mở phiếu khám</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Xem lại mã QR và thông tin check-in.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Theo dõi trạng thái</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Biết lịch đang chờ, đang khám hay đã hoàn tất.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Hủy lịch khi còn hạn</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Chỉ áp dụng cho lịch chưa bắt đầu và đủ điều kiện.</p>
+          </div>
         </div>
-        <button
-          type="submit"
-          className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
-        >
-          Tra cứu lịch khám
-        </button>
-      </form>
-    </div>
+      </aside>
+    </section>
   );
 }
-
-// ─── Main page ────────────────────────────────────────────────────────────────
 
 export function AppointmentsPage() {
   const [phone, setPhone] = useState('');
@@ -421,19 +402,18 @@ export function AppointmentsPage() {
     enabled: !!patientQuery.data?.id,
   });
 
-  function handleLookup(p: string) {
-    setPhone(p);
+  const handleLookup = (value: string) => {
+    setPhone(value);
     setLookedUp(true);
     setCanceledMsg(false);
-  }
+  };
 
-  function handleReset() {
+  const handleReset = () => {
     setPhone('');
     setLookedUp(false);
     setCanceledMsg(false);
-  }
+  };
 
-  // Sort: upcoming first, then by date desc
   const sortedBookings = bookingsQuery.data
     ? [...bookingsQuery.data].sort((a, b) => {
         const order = {
@@ -447,123 +427,102 @@ export function AppointmentsPage() {
           NO_SHOW: 3,
           CANCELED: 3,
         };
-        const oa = order[a.status as keyof typeof order] ?? 3;
-        const ob = order[b.status as keyof typeof order] ?? 3;
-        if (oa !== ob) return oa - ob;
+        const orderA = order[a.status as keyof typeof order] ?? 3;
+        const orderB = order[b.status as keyof typeof order] ?? 3;
+        if (orderA !== orderB) return orderA - orderB;
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       })
     : [];
 
   const upcomingCount = sortedBookings.filter(
-    (b) => b.status === 'BOOKED' || IN_PROGRESS_STATUSES.has(b.status),
+    (booking) => booking.status === 'BOOKED' || IN_PROGRESS_STATUSES.has(booking.status),
   ).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="clinic-page" data-testid="patient-appointments-page">
       <PatientNavbar />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-slate-700 to-slate-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 mb-4">
-            <span className="material-symbols-outlined text-sm">event_available</span>
-            <span className="text-sm font-medium">Tra cứu & quản lý lịch khám</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Lịch khám của tôi</h1>
-          <p className="text-slate-300 max-w-lg mx-auto text-sm">
-            Xem lịch sắp tới, theo dõi trạng thái và hủy lịch nếu cần
-          </p>
-        </div>
-      </div>
+      <main className="clinic-section space-y-6">
+        <FlatTaskHeader
+          icon="event_available"
+          eyebrow="Lịch hẹn"
+          title="Tra cứu lịch khám, trạng thái xử lý và phiếu check-in"
+          description="Trang này chỉ tập trung vào lịch hẹn hiện có: mở phiếu khám, kiểm tra trạng thái và hủy lịch khi còn đủ điều kiện."
+          actions={
+            <Link to="/booking" className="btn-secondary">
+              <span className="material-symbols-outlined text-base">calendar_add_on</span>
+              <span>Đặt lịch mới</span>
+            </Link>
+          }
+        />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Not looked up yet → show form */}
-        {!lookedUp && <PhoneLookupForm onLookup={handleLookup} />}
+        {!lookedUp && <PhoneLookupPanel onLookup={handleLookup} />}
 
-        {/* Looking up */}
         {lookedUp && patientQuery.isLoading && (
-          <div className="text-center py-16">
-            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-500">Đang tra cứu...</p>
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-slate-500">Đang tra cứu dữ liệu lịch hẹn...</p>
           </div>
         )}
 
-        {/* Patient not found */}
         {lookedUp && patientQuery.isError && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
-            <span className="material-symbols-outlined text-amber-400 text-4xl block mb-3">
-              person_off
-            </span>
-            <h3 className="font-semibold text-amber-800 mb-1">Không tìm thấy hồ sơ</h3>
-            <p className="text-amber-700 text-sm mb-5">
-              Số điện thoại <strong>{phone}</strong> chưa có lịch khám hoặc chưa đăng ký tại phòng
-              khám.
+          <div className="clinic-card mx-auto max-w-3xl p-8 text-center">
+            <span className="material-symbols-outlined text-4xl text-slate-300">person_off</span>
+            <h3 className="mt-3 font-semibold text-slate-900">Không tìm thấy hồ sơ</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Số điện thoại <strong>{phone}</strong> chưa có lịch hẹn hoặc chưa được đăng ký tại phòng khám.
             </p>
-            <button
-              onClick={handleReset}
-              className="px-5 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors font-medium text-sm"
-            >
-              Thử lại
+            <button onClick={handleReset} className="btn-secondary mt-5">
+              Thử lại với số khác
             </button>
           </div>
         )}
 
-        {/* Found patient → show bookings */}
         {patientQuery.data && (
-          <>
-            {/* Patient header */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">
+          <div className="mx-auto max-w-4xl space-y-4">
+            <div className="clinic-card p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">
                     {patientQuery.data.fullName?.slice(0, 1).toUpperCase() ?? 'P'}
-                  </span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-950">{patientQuery.data.fullName}</p>
+                    <p className="text-sm text-slate-500">{phone}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900">{patientQuery.data.fullName}</p>
-                  <p className="text-sm text-slate-500">{phone}</p>
+                <div className="flex items-center gap-3">
+                  {upcomingCount > 0 && (
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                      {upcomingCount} lịch sắp tới
+                    </span>
+                  )}
+                  <button
+                    onClick={handleReset}
+                    className="text-sm font-medium text-slate-500 transition-colors hover:text-primary"
+                  >
+                    Đổi số điện thoại
+                  </button>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {upcomingCount > 0 && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">
-                    {upcomingCount} lịch sắp tới
-                  </span>
-                )}
-                <button
-                  onClick={handleReset}
-                  className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-base">logout</span>
-                  Đổi SĐT
-                </button>
               </div>
             </div>
 
-            {/* Canceled success toast */}
             {canceledMsg && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-green-600 text-xl">
-                  check_circle
-                </span>
-                <p className="text-sm text-green-700 font-medium">Hủy lịch khám thành công.</p>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+                Hủy lịch khám thành công.
               </div>
             )}
 
-            {/* Bookings loading */}
             {bookingsQuery.isLoading && (
               <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-2xl border border-slate-200 p-5 animate-pulse"
-                  >
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="clinic-card animate-pulse p-5">
                     <div className="flex gap-3">
-                      <div className="w-11 h-11 bg-slate-200 rounded-full" />
+                      <div className="h-11 w-11 rounded-full bg-slate-200" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-slate-200 rounded w-40" />
-                        <div className="h-3 bg-slate-200 rounded w-24" />
-                        <div className="h-3 bg-slate-200 rounded w-56" />
+                        <div className="h-4 w-40 rounded bg-slate-200" />
+                        <div className="h-3 w-24 rounded bg-slate-200" />
+                        <div className="h-3 w-56 rounded bg-slate-200" />
                       </div>
                     </div>
                   </div>
@@ -571,13 +530,12 @@ export function AppointmentsPage() {
               </div>
             )}
 
-            {/* Bookings list */}
             {!bookingsQuery.isLoading && sortedBookings.length > 0 && (
               <div className="space-y-4">
-                {sortedBookings.map((b) => (
-                  <BookingCard
-                    key={b.bookingId}
-                    booking={b}
+                {sortedBookings.map((booking) => (
+                  <BookingAppointmentCard
+                    key={booking.bookingId}
+                    booking={booking}
                     phone={phone}
                     patientName={patientQuery.data.fullName}
                     onCanceled={() => setCanceledMsg(true)}
@@ -586,24 +544,20 @@ export function AppointmentsPage() {
               </div>
             )}
 
-            {/* Empty bookings */}
             {!bookingsQuery.isLoading && sortedBookings.length === 0 && (
-              <div className="text-center py-16">
-                <span className="material-symbols-outlined text-slate-300 text-6xl block mb-4">
-                  event_busy
-                </span>
-                <p className="text-slate-500 text-lg font-medium">Chưa có lịch khám nào</p>
-                <p className="text-slate-400 text-sm mt-1 mb-6">Đặt lịch ngay để gặp bác sĩ!</p>
-                <a
-                  href="/booking"
-                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm"
-                >
-                  <span className="material-symbols-outlined text-sm">calendar_add_on</span>
-                  Đặt lịch khám
-                </a>
+              <div className="clinic-empty">
+                <span className="material-symbols-outlined text-6xl text-slate-300">event_busy</span>
+                <p className="mt-4 text-lg font-medium text-slate-700">Chưa có lịch hẹn nào</p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Bắt đầu bằng cách đặt lịch khám với bác sĩ hoặc dịch vụ phù hợp.
+                </p>
+                <Link to="/booking" className="btn-primary mt-6">
+                  <span className="material-symbols-outlined text-base">calendar_add_on</span>
+                  <span>Đặt lịch khám</span>
+                </Link>
               </div>
             )}
-          </>
+          </div>
         )}
       </main>
 

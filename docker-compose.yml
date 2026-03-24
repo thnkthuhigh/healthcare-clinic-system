@@ -47,6 +47,8 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
+    volumes:
+      - ./apps/web/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
 

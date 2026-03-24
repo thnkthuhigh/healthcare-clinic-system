@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --clinic-bg: #f6f8fb;
+  --clinic-surface: #ffffff;
+  --clinic-surface-muted: #f0f4f7;
+  --clinic-border: #d9e2ea;
+  --clinic-border-strong: #c6d1dc;
+  --clinic-text: #14213d;
+  --clinic-text-muted: #617187;
+  --clinic-primary: #2b678c;
+  --clinic-primary-dark: #204f6d;
+  --clinic-primary-soft: #e6eff6;
+  --clinic-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
 html,
 body,
 #root {
@@ -10,10 +25,294 @@ body,
 
 body {
   margin: 0;
+  background: var(--clinic-bg);
+  color: var(--clinic-text);
   font-family: 'Manrope', sans-serif;
 }
 
-/* Custom scrollbar */
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+}
+
+@layer components {
+  .clinic-page {
+    @apply min-h-screen text-slate-900;
+    background: var(--clinic-bg);
+  }
+
+  .clinic-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10;
+  }
+
+  .clinic-section {
+    @apply clinic-container py-10 sm:py-12;
+  }
+
+  .clinic-card {
+    @apply rounded-[24px] border bg-white transition-[transform,box-shadow,border-color,background-color,opacity] duration-300 ease-out;
+    border-color: var(--clinic-border);
+    box-shadow: var(--clinic-shadow);
+  }
+
+  .clinic-card-muted {
+    @apply rounded-[24px] border transition-[transform,box-shadow,border-color,background-color,opacity] duration-300 ease-out;
+    border-color: var(--clinic-border);
+    background: var(--clinic-surface-muted);
+    box-shadow: none;
+  }
+
+  .clinic-hero {
+    @apply border-b;
+    border-color: rgba(198, 209, 220, 0.65);
+    background: transparent;
+  }
+
+  .clinic-hero-panel {
+    @apply clinic-container py-4 sm:py-5 lg:py-6;
+  }
+
+  .clinic-hero-card {
+    @apply clinic-card p-6 sm:p-7 lg:p-8;
+    background: var(--clinic-surface);
+    border-color: rgba(198, 209, 220, 0.9);
+  }
+
+  .clinic-hero-card-public {
+    @apply lg:p-10;
+    min-height: auto;
+  }
+
+  .clinic-hero-card-task {
+    @apply lg:p-8;
+  }
+
+  .clinic-eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em];
+    border-color: var(--clinic-border-strong);
+    background: var(--clinic-surface-muted);
+    color: #4d647b;
+  }
+
+  .clinic-title {
+    @apply text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-[2.8rem];
+  }
+
+  .clinic-subtitle {
+    @apply mt-4 max-w-3xl text-sm leading-7 sm:text-base;
+    color: var(--clinic-text-muted);
+  }
+
+  .clinic-grid {
+    @apply grid gap-4 sm:gap-5;
+  }
+
+  .clinic-icon-badge {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-2xl border text-slate-700;
+    border-color: var(--clinic-border);
+    background: #f3f6f9;
+  }
+
+  .clinic-stat-card {
+    @apply clinic-card p-5 sm:p-6;
+  }
+
+  .clinic-action-card {
+    @apply clinic-card flex h-full flex-col justify-between p-5 sm:p-6 transition-all hover:-translate-y-0.5 hover:shadow-card;
+    border-color: rgba(198, 212, 220, 0.9);
+  }
+
+  .clinic-table-card {
+    @apply clinic-card overflow-hidden;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-card disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-[transform,background-color,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-50;
+    border-color: var(--clinic-border-strong);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-red-700 hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .field-label {
+    @apply mb-2 block text-sm font-medium text-slate-700;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20;
+    border-color: var(--clinic-border-strong);
+  }
+
+  .surface-note {
+    @apply rounded-2xl border p-4 text-sm text-slate-600;
+    border-color: rgba(198, 209, 220, 0.95);
+    background: #f3f6f9;
+  }
+
+  .surface-alert {
+    @apply rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700;
+  }
+
+  .clinic-kpi {
+    @apply rounded-3xl border bg-white p-5;
+    border-color: var(--clinic-border);
+    box-shadow: none;
+  }
+
+  .clinic-empty {
+    @apply clinic-card p-10 text-center;
+  }
+
+  .ops-shell {
+    @apply flex min-h-screen w-full overflow-hidden bg-[#f4f7fa] text-slate-900;
+  }
+
+  .ops-main {
+    @apply flex min-w-0 flex-1 flex-col;
+  }
+
+  .ops-sidebar {
+    @apply flex h-screen w-72 shrink-0 flex-col border-r bg-white;
+    border-color: rgba(198, 212, 220, 0.95);
+  }
+
+  .ops-nav-link {
+    @apply flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition-colors;
+  }
+
+  .ops-nav-link-active {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .ops-nav-link-idle {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .ops-header {
+    @apply sticky top-0 z-20 flex min-h-[76px] items-center justify-between border-b bg-white px-6;
+    border-color: rgba(198, 212, 220, 0.9);
+  }
+
+  .ops-section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500;
+  }
+
+  .ops-panel {
+    @apply rounded-[22px] border bg-white p-6;
+    border-color: rgba(198, 212, 220, 0.9);
+    box-shadow: var(--clinic-shadow);
+  }
+
+  .ops-stat {
+    @apply rounded-[20px] border bg-white p-5;
+    border-color: rgba(198, 212, 220, 0.9);
+    box-shadow: none;
+  }
+
+  .ops-chip {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .ops-page-header {
+    @apply mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between;
+  }
+
+  .clinic-flat-header {
+    @apply flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between;
+  }
+
+  .clinic-flat-header-main {
+    @apply max-w-4xl;
+  }
+
+  .clinic-flat-eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary;
+  }
+
+  .animate-clinic-enter {
+    animation: clinic-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-clinic-enter-delayed {
+    animation: clinic-fade-up 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 80ms;
+  }
+
+  .animate-clinic-pop {
+    animation: clinic-pop 260ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+
+  .clinic-modal-backdrop {
+    animation: clinic-fade 180ms ease-out both;
+  }
+
+  .clinic-modal-panel {
+    animation: clinic-pop 260ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .clinic-hero-card {
+    animation: clinic-fade-up 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clinic-hero-card,
+  .animate-clinic-enter,
+  .animate-clinic-enter-delayed,
+  .animate-clinic-pop,
+  .clinic-modal-backdrop,
+  .clinic-modal-panel {
+    animation: none !important;
+  }
+
+  .clinic-card,
+  .clinic-card-muted,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    transition: none !important;
+  }
+}
+
+@keyframes clinic-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clinic-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes clinic-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -36,7 +335,6 @@ body {
   background: #94a3b8;
 }
 
-/* Material Symbols Outlined - required for icons to render correctly */
 .material-symbols-outlined {
   font-variation-settings:
     'FILL' 0,
@@ -58,13 +356,4 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: 'liga';
   user-select: none;
-}
-
-/* Material Icons */
-.material-symbols-outlined {
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
 }

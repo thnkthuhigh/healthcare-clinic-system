@@ -9,5 +9,9 @@ coverage
 .DS_Store
 .vscode
 .idea
+playwright-report
+test-results
+playwright/.cache
 !.env.example
 !**/.env.example
+xx

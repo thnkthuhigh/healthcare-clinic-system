@@ -10,6 +10,7 @@ import java.util.UUID;
 public record PatientBookingDto(
     UUID bookingId,
     Integer queueNumber,
+    Integer slotSequence,
     LocalDate date,
     String shiftType,
     String timeRange,
@@ -19,6 +20,9 @@ public record PatientBookingDto(
     String status,
     String paymentStatus,
     Instant createdAt,
+    Instant appointmentTime,
+    Integer currentServingQueueNumber,
+    Instant estimatedTurnAt,
     MedicalRecordDto medicalRecord,
     PrescriptionDto prescription,
     Integer ratingStars,

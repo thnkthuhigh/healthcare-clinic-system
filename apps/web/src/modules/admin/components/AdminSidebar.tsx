@@ -16,40 +16,45 @@ interface NavGroup {
 }
 
 const quickItems: NavItem[] = [
-  { path: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard' },
-  { path: '/admin/reception', icon: 'assignment_ind', label: 'Le tan' },
-  { path: '/admin/cashier', icon: 'point_of_sale', label: 'Thu ngan' },
+  { path: '/admin/dashboard', icon: 'dashboard', label: 'Tổng quan' },
+  { path: '/admin/reception', icon: 'assignment_ind', label: 'Tiếp nhận' },
+  { path: '/admin/cashier', icon: 'point_of_sale', label: 'Thu ngân' },
 ];
 
 const navGroups: NavGroup[] = [
   {
     id: 'clinic',
-    title: 'Quan ly kham',
+    title: 'Khám và hồ sơ',
     items: [
-      { path: '/admin/shifts', icon: 'calendar_month', label: 'Ca lam viec' },
-      { path: '/admin/patients', icon: 'folder_shared', label: 'Ho so kham' },
-      { path: '/admin/doctors', icon: 'medical_information', label: 'Bac si' },
-      { path: '/admin/services', icon: 'medical_services', label: 'Dich vu' },
-      { path: '/admin/departments', icon: 'domain', label: 'Khoa' },
+      { path: '/admin/shifts', icon: 'calendar_month', label: 'Ca làm việc' },
+      { path: '/admin/patients', icon: 'folder_shared', label: 'Hồ sơ khám' },
+      { path: '/admin/doctors', icon: 'medical_information', label: 'Bác sĩ' },
+      { path: '/admin/services', icon: 'medical_services', label: 'Dịch vụ' },
+      { path: '/admin/departments', icon: 'domain', label: 'Chuyên khoa' },
     ],
   },
   {
     id: 'inventory',
-    title: 'Kho va tai nguyen',
+    title: 'Cơ sở vật chất',
     items: [
-      { path: '/admin/rooms', icon: 'meeting_room', label: 'Phong kham' },
-      { path: '/admin/supplies', icon: 'inventory_2', label: 'Vat tu' },
-      { path: '/admin/assets', icon: 'inventory', label: 'Tai san' },
-      { path: '/admin/medications', icon: 'medication', label: 'Thuoc' },
-      { path: '/admin/templates', icon: 'description', label: 'Toa mau' },
+      { path: '/admin/rooms', icon: 'meeting_room', label: 'Phòng khám' },
+      { path: '/admin/supplies', icon: 'inventory_2', label: 'Vật tư' },
+      { path: '/admin/assets', icon: 'inventory', label: 'Tài sản' },
+      { path: '/admin/medications', icon: 'medication', label: 'Thuốc' },
+      { path: '/admin/templates', icon: 'description', label: 'Mẫu toa thuốc' },
     ],
   },
   {
     id: 'report',
-    title: 'Tong hop',
-    items: [{ path: '/admin/reports', icon: 'bar_chart', label: 'Bao cao' }],
+    title: 'Tổng hợp',
+    items: [{ path: '/admin/reports', icon: 'bar_chart', label: 'Báo cáo và audit' }],
   },
 ];
+
+function navIdFromPath(path: string) {
+  const slug = path.replace('/admin/', '').replaceAll('/', '-');
+  return slug || 'dashboard';
+}
 
 export function AdminSidebar() {
   const location = useLocation();
@@ -76,6 +81,7 @@ export function AdminSidebar() {
           (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path + '/')),
       ),
     );
+
     if (activeGroup) {
       setOpenGroupId(activeGroup.id);
     }
@@ -86,56 +92,28 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="h-screen w-60 shrink-0 border-r border-slate-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-[#151b2b]">
-      <div className="flex items-center gap-3 border-b border-slate-100 p-4 dark:border-slate-800/50">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-          <span className="material-symbols-outlined text-xl text-red-600 dark:text-red-400">
-            admin_panel_settings
-          </span>
+    <aside className="ops-sidebar" data-testid="admin-sidebar">
+      <div className="border-b border-slate-100 px-5 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white">
+            <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-bold text-slate-950">Healthcare Clinic</h1>
+            <p className="truncate text-xs text-slate-500">{user?.phone}</p>
+          </div>
         </div>
-        <div className="flex flex-col overflow-hidden">
-          <h1 className="truncate text-sm font-bold text-slate-900 dark:text-white">
-            Quan tri vien
-          </h1>
-          <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.phone}</p>
-          <p className="text-[10px] font-semibold text-primary">{roleBadge}</p>
+        <div className="mt-4 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          {roleBadge}
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4" data-testid="admin-nav">
         <section className="space-y-1">
-          <p className="px-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-            Tac vu nhanh
-          </p>
-          {quickItems.map((item) => {
-            const isActive = isRouteActive(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors ${
-                  isActive
-                    ? 'bg-primary/10 text-primary dark:bg-primary/20'
-                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-                }`}
-              >
-                <span
-                  className={`material-symbols-outlined text-[19px] transition-colors ${
-                    isActive ? 'fill-current' : 'group-hover:text-primary'
-                  }`}
-                >
-                  {item.icon}
-                </span>
-                <span
-                  className={`text-sm transition-colors ${
-                    isActive ? 'font-bold' : 'font-medium group-hover:text-primary'
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
+          <p className="ops-section-label px-2">Truy cập nhanh</p>
+          {quickItems.map((item) => (
+            <NavLink key={item.path} item={item} active={isRouteActive(item.path)} />
+          ))}
         </section>
 
         {navGroups.map((group) => {
@@ -147,19 +125,14 @@ export function AdminSidebar() {
               <button
                 type="button"
                 onClick={() => toggleGroup(group.id)}
-                className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors ${
-                  hasActiveItem
-                    ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100'
-                    : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                data-testid={`admin-nav-group-${group.id}`}
+                className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.14em] ${
+                  hasActiveItem ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
                 }`}
               >
-                <span className="text-[10px] font-semibold uppercase tracking-wide">
-                  {group.title}
-                </span>
+                <span>{group.title}</span>
                 <span
-                  className={`material-symbols-outlined text-base transition-transform ${
-                    isOpen ? 'rotate-90' : ''
-                  }`}
+                  className={`material-symbols-outlined text-base transition-transform ${isOpen ? 'rotate-90' : ''}`}
                 >
                   chevron_right
                 </span>
@@ -167,35 +140,9 @@ export function AdminSidebar() {
 
               {isOpen && (
                 <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = isRouteActive(item.path);
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-colors ${
-                          isActive
-                            ? 'bg-primary/10 text-primary dark:bg-primary/20'
-                            : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        <span
-                          className={`material-symbols-outlined text-[19px] transition-colors ${
-                            isActive ? 'fill-current' : 'group-hover:text-primary'
-                          }`}
-                        >
-                          {item.icon}
-                        </span>
-                        <span
-                          className={`text-sm transition-colors ${
-                            isActive ? 'font-bold' : 'font-medium group-hover:text-primary'
-                          }`}
-                        >
-                          {item.label}
-                        </span>
-                      </Link>
-                    );
-                  })}
+                  {group.items.map((item) => (
+                    <NavLink key={item.path} item={item} active={isRouteActive(item.path)} />
+                  ))}
                 </div>
               )}
             </section>
@@ -203,15 +150,31 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-slate-100 p-4 dark:border-slate-800">
+      <div className="border-t border-slate-100 p-4">
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+          data-testid="admin-signout"
+          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>
-          <span className="text-sm font-medium">Dang xuat</span>
+          <span>Đăng xuất</span>
         </button>
       </div>
     </aside>
+  );
+}
+
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  const navId = navIdFromPath(item.path);
+
+  return (
+    <Link
+      to={item.path}
+      data-testid={`admin-nav-${navId}`}
+      className={`ops-nav-link ${active ? 'ops-nav-link-active' : 'ops-nav-link-idle'}`}
+    >
+      <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+      <span>{item.label}</span>
+    </Link>
   );
 }

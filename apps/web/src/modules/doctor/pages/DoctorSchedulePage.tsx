@@ -335,23 +335,29 @@ export function DoctorSchedulePage() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-[28px] bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 p-5 text-white shadow-lg shadow-sky-500/20">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/75">Ngay dang chon</p>
-              <h2 className="mt-3 text-2xl font-bold">{formatLongDate(selectedDateKey)}</h2>
+            <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Ngay dang chon</p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">
+                {formatLongDate(selectedDateKey)}
+              </h2>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/15 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-white/70">Sang</p>
-                  <p className="mt-2 text-2xl font-bold">{selectedMorning}</p>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Sang</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                    {selectedMorning}
+                  </p>
                 </div>
-                <div className="rounded-2xl bg-white/15 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-white/70">Chieu</p>
-                  <p className="mt-2 text-2xl font-bold">{selectedAfternoon}</p>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Chieu</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                    {selectedAfternoon}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTab('detail')}
-                className="mt-5 inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/25"
+                className="mt-5 inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
               >
                 Mo chi tiet ngay
               </button>

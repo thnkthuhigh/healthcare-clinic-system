@@ -12,12 +12,11 @@ export function DoctorLayout() {
     user?.role === 'OWNER' ? 'Owner' : user?.role === 'ADMIN' ? 'Admin' : user?.phone || 'Bác sĩ';
 
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-hidden">
+    <div className="ops-shell" data-testid="doctor-layout">
       <DoctorSidebar doctorName={displayName} />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="ops-main" data-testid="doctor-main">
         <DoctorHeader />
-
         <div className="flex-1 overflow-y-auto">
           <Outlet />
         </div>

@@ -6,12 +6,12 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#2d7a7c',
-          dark: '#236061',
-          light: '#3d9a9c',
+          DEFAULT: '#2b678c',
+          dark: '#204f6d',
+          light: '#5a8fb1',
         },
         background: {
-          light: '#fafafa',
+          light: '#f6f8fb',
           dark: '#1e2739',
         },
         surface: {

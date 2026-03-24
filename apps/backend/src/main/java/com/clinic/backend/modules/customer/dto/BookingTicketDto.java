@@ -7,6 +7,7 @@ import java.util.UUID;
 public record BookingTicketDto(
     UUID bookingId,
     Integer queueNumber,
+    Integer slotSequence,
     String patientName,
     String patientPhone,
     String doctorName,
@@ -17,5 +18,8 @@ public record BookingTicketDto(
     String serviceName,
     String status,
     String paymentStatus,
-    Instant createdAt
+    Instant createdAt,
+    Instant appointmentTime,
+    Integer currentServingQueueNumber,
+    Instant estimatedTurnAt
 ) {}

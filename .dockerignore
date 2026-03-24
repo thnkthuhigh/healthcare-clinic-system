@@ -7,3 +7,5 @@
 .idea
 apps/api
 apps/backend
+!apps/web/dist
+!apps/web/dist/**

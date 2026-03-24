@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { OpsPageHeader } from '../../../components/ClinicUI';
 import { useAuth } from '../../auth/useAuth';
 import { doctorApi } from '../api';
 import type { Shift } from '../types';
 
 function getShiftStatus(shift: Shift) {
   if (shift.status === 'CLOSED' || shift.completedCount === shift.totalPatients) {
-    return { label: 'Hoàn thành', color: 'green' };
+    return { label: 'Hoàn thành', style: 'bg-emerald-50 text-emerald-700' };
   }
   if (shift.inConsultationCount > 0 || shift.waitingCount > 0) {
-    return { label: 'Đang diễn ra', color: 'amber' };
+    return { label: 'Đang diễn ra', style: 'bg-amber-50 text-amber-700' };
   }
-  return { label: 'Sắp tới', color: 'slate' };
+  return { label: 'Sắp tới', style: 'bg-slate-100 text-slate-600' };
 }
 
 export function DoctorDashboardPage() {
@@ -22,15 +23,14 @@ export function DoctorDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Tính tổng số liệu
-  const totalAppointments = shifts.reduce((sum, s) => sum + s.totalPatients, 0);
-  const totalWaiting = shifts.reduce((sum, s) => sum + s.waitingCount + s.checkedInCount, 0);
-  const totalCompleted = shifts.reduce((sum, s) => sum + s.completedCount, 0);
+  const totalAppointments = shifts.reduce((sum, shift) => sum + shift.totalPatients, 0);
+  const totalWaiting = shifts.reduce((sum, shift) => sum + shift.waitingCount + shift.checkedInCount, 0);
+  const totalCompleted = shifts.reduce((sum, shift) => sum + shift.completedCount, 0);
 
-  // Fetch shifts from API
   useEffect(() => {
     const fetchShifts = async () => {
       if (!user) return;
+
       try {
         setLoading(true);
         setError(null);
@@ -49,293 +49,156 @@ export function DoctorDashboardPage() {
     fetchShifts();
   }, [selectedDate, user]);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  const formattedDate = new Date(`${selectedDate}T00:00:00`).toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   return (
-    <div className="h-full overflow-y-auto bg-slate-50 dark:bg-background-dark">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Error Message */}
+    <div className="min-h-full bg-slate-100">
+      <div className="mx-auto max-w-7xl p-6 space-y-6">
+        <OpsPageHeader
+          eyebrow="Dashboard bác sĩ"
+          title="Tổng quan ca làm việc"
+          description={formattedDate}
+        />
+
         {error && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center gap-3">
-            <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">
-              info
-            </span>
-            <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
+          <div className="surface-alert">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">info</span>
+              <p>{error}</p>
+            </div>
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Tổng quan ca làm việc
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {selectedDate && formatDate(selectedDate)}
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="ops-stat relative">
+            {loading && <LoadingMask />}
+            <p className="text-sm font-medium text-slate-500">Tổng lượt khám</p>
+            <p className="mt-3 text-3xl font-bold text-slate-950">{totalAppointments}</p>
+            <p className="mt-2 text-xs text-slate-500">Tổng số bệnh nhân trong các ca đã phân.</p>
+          </div>
+
+          <div className="ops-stat relative">
+            {loading && <LoadingMask />}
+            <p className="text-sm font-medium text-slate-500">Đang chờ và đã check-in</p>
+            <p className="mt-3 text-3xl font-bold text-slate-950">{totalWaiting}</p>
+            <p className="mt-2 text-xs text-slate-500">
+              {shifts.reduce((sum, shift) => sum + shift.checkedInCount, 0)} bệnh nhân đã check-in.
             </p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
-            <span className="material-symbols-outlined text-[20px] text-slate-600 dark:text-slate-400">
-              calendar_today
-            </span>
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Chọn ngày khác
-            </span>
-          </button>
-        </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Tổng lượt khám */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-shadow relative">
-            {loading && (
-              <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Tổng lượt khám
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
-                  {totalAppointments}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[28px]">
-                  groups
-                </span>
-              </div>
+          <div className="ops-stat relative">
+            {loading && <LoadingMask />}
+            <p className="text-sm font-medium text-slate-500">Đã hoàn thành</p>
+            <p className="mt-3 text-3xl font-bold text-slate-950">{totalCompleted}</p>
+            <p className="mt-2 text-xs text-slate-500">
+              {totalAppointments > 0 ? Math.round((totalCompleted / totalAppointments) * 100) : 0}% tiến độ hôm nay.
+            </p>
+          </div>
+        </section>
+
+        <section className="ops-panel">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div>
+              <p className="ops-section-label">Ca làm việc</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Lịch khám trong ngày</h2>
             </div>
           </div>
 
-          {/* Đang chờ */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-shadow relative">
-            {loading && (
-              <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Đang chờ</p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
-                  {totalWaiting}
-                </p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">
-                  {shifts.reduce((sum, s) => sum + s.checkedInCount, 0)} đã check-in
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[28px]">
-                  schedule
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Đã hoàn thành */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition-shadow relative">
-            {loading && (
-              <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Đã hoàn thành
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
-                  {totalCompleted}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-medium">
-                  {totalAppointments > 0
-                    ? Math.round((totalCompleted / totalAppointments) * 100)
-                    : 0}
-                  % tiến độ
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-                <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[28px]">
-                  check_circle
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Schedule */}
-        <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Lịch làm việc hôm nay
-            </h2>
-          </div>
-
-          <div className="p-6 space-y-4">
+          <div className="mt-6 space-y-4">
             {loading ? (
-              // Loading skeleton
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="p-5 rounded-xl border border-slate-200 dark:border-slate-700 animate-pulse"
-                  >
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-xl" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32" />
-                        <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24" />
-                      </div>
-                    </div>
-                    <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full" />
-                  </div>
-                ))}
-              </div>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="rounded-[24px] border border-slate-200 p-5 animate-pulse">
+                  <div className="h-5 w-40 rounded bg-slate-200" />
+                  <div className="mt-3 h-3 w-24 rounded bg-slate-200" />
+                  <div className="mt-4 h-2 w-full rounded bg-slate-200" />
+                </div>
+              ))
             ) : shifts.length === 0 ? (
-              // Empty state
-              <div className="text-center py-12">
-                <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl">
-                  event_busy
-                </span>
-                <p className="text-slate-500 dark:text-slate-400 mt-3">
-                  Không có ca làm việc nào trong ngày này
-                </p>
+              <div className="py-12 text-center">
+                <span className="material-symbols-outlined text-5xl text-slate-300">event_busy</span>
+                <p className="mt-3 text-slate-500">Không có ca làm việc nào trong ngày này.</p>
               </div>
             ) : (
               shifts.map((shift) => {
                 const status = getShiftStatus(shift);
-                const progress = (shift.completedCount / shift.totalPatients) * 100;
+                const progress = shift.totalPatients > 0 ? (shift.completedCount / shift.totalPatients) * 100 : 0;
 
                 return (
-                  <div
-                    key={shift.id}
-                    className="p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/50 dark:hover:border-primary/50 transition-all bg-slate-50/50 dark:bg-slate-800/50"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10">
-                          <span className="material-symbols-outlined text-primary text-[26px]">
-                            schedule
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-900 dark:text-white text-base">
-                            Ca{' '}
-                            {shift.type === 'MORNING'
-                              ? 'sáng'
-                              : shift.type === 'AFTERNOON'
-                                ? 'chiều'
-                                : 'tối'}
-                          </h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                            {shift.timeRange}
-                          </p>
+                  <div key={shift.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <span className="material-symbols-outlined text-[22px]">schedule</span>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-950">
+                              Ca {shift.type === 'MORNING' ? 'sáng' : shift.type === 'AFTERNOON' ? 'chiều' : 'tối'}
+                            </h3>
+                            <p className="text-sm text-slate-500">{shift.timeRange}</p>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                            status.color === 'green'
-                              ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : status.color === 'amber'
-                                ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                          }`}
-                        >
-                          {status.label}
-                        </span>
-                        {shift.id && (
-                          <Link
-                            to={`/doctor/queue/${shift.id}`}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm"
-                          >
-                            <span>Xem hàng chờ</span>
-                            <span className="material-symbols-outlined text-[18px]">
-                              arrow_forward
-                            </span>
-                          </Link>
-                        )}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`ops-chip ${status.style}`}>{status.label}</span>
+                        <Link to={`/doctor/queue/${shift.id}`} className="btn-primary px-4 py-2.5">
+                          <span>Xem hàng chờ</span>
+                          <span className="material-symbols-outlined text-base">arrow_forward</span>
+                        </Link>
                       </div>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className="space-y-2">
+                    <div className="mt-5 space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600 dark:text-slate-400 font-medium">
+                        <span className="text-slate-600">
                           Tiến độ: {shift.completedCount}/{shift.totalPatients} bệnh nhân
                         </span>
-                        <span className="font-semibold text-slate-900 dark:text-white">
-                          {Math.round(progress)}%
-                        </span>
+                        <span className="font-semibold text-slate-950">{Math.round(progress)}%</span>
                       </div>
-                      <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-teal-500 rounded-full transition-all duration-500"
+                          className="h-full rounded-full bg-primary transition-all duration-500"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
+                    </div>
 
-                      {/* Stats */}
-                      <div className="flex items-center gap-5 pt-2 flex-wrap">
-                        {shift.waitingCount > 0 && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="material-symbols-outlined text-amber-500 text-[20px]">
-                              schedule
-                            </span>
-                            <span className="text-slate-600 dark:text-slate-400">
-                              {shift.waitingCount} đang chờ
-                            </span>
-                          </div>
-                        )}
-                        {shift.checkedInCount > 0 && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="material-symbols-outlined text-blue-500 text-[20px]">
-                              login
-                            </span>
-                            <span className="text-slate-600 dark:text-slate-400">
-                              {shift.checkedInCount} đã check-in
-                            </span>
-                          </div>
-                        )}
-                        {shift.inConsultationCount > 0 && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="material-symbols-outlined text-green-500 text-[20px]">
-                              stethoscope
-                            </span>
-                            <span className="text-slate-600 dark:text-slate-400">
-                              {shift.inConsultationCount} đang khám
-                            </span>
-                          </div>
-                        )}
-                        {shift.completedCount > 0 && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="material-symbols-outlined text-green-600 text-[20px]">
-                              check_circle
-                            </span>
-                            <span className="text-slate-600 dark:text-slate-400">
-                              {shift.completedCount} hoàn thành
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-amber-500">schedule</span>
+                        {shift.waitingCount} đang chờ
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-blue-500">login</span>
+                        {shift.checkedInCount} đã check-in
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-emerald-500">stethoscope</span>
+                        {shift.inConsultationCount} đang khám
+                      </span>
                     </div>
                   </div>
                 );
               })
             )}
           </div>
-        </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function LoadingMask() {
+  return (
+    <div className="absolute inset-0 rounded-[24px] bg-white/60 backdrop-blur-[1px]">
+      <div className="flex h-full items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     </div>
   );

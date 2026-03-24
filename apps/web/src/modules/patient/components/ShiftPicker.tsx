@@ -23,85 +23,121 @@ export function ShiftPicker({
   onShiftSelect,
   loading,
 }: ShiftPickerProps) {
-  // Generate next 14 days selectable
   const today = new Date();
   const dates = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    return d.toISOString().split('T')[0] ?? '';
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    return date.toISOString().split('T')[0] ?? '';
   });
 
   return (
-    <div className="space-y-4">
-      {/* Date strip */}
+    <div className="space-y-6">
       <div>
-        <p className="text-sm font-medium text-slate-600 mb-2">Chọn ngày khám</p>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {dates.map((d) => {
-            const date = new Date(d + 'T00:00:00');
-            const isSelected = d === selectedDate;
+        <p className="field-label">Chọn ngày khám</p>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {dates.map((dateValue) => {
+            const date = new Date(`${dateValue}T00:00:00`);
+            const isSelected = dateValue === selectedDate;
             const dayName = date.toLocaleDateString('vi-VN', { weekday: 'short' });
             const dayNum = date.getDate();
+            const month = date.toLocaleDateString('vi-VN', { month: '2-digit' });
+
             return (
               <button
-                key={d}
+                key={dateValue}
                 type="button"
-                onClick={() => onDateChange(d)}
-                className={`flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-lg border text-xs transition-all
-                  ${isSelected ? 'border-primary bg-primary text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-primary/50'}`}
+                onClick={() => onDateChange(dateValue)}
+                data-testid={`patient-booking-date-${dateValue}`}
+                className={`flex min-w-[84px] flex-shrink-0 flex-col items-center rounded-[22px] border px-3 py-3 text-xs transition-all ${
+                  isSelected
+                    ? 'border-primary bg-primary text-white shadow-soft'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-primary/35 hover:shadow-soft'
+                }`}
               >
-                <span className="uppercase">{dayName}</span>
-                <span className="font-bold text-base">{dayNum}</span>
+                <span className={`uppercase tracking-[0.12em] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                  {dayName}
+                </span>
+                <span className="mt-1 text-xl font-bold">{dayNum}</span>
+                <span className={`mt-1 text-[11px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                  Tháng {month}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Shift cards */}
       <div>
-        <p className="text-sm font-medium text-slate-600 mb-2">Chọn ca khám</p>
-        {loading && <p className="text-sm text-slate-400">Đang tải ca khám...</p>}
+        <div className="flex items-center justify-between gap-3">
+          <p className="field-label mb-0">Chọn ca khám</p>
+          <span className="text-xs text-slate-400">Hiển thị theo số chỗ còn trống</span>
+        </div>
+
+        {loading && <p className="mt-4 text-sm text-slate-500">Đang tải danh sách ca khám...</p>}
         {!loading && shifts.length === 0 && (
-          <p className="text-sm text-slate-400">Không có ca khám vào ngày này.</p>
+          <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5 text-sm text-slate-500">
+            Không có ca khám khả dụng trong ngày đã chọn.
+          </div>
         )}
-        <div className="space-y-2">
+
+        <div className="mt-4 space-y-3">
           {shifts.map((shift) => {
             const isSelected = shift.id === selectedShiftId;
-            // Treat availableSlots as common pool available; cap display at 12
-            const commonAvailable = Math.max(0, Math.min(12, shift.availableSlots));
-            const isFull = commonAvailable <= 0 || shift.status === 'CLOSED';
+            const remaining = Math.max(0, Math.min(12, shift.availableSlots));
+            const isFull = remaining <= 0 || shift.status === 'CLOSED';
+
             return (
               <button
                 key={shift.id}
                 type="button"
                 disabled={isFull}
                 onClick={() => !isFull && onShiftSelect(shift.id)}
-                className={`w-full text-left rounded-lg border-2 p-3 transition-all flex items-center justify-between
-                  ${
-                    isFull
-                      ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
-                      : isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-slate-200 bg-white hover:border-primary/50'
-                  }`}
+                data-testid={`patient-booking-shift-${shift.id}`}
+                className={`w-full rounded-[26px] border p-5 text-left transition-all ${
+                  isFull
+                    ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-60'
+                    : isSelected
+                      ? 'border-primary bg-primary/5 shadow-soft'
+                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-soft'
+                }`}
               >
-                <div>
-                  <p className={`font-semibold ${isSelected ? 'text-primary' : 'text-slate-700'}`}>
-                    {SHIFT_LABELS[shift.type] ?? shift.type}
-                  </p>
-                  <p className="text-sm text-slate-500">{shift.timeRange}</p>
-                </div>
-                <div className="text-right">
-                  {isFull ? (
-                    <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded">
-                      FULL
-                    </span>
-                  ) : (
-                    <span className="text-xs text-slate-500">
-                      Chung: <strong className="text-primary">{commonAvailable}</strong>/12
-                    </span>
-                  )}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isSelected ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'}`}>
+                      <span className="material-symbols-outlined text-[22px]">
+                        {shift.type === 'MORNING' ? 'light_mode' : 'bedtime'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-slate-950'}`}>
+                        {SHIFT_LABELS[shift.type] ?? shift.type}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">{shift.timeRange}</p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        Phù hợp cho bệnh nhân cần đến đúng khung giờ đã hẹn
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="sm:text-right">
+                    {isFull ? (
+                      <span className="inline-flex rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-600">
+                        Đã đầy
+                      </span>
+                    ) : (
+                      <>
+                        <p className="text-sm text-slate-500">
+                          Còn <strong className="text-primary">{remaining}</strong> chỗ
+                        </p>
+                        <div className="mt-3 h-2 w-32 rounded-full bg-slate-100 sm:ml-auto">
+                          <div
+                            className="h-2 rounded-full bg-primary"
+                            style={{ width: `${Math.max(16, (remaining / 12) * 100)}%` }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </button>
             );

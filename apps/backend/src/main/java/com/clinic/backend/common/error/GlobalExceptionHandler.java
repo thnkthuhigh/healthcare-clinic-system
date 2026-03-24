@@ -2,6 +2,7 @@ package com.clinic.backend.common.error;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -47,6 +48,18 @@ public class GlobalExceptionHandler {
     String code = status.is4xxClientError() ? "BAD_REQUEST" : "INTERNAL_ERROR";
     String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
     return ResponseEntity.status(status).body(ApiError.of(code, message));
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+    String message = "Du lieu xung dot. Vui long thu lai.";
+    if (ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null) {
+      String detail = ex.getMostSpecificCause().getMessage();
+      if (detail.contains("bookings_slot_id_key")) {
+        message = "Khung gio vua duoc nguoi khac dat. Vui long chon lai ca kham.";
+      }
+    }
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("CONFLICT", message));
   }
 
   @ExceptionHandler(Exception.class)

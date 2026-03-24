@@ -69,7 +69,10 @@ export function DoctorPatientsPage() {
     new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <div className="h-full overflow-hidden flex flex-col bg-slate-50 dark:bg-background-dark">
+    <div
+      className="h-full overflow-hidden flex flex-col bg-slate-50 dark:bg-background-dark"
+      data-testid="doctor-patients-page"
+    >
       <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-5 gap-0">
         {/* LEFT - Search Panel */}
         <div className="lg:col-span-2 flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-dark overflow-hidden">
@@ -88,6 +91,7 @@ export function DoctorPatientsPage() {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Tìm theo tên, SĐT, CMND..."
                 autoFocus
+                data-testid="doctor-patients-search"
               />
               {loading && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
