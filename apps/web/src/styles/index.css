@@ -170,15 +170,15 @@ body {
   }
 
   .ops-shell {
-    @apply flex min-h-screen w-full overflow-hidden bg-[#f4f7fa] text-slate-900;
+    @apply flex h-screen w-full overflow-hidden bg-[#f4f7fa] text-slate-900;
   }
 
   .ops-main {
-    @apply flex min-w-0 flex-1 flex-col;
+    @apply flex h-screen min-w-0 flex-1 flex-col overflow-hidden;
   }
 
   .ops-sidebar {
-    @apply flex h-screen w-72 shrink-0 flex-col border-r bg-white;
+    @apply sticky top-0 flex h-screen w-72 shrink-0 flex-col overflow-y-auto border-r bg-white;
     border-color: rgba(198, 212, 220, 0.95);
   }
 

@@ -115,3 +115,42 @@ export function RecordAccessVisual() {
     </svg>
   );
 }
+
+export function ClinicHeroImageVisual() {
+  return (
+    <svg viewBox="0 0 620 420" className="h-full w-full" aria-hidden="true" role="img" fill="none">
+      <rect width="620" height="420" fill="#F5F8FB" />
+      <rect x="34" y="32" width="552" height="356" rx="28" fill="#FFFFFF" stroke="#D9E2EA" />
+      <rect x="58" y="56" width="250" height="136" rx="22" fill="#F0F5FA" />
+      <rect x="330" y="56" width="232" height="136" rx="22" fill="#EEF4F8" />
+      <rect x="58" y="212" width="504" height="152" rx="22" fill="#F8FAFC" stroke="#E2E8F0" />
+
+      <circle cx="132" cy="123" r="36" fill="#D8E6F2" />
+      <circle cx="132" cy="112" r="14" fill="#2B678C" />
+      <path d="M108 145C114 130 126 124 132 124C138 124 150 130 156 145" fill="#2B678C" />
+
+      <rect x="184" y="94" width="92" height="14" rx="7" fill="#1E293B" opacity="0.92" />
+      <rect x="184" y="116" width="104" height="10" rx="5" fill="#64748B" opacity="0.7" />
+      <rect x="184" y="136" width="76" height="10" rx="5" fill="#CBD5E1" />
+
+      <rect x="362" y="84" width="168" height="16" rx="8" fill="#2B678C" opacity="0.88" />
+      <rect x="362" y="112" width="142" height="12" rx="6" fill="#94A3B8" />
+      <rect x="362" y="136" width="96" height="12" rx="6" fill="#CBD5E1" />
+
+      <rect x="88" y="242" width="170" height="96" rx="18" fill="#FFFFFF" stroke="#D9E2EA" />
+      <rect x="276" y="242" width="170" height="96" rx="18" fill="#FFFFFF" stroke="#D9E2EA" />
+      <rect x="464" y="242" width="70" height="96" rx="18" fill="#2B678C" />
+
+      <path d="M146 279h54" stroke="#334155" strokeWidth="8" strokeLinecap="round" />
+      <path d="M146 301h74" stroke="#94A3B8" strokeWidth="7" strokeLinecap="round" />
+
+      <path d="M334 279h56" stroke="#334155" strokeWidth="8" strokeLinecap="round" />
+      <path d="M334 301h88" stroke="#94A3B8" strokeWidth="7" strokeLinecap="round" />
+
+      <rect x="484" y="259" width="30" height="8" rx="4" fill="#FFFFFF" opacity="0.8" />
+      <rect x="484" y="275" width="24" height="8" rx="4" fill="#FFFFFF" opacity="0.8" />
+      <rect x="484" y="291" width="18" height="8" rx="4" fill="#FFFFFF" opacity="0.8" />
+      <rect x="484" y="307" width="26" height="8" rx="4" fill="#FFFFFF" opacity="0.8" />
+    </svg>
+  );
+}

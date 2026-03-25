@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { formatDateTimeUtc7, formatDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type { AdminPatientDto, PatientRecordDto, VisitRecordDto } from '../types';
 
@@ -530,14 +531,14 @@ function formatDate(value: string | null): string {
   if (!value) {
     return '—';
   }
-  return new Date(value).toLocaleDateString('vi-VN');
+  return formatDateUtc7(value);
 }
 
 function formatDateTime(value: string | null): string {
   if (!value) {
     return '—';
   }
-  return new Date(value).toLocaleString('vi-VN');
+  return formatDateTimeUtc7(value);
 }
 
 function statusBadge(status: string): string {

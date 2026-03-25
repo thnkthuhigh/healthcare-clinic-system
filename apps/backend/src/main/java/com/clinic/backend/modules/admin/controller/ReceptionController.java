@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/admin/reception")
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class ReceptionController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final ReceptionService receptionService;
 
@@ -38,7 +40,7 @@ public class ReceptionController {
     public ResponseEntity<List<ReceptionBookingDto>> getTodayBookings(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) UUID shiftId) {
-        if (date == null) date = LocalDate.now();
+        if (date == null) date = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(receptionService.getTodayBookings(date, shiftId));
     }
 
@@ -50,7 +52,7 @@ public class ReceptionController {
     public ResponseEntity<List<ReceptionBookingDto>> searchByPhone(
             @RequestParam String phone,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
+        if (date == null) date = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(receptionService.searchBookingsByPhone(phone, date));
     }
 

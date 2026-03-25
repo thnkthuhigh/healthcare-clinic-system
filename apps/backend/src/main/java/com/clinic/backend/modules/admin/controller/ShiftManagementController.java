@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/admin/shifts")
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class ShiftManagementController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final ShiftManagementService shiftManagementService;
 
@@ -33,7 +35,7 @@ public class ShiftManagementController {
     @GetMapping
     public List<AdminShiftDto> getShifts(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        LocalDate target = date != null ? date : LocalDate.now();
+        LocalDate target = date != null ? date : LocalDate.now(CLINIC_ZONE);
         return shiftManagementService.getShiftsForDate(target);
     }
 

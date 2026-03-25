@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { formatDateTimeUtc7, formatDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type { AdminPatientDto, VisitRecordDto } from '../types';
 
@@ -27,12 +28,12 @@ export function PatientRecordsPage() {
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('vi-VN');
+    return formatDateUtc7(dateStr);
   }
 
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleString('vi-VN');
+    return formatDateTimeUtc7(dateStr);
   }
 
   function statusBadge(status: string) {

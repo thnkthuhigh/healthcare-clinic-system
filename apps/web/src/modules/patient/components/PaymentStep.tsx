@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { formatDateUtc7 } from '../../../lib/time';
 import type { AvailableShift, BookingTicket, ClinicService, DoctorSummary } from '../types';
 
 interface PaymentStepProps {
@@ -9,7 +10,7 @@ interface PaymentStepProps {
   service: ClinicService | null;
   patientName: string;
   patientPhone: string;
-  onPay: () => void;
+  onPay: (method: 'QR' | 'CASH') => void;
   paying: boolean;
 }
 
@@ -18,7 +19,14 @@ const SHIFT_LABEL: Record<string, string> = {
   AFTERNOON: 'Buổi chiều',
 };
 
+const BOOKING_FEE_VND = 10_000;
+
+function formatVnd(amount: number): string {
+  return `${new Intl.NumberFormat('vi-VN').format(amount)} đ`;
+}
+
 export function PaymentStep({
+  ticket,
   doctor,
   shift,
   service,
@@ -28,6 +36,10 @@ export function PaymentStep({
   paying,
 }: PaymentStepProps) {
   const [confirmed, setConfirmed] = useState(false);
+  const [showBillPopup, setShowBillPopup] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'QR' | 'CASH'>('QR');
+
+  const draftBillCode = `BL-${(ticket?.bookingId ?? 'TEMP').slice(0, 8).toUpperCase()}`;
 
   return (
     <div className="space-y-5">
@@ -46,7 +58,7 @@ export function PaymentStep({
             label="Ngày khám"
             value={
               shift
-                ? new Date(`${shift.date}T00:00:00`).toLocaleDateString('vi-VN', {
+                ? formatDateUtc7(shift.date, {
                     weekday: 'long',
                     day: '2-digit',
                     month: '2-digit',
@@ -56,22 +68,26 @@ export function PaymentStep({
             }
           />
           <Row label="Dịch vụ" value={service?.name ?? 'Khám theo chỉ định khi tiếp nhận'} />
+
           <div className="mt-3 border-t border-dashed border-slate-200 pt-3">
             <Row label="Bệnh nhân" value={patientName} />
             <Row label="Số điện thoại" value={patientPhone} />
           </div>
-          {service && (
-            <div className="mt-3 border-t border-dashed border-slate-200 pt-3">
-              <Row
-                label="Phí khám"
-                value={(service.priceCents / 100).toLocaleString('vi-VN', {
-                  style: 'currency',
-                  currency: 'VND',
-                })}
-                bold
-              />
-            </div>
-          )}
+
+          <div className="mt-3 border-t border-dashed border-slate-200 pt-3">
+            <Row label="Phí đặt lịch (thu trước)" value={formatVnd(BOOKING_FEE_VND)} bold />
+            <Row
+              label="Phí khám dịch vụ"
+              value={
+                service
+                  ? `${(service.priceCents / 100).toLocaleString('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND',
+                    })} (thu sau tại quầy)`
+                  : 'Thu sau tại quầy theo chỉ định'
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -79,30 +95,20 @@ export function PaymentStep({
         <input
           type="checkbox"
           checked={confirmed}
-          onChange={(e) => setConfirmed(e.target.checked)}
+          onChange={(event) => setConfirmed(event.target.checked)}
           className="mt-1 accent-[color:#2d7a7c]"
           data-testid="patient-booking-payment-confirm"
         />
         <span>
-          Tôi xác nhận thông tin trên là chính xác và đồng ý chuyển sang bước thanh toán mô phỏng để
-          lưu lịch hẹn.
+          Tôi xác nhận thông tin trên là chính xác và đồng ý thanh toán trước phí đặt lịch 10.000đ
+          để giữ lịch hẹn.
         </span>
       </label>
-
-      <div className="surface-note">
-        <div className="flex gap-2">
-          <span className="material-symbols-outlined text-sm text-primary">payments</span>
-          <p>
-            Đây là bước mô phỏng thanh toán trong môi trường thử nghiệm. Sau khi xác nhận, hệ thống
-            sẽ tạo phiếu khám và lưu trạng thái lịch hẹn cho bệnh nhân.
-          </p>
-        </div>
-      </div>
 
       <button
         type="button"
         disabled={!confirmed || paying}
-        onClick={onPay}
+        onClick={() => setShowBillPopup(true)}
         className="btn-primary w-full"
         data-testid="patient-booking-pay"
       >
@@ -114,10 +120,89 @@ export function PaymentStep({
         ) : (
           <>
             <span className="material-symbols-outlined text-base">payments</span>
-            <span>Thanh toán và tạo phiếu khám</span>
+            <span>Thanh toán phí đặt lịch 10.000đ</span>
           </>
         )}
       </button>
+
+      {showBillPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
+          <div className="clinic-card w-full max-w-xl p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                  Hóa đơn tạm thu
+                </p>
+                <h3 className="mt-1 text-2xl font-bold text-slate-950">Phí đặt lịch khám</h3>
+                <p className="mt-1 text-sm text-slate-500">Mã bill: {draftBillCode}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBillPopup(false)}
+                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <Row label="Bệnh nhân" value={patientName} />
+              <Row label="Số điện thoại" value={patientPhone} />
+              <Row label="Khoản thu" value="Phí giữ lịch khám" />
+              <Row label="Số tiền" value={formatVnd(BOOKING_FEE_VND)} bold />
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Phí khám dịch vụ và thuốc sẽ thanh toán tại quầy thu ngân sau khi khám.
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-semibold text-slate-900">Phương thức thanh toán</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('QR')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                    paymentMethod === 'QR'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  Quét QR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('CASH')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                    paymentMethod === 'CASH'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  Tiền mặt
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2.5">
+              <button type="button" onClick={() => setShowBillPopup(false)} className="btn-secondary">
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={paying}
+                onClick={() => {
+                  onPay(paymentMethod);
+                  setShowBillPopup(false);
+                }}
+                className="btn-primary"
+              >
+                Xác nhận thanh toán 10.000đ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

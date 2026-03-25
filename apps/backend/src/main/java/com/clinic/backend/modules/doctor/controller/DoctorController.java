@@ -7,12 +7,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/doctor")
 public class DoctorController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final DoctorService doctorService;
 
@@ -40,7 +42,7 @@ public class DoctorController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
         if (date == null) {
-            date = LocalDate.now();
+            date = LocalDate.now(CLINIC_ZONE);
         }
 
         List<ShiftDto> shifts = doctorService.getShiftsByDate(doctorId, date);
@@ -91,7 +93,7 @@ public class DoctorController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
         if (from == null)
-            from = LocalDate.now().withDayOfMonth(1);
+            from = LocalDate.now(CLINIC_ZONE).withDayOfMonth(1);
         if (to == null)
             to = from.plusMonths(1).minusDays(1);
 
@@ -110,7 +112,7 @@ public class DoctorController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
         if (from == null)
-            from = LocalDate.now().withDayOfMonth(1);
+            from = LocalDate.now(CLINIC_ZONE).withDayOfMonth(1);
         if (to == null)
             to = from.plusMonths(1).minusDays(1);
 

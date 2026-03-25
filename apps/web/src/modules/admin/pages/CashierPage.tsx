@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import QRCode from 'react-qr-code';
 import { useSearchParams } from 'react-router-dom';
 
+import { formatDateTimeUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import { PrintableInvoice } from '../components';
 import type { AdminMedicationDto, CashierBooking, RetailSaleResponse } from '../types';
 
 type CashierTab = 'consultation' | 'retail';
+type PaymentMethod = 'QR' | 'CASH';
 
 interface RetailDraftItem {
   medicationId: string;
@@ -28,7 +31,12 @@ interface InvoicePreviewState {
   shiftLabel?: string | null;
   roomName?: string | null;
   createdAt: string;
+  paidAt?: string | null;
+  paymentMethod?: PaymentMethod | null;
+  billedByName?: string | null;
+  qrValue?: string | null;
   lines: Array<{
+    category?: 'SERVICE' | 'MEDICATION' | null;
     name: string;
     unit?: string | null;
     qty: number;
@@ -38,22 +46,72 @@ interface InvoicePreviewState {
   totalCents: number;
 }
 
+interface PaymentSheetState {
+  booking: CashierBooking;
+  method: PaymentMethod;
+}
+
 function formatMoney(cents: number): string {
-  return `${new Intl.NumberFormat('vi-VN').format(cents)} d`;
+  return `${new Intl.NumberFormat('vi-VN').format(cents)} đ`;
 }
 
 function formatTime(raw: string | null): string {
   if (!raw) return '-';
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return raw;
-  return parsed.toLocaleString('vi-VN');
+  return formatDateTimeUtc7(raw);
+}
+
+function getLocalDateIso() {
+  return toIsoDateUtc7();
+}
+
+function getPaymentMethodLabel(method: PaymentMethod | null | undefined): string {
+  if (method === 'QR') {
+    return 'Quét QR';
+  }
+  if (method === 'CASH') {
+    return 'Tiền mặt';
+  }
+  return '-';
+}
+
+function buildPaymentQrValue({
+  invoiceCode,
+  totalCents,
+  patientPhone,
+}: {
+  invoiceCode: string;
+  totalCents: number;
+  patientPhone?: string | null;
+}) {
+  const normalizedAmount = Math.max(0, Math.trunc(totalCents));
+  const normalizedPhone = patientPhone ?? '';
+  return `HC_PAY|INV:${invoiceCode}|AMOUNT:${normalizedAmount}|CUR:VND|PATIENT:${normalizedPhone}`;
+}
+
+function getCurrentCashierLabel() {
+  try {
+    const raw = localStorage.getItem('clinic_user');
+    if (!raw) {
+      return 'Thu ngân';
+    }
+    const parsed = JSON.parse(raw) as { fullName?: string; phone?: string } | null;
+    if (parsed?.fullName && parsed.fullName.trim().length > 0) {
+      return parsed.fullName.trim();
+    }
+    if (parsed?.phone && parsed.phone.trim().length > 0) {
+      return parsed.phone.trim();
+    }
+    return 'Thu ngân';
+  } catch {
+    return 'Thu ngân';
+  }
 }
 
 export function CashierPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab: CashierTab = searchParams.get('tab') === 'retail' ? 'retail' : 'consultation';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateIso();
 
   const [tab, setTab] = useState<CashierTab>(initialTab);
   const [selectedBooking, setSelectedBooking] = useState<CashierBooking | null>(null);
@@ -80,9 +138,12 @@ export function CashierPage() {
   const [retailQty, setRetailQty] = useState('1');
   const [retailItems, setRetailItems] = useState<RetailDraftItem[]>([]);
   const [retailResult, setRetailResult] = useState<RetailSaleResponse | null>(null);
+  const [retailPaymentConfirmed, setRetailPaymentConfirmed] = useState(false);
+  const [paymentSheet, setPaymentSheet] = useState<PaymentSheetState | null>(null);
 
   const [invoicePreview, setInvoicePreview] = useState<InvoicePreviewState | null>(null);
   const invoiceRef = useRef<HTMLDivElement | null>(null);
+  const cashierFallbackLabel = useMemo(() => getCurrentCashierLabel(), []);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['cashier-bookings', today],
@@ -98,10 +159,12 @@ export function CashierPage() {
   });
 
   const payMutation = useMutation({
-    mutationFn: (bookingId: string) => adminApi.processPayment(bookingId),
+    mutationFn: ({ bookingId, method }: { bookingId: string; method: PaymentMethod }) =>
+      adminApi.processPayment(bookingId, method),
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ['cashier-bookings'] });
       setSelectedBooking(updatedBooking);
+      setPaymentSheet(null);
       openInvoiceFromBooking(updatedBooking);
     },
   });
@@ -131,26 +194,11 @@ export function CashierPage() {
       }),
     onSuccess: (result) => {
       setRetailResult(result);
+      setRetailPaymentConfirmed(false);
       setRetailItems([]);
       setRetailMedicationId('');
       setRetailQty('1');
       queryClient.invalidateQueries({ queryKey: ['cashier-retail-medications'] });
-
-      setInvoicePreview({
-        invoiceCode: result.invoiceCode,
-        title: 'Hoa don ban le thuoc',
-        customerName: result.customerName ?? 'Khach le',
-        customerPhone: result.customerPhone ?? null,
-        createdAt: result.createdAt,
-        lines: result.items.map((item) => ({
-          name: item.medicationName,
-          unit: item.unit,
-          qty: item.qty,
-          unitPriceCents: item.unitPriceCents,
-          totalCents: item.lineTotalCents,
-        })),
-        totalCents: result.totalCents,
-      });
     },
   });
 
@@ -184,6 +232,7 @@ export function CashierPage() {
 
     if (booking.serviceName) {
       lines.push({
+        category: 'SERVICE',
         name: booking.serviceName,
         qty: 1,
         unit: null,
@@ -194,6 +243,7 @@ export function CashierPage() {
 
     for (const item of booking.prescriptionItems ?? []) {
       lines.push({
+        category: 'MEDICATION',
         name: item.medicationName,
         unit: item.unit,
         qty: item.qty,
@@ -202,17 +252,52 @@ export function CashierPage() {
       });
     }
 
+    const invoiceCode = `BK-${booking.bookingId.slice(0, 8).toUpperCase()}`;
+    const paymentMethod = booking.paymentMethod ?? null;
+    const qrValue = buildPaymentQrValue({
+      invoiceCode,
+      totalCents: booking.totalBillCents,
+      patientPhone: booking.patientPhone,
+    });
+
     setInvoicePreview({
-      invoiceCode: `BK-${booking.bookingId.slice(0, 8).toUpperCase()}`,
-      title: 'Hoa don thanh toan kham benh',
+      invoiceCode,
+      title: 'Hóa đơn thanh toán khám bệnh',
       customerName: booking.patientName,
       customerPhone: booking.patientPhone,
       serviceName: booking.serviceName,
       doctorName: booking.doctorName,
       queueNumber: booking.queueNumber,
-      createdAt: booking.completedAt ?? new Date().toISOString(),
+      createdAt: booking.paidAt ?? booking.completedAt ?? new Date().toISOString(),
+      paidAt: booking.paidAt ?? null,
+      paymentMethod,
+      billedByName: booking.billedByName ?? cashierFallbackLabel,
+      qrValue: paymentMethod === 'QR' ? qrValue : null,
       lines,
       totalCents: booking.totalBillCents,
+    });
+  };
+
+  const openRetailInvoice = (result: RetailSaleResponse) => {
+    setInvoicePreview({
+      invoiceCode: result.invoiceCode,
+      title: 'Hóa đơn bán lẻ thuốc',
+      customerName: result.customerName ?? 'Khách lẻ',
+      customerPhone: result.customerPhone ?? null,
+      createdAt: result.createdAt,
+      paidAt: result.createdAt,
+      paymentMethod: 'CASH',
+      billedByName: result.billedByName ?? cashierFallbackLabel,
+      qrValue: null,
+      lines: result.items.map((item) => ({
+        category: 'MEDICATION',
+        name: item.medicationName,
+        unit: item.unit,
+        qty: item.qty,
+        unitPriceCents: item.unitPriceCents,
+        totalCents: item.lineTotalCents,
+      })),
+      totalCents: result.totalCents,
     });
   };
 
@@ -221,11 +306,19 @@ export function CashierPage() {
     setSelectedBooking(detail);
   };
 
+  const openPaymentSheet = (booking: CashierBooking) => {
+    setPaymentSheet({ booking, method: 'QR' });
+    payMutation.reset();
+  };
+
   const addRetailItem = () => {
     const qty = Number.parseInt(retailQty, 10);
     if (!selectedRetailMedication || Number.isNaN(qty) || qty <= 0) {
       return;
     }
+
+    setRetailResult(null);
+    setRetailPaymentConfirmed(false);
 
     setRetailItems((prev) => {
       const existingIndex = prev.findIndex(
@@ -288,12 +381,13 @@ export function CashierPage() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Invoice</title>
+          <title>Hóa đơn</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 24px; background: #ffffff; color: #0f172a; }
+            @page { size: A4; margin: 14mm; }
+            body { font-family: Arial, sans-serif; margin: 0; background: #ffffff; color: #0f172a; }
             * { box-sizing: border-box; }
             table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #e2e8f0; }
+            th, td { border: 1px solid #e2e8f0; padding: 6px 8px; }
           </style>
         </head>
         <body>${html}</body>
@@ -315,7 +409,7 @@ export function CashierPage() {
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Thanh toan kham
+          Thanh toán khám
         </button>
         <button
           onClick={() => switchTab('retail')}
@@ -325,7 +419,7 @@ export function CashierPage() {
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Ban le thuoc
+          Bán lẻ thuốc
         </button>
       </div>
 
@@ -335,11 +429,11 @@ export function CashierPage() {
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
                 <p className="text-2xl font-bold text-amber-600">{unpaidCount}</p>
-                <p className="text-xs text-slate-500">Cho thanh toan</p>
+                <p className="text-xs text-slate-500">Chờ thanh toán</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
                 <p className="text-2xl font-bold text-green-600">{paidCount}</p>
-                <p className="text-xs text-slate-500">Da thanh toan</p>
+                <p className="text-xs text-slate-500">Đã thanh toán</p>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-3 text-center">
                 <p className="text-lg font-bold text-blue-600">{formatMoney(totalRevenue)}</p>
@@ -366,9 +460,9 @@ export function CashierPage() {
             </div>
 
             <div className="flex-1 space-y-2 overflow-y-auto">
-              {isLoading && <p className="py-8 text-center text-sm text-slate-400">Dang tai...</p>}
+              {isLoading && <p className="py-8 text-center text-sm text-slate-400">Đang tải...</p>}
               {!isLoading && filteredBookings.length === 0 && (
-                <p className="py-8 text-center text-sm text-slate-400">Khong co lich kham nao</p>
+                <p className="py-8 text-center text-sm text-slate-400">Không có lịch khám nào</p>
               )}
               {filteredBookings.map((booking) => (
                 <button
@@ -411,8 +505,8 @@ export function CashierPage() {
                   </div>
                   <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
                     <span>BS: {booking.doctorName}</span>
-                    {booking.serviceName && <span>� {booking.serviceName}</span>}
-                    <span>� {booking.channel === 'WEB' ? 'Web' : 'Vang lai'}</span>
+                    {booking.serviceName && <span>| {booking.serviceName}</span>}
+                    <span>| {booking.channel === 'WEB' ? 'Web' : 'Vang lai'}</span>
                   </div>
                 </button>
               ))}
@@ -423,7 +517,7 @@ export function CashierPage() {
               disabled={expireMutation.isPending}
               className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
             >
-              {expireMutation.isPending ? 'Dang xu ly...' : 'Huy don thuoc qua han (>2h)'}
+              {expireMutation.isPending ? 'Đang xử lý...' : 'Hủy đơn thuốc quá hạn (>2h)'}
             </button>
           </div>
 
@@ -432,7 +526,7 @@ export function CashierPage() {
               <div className="flex h-full items-center justify-center">
                 <div className="text-center text-slate-400">
                   <span className="material-symbols-outlined text-5xl">receipt_long</span>
-                  <p className="mt-2 text-sm">Chon benh nhan de xem hoa don</p>
+                  <p className="mt-2 text-sm">Chọn bệnh nhân để xem hóa đơn</p>
                 </div>
               </div>
             ) : (
@@ -447,6 +541,16 @@ export function CashierPage() {
                     <p className="text-xs text-slate-400">
                       Hoan thanh: {formatTime(selectedBooking.completedAt)}
                     </p>
+                    {selectedBooking.paidAt && (
+                      <p className="text-xs text-slate-400">
+                        Da thu luc: {formatTime(selectedBooking.paidAt)}
+                      </p>
+                    )}
+                    {selectedBooking.billedByName && (
+                      <p className="text-xs text-slate-400">
+                        Người lập bill: {selectedBooking.billedByName}
+                      </p>
+                    )}
                   </div>
                   <span
                     className={`rounded-full px-3 py-1 text-sm font-medium ${
@@ -455,9 +559,15 @@ export function CashierPage() {
                         : 'bg-amber-100 text-amber-700'
                     }`}
                   >
-                    {selectedBooking.paymentStatus === 'PAID' ? 'Da thanh toan' : 'Cho thanh toan'}
+                    {selectedBooking.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chờ thanh toán'}
                   </span>
                 </div>
+
+                {selectedBooking.paymentStatus === 'PAID' && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                    Phương thức thanh toán: {getPaymentMethodLabel(selectedBooking.paymentMethod)}
+                  </div>
+                )}
 
                 {selectedBooking.serviceName && (
                   <div className="rounded-lg bg-slate-50 p-4">
@@ -471,11 +581,11 @@ export function CashierPage() {
                 {selectedBooking.prescriptionItems &&
                   selectedBooking.prescriptionItems.length > 0 && (
                     <div className="rounded-lg bg-slate-50 p-4">
-                      <h4 className="mb-2 text-sm font-semibold text-slate-700">Don thuoc</h4>
+                      <h4 className="mb-2 text-sm font-semibold text-slate-700">Đơn thuốc</h4>
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-slate-200 text-xs text-slate-500">
-                            <th className="pb-2 text-left font-medium">Thuoc</th>
+                            <th className="pb-2 text-left font-medium">Thuốc</th>
                             <th className="pb-2 text-center font-medium">SL</th>
                             <th className="pb-2 text-right font-medium">Don gia</th>
                             <th className="pb-2 text-right font-medium">Thanh tien</th>
@@ -525,7 +635,7 @@ export function CashierPage() {
 
                 <div className="rounded-lg bg-blue-50 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-bold text-slate-900">Tong cong</span>
+                    <span className="text-base font-bold text-slate-900">Tổng cộng</span>
                     <span className="text-xl font-bold text-blue-700">
                       {formatMoney(selectedBooking.totalBillCents)}
                     </span>
@@ -535,11 +645,10 @@ export function CashierPage() {
                 <div className="flex flex-wrap gap-2">
                   {selectedBooking.paymentStatus === 'UNPAID' && (
                     <button
-                      onClick={() => payMutation.mutate(selectedBooking.bookingId)}
-                      disabled={payMutation.isPending}
+                      onClick={() => openPaymentSheet(selectedBooking)}
                       className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                     >
-                      {payMutation.isPending ? 'Dang xu ly...' : 'Thanh toan'}
+                      Thanh toán
                     </button>
                   )}
 
@@ -547,7 +656,7 @@ export function CashierPage() {
                     onClick={() => openInvoiceFromBooking(selectedBooking)}
                     className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
-                    In hoa don
+                    In hóa đơn
                   </button>
                 </div>
               </div>
@@ -559,7 +668,7 @@ export function CashierPage() {
       {tab === 'retail' && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h3 className="text-base font-semibold text-slate-900">Ban le thuoc</h3>
+            <h3 className="text-base font-semibold text-slate-900">Bán lẻ thuốc</h3>
             <p className="mt-1 text-sm text-slate-500">Nhap thong tin khach va thuoc can ban</p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -569,7 +678,7 @@ export function CashierPage() {
                   value={retailCustomerName}
                   onChange={(e) => setRetailCustomerName(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  placeholder="Khach le"
+                  placeholder="Khách lẻ"
                 />
               </div>
               <div>
@@ -592,7 +701,7 @@ export function CashierPage() {
                   onChange={(e) => setRetailMedicationId(e.target.value)}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
-                  <option value="">-- Chon thuoc --</option>
+                  <option value="">-- Chọn thuốc --</option>
                   {activeMedications.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name} ({formatMoney(item.priceCents)}) - ton {item.availableStock}
@@ -626,7 +735,7 @@ export function CashierPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs text-slate-500">
-                    <th className="px-3 py-2 text-left">Thuoc</th>
+                    <th className="px-3 py-2 text-left">Thuốc</th>
                     <th className="px-3 py-2 text-center">SL</th>
                     <th className="px-3 py-2 text-right">Don gia</th>
                     <th className="px-3 py-2 text-right">Thanh tien</th>
@@ -675,7 +784,7 @@ export function CashierPage() {
             </div>
 
             <div className="mt-4 flex items-center justify-between rounded-lg bg-blue-50 px-4 py-3">
-              <span className="text-sm font-medium text-slate-700">Tong tam tinh</span>
+              <span className="text-sm font-medium text-slate-700">Tổng tạm tính</span>
               <strong className="text-lg text-blue-700">{formatMoney(retailTotal)}</strong>
             </div>
 
@@ -685,7 +794,7 @@ export function CashierPage() {
                 disabled={retailSaleMutation.isPending || retailItems.length === 0}
                 className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {retailSaleMutation.isPending ? 'Dang xu ly...' : 'Xuat hoa don'}
+                {retailSaleMutation.isPending ? 'Đang xử lý...' : 'Thanh toán'}
               </button>
             </div>
 
@@ -693,7 +802,7 @@ export function CashierPage() {
               <p className="mt-2 text-sm text-red-600">
                 {retailSaleMutation.error instanceof Error
                   ? retailSaleMutation.error.message
-                  : 'Ban le that bai'}
+                  : 'Bán lẻ thất bại'}
               </p>
             )}
           </div>
@@ -702,48 +811,194 @@ export function CashierPage() {
             <h3 className="text-base font-semibold text-slate-900">Ket qua ban le</h3>
             {!retailResult ? (
               <p className="mt-3 text-sm text-slate-500">
-                Chua co hoa don ban le nao trong phien hien tai.
+                Chưa có hóa đơn bán lẻ nào trong phiên hiện tại.
               </p>
             ) : (
               <div className="mt-3 space-y-2 text-sm text-slate-700">
                 <p>
-                  Ma hoa don: <strong>{retailResult.invoiceCode}</strong>
+                  Mã hóa đơn: <strong>{retailResult.invoiceCode}</strong>
                 </p>
                 <p>
-                  Khach hang: <strong>{retailResult.customerName ?? 'Khach le'}</strong>
+                  Khách hàng: <strong>{retailResult.customerName ?? 'Khách lẻ'}</strong>
                 </p>
                 {retailResult.customerPhone && (
                   <p>
-                    SDT: <strong>{retailResult.customerPhone}</strong>
+                    SĐT: <strong>{retailResult.customerPhone}</strong>
                   </p>
                 )}
                 <p>
-                  Tong tien: <strong>{formatMoney(retailResult.totalCents)}</strong>
+                  Tổng tiền: <strong>{formatMoney(retailResult.totalCents)}</strong>
                 </p>
-                <button
-                  onClick={() => {
-                    setInvoicePreview({
-                      invoiceCode: retailResult.invoiceCode,
-                      title: 'Hoa don ban le thuoc',
-                      customerName: retailResult.customerName ?? 'Khach le',
-                      customerPhone: retailResult.customerPhone,
-                      createdAt: retailResult.createdAt,
-                      lines: retailResult.items.map((item) => ({
-                        name: item.medicationName,
-                        unit: item.unit,
-                        qty: item.qty,
-                        unitPriceCents: item.unitPriceCents,
-                        totalCents: item.lineTotalCents,
-                      })),
-                      totalCents: retailResult.totalCents,
-                    });
-                  }}
-                  className="mt-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Xem/In hoa don
-                </button>
+                <p>
+                  Người lập bill:{' '}
+                  <strong>{retailResult.billedByName ?? cashierFallbackLabel}</strong>
+                </p>
+                {!retailPaymentConfirmed ? (
+                  <button
+                    onClick={() => setRetailPaymentConfirmed(true)}
+                    className="mt-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                  >
+                    Thanh toán thành công
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => openRetailInvoice(retailResult)}
+                    className="mt-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Xuất hóa đơn
+                  </button>
+                )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {paymentSheet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Xác nhận thanh toán
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">
+                  {paymentSheet.booking.patientName}
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Mã bill tạm: BK-{paymentSheet.booking.bookingId.slice(0, 8).toUpperCase()} | Tổng
+                  thanh toán {formatMoney(paymentSheet.booking.totalBillCents)}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setPaymentSheet(null);
+                  payMutation.reset();
+                }}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Đóng
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.05fr_1fr]">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-slate-900">Chi tiết bill</p>
+                <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                  {paymentSheet.booking.serviceName && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Dịch vụ khám: {paymentSheet.booking.serviceName}</span>
+                      <span className="font-medium text-slate-900">
+                        {formatMoney(paymentSheet.booking.servicePriceCents)}
+                      </span>
+                    </div>
+                  )}
+                  {(paymentSheet.booking.prescriptionItems ?? []).map((item) => (
+                    <div key={item.id} className="flex items-center justify-between">
+                      <span className="text-slate-600">
+                        Thuốc: {item.medicationName} x {item.qty}
+                      </span>
+                      <span className="font-medium text-slate-900">
+                        {formatMoney(item.totalCents)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="border-t border-slate-200 pt-2">
+                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                      <span>Tổng cộng</span>
+                      <span>{formatMoney(paymentSheet.booking.totalBillCents)}</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Người lập bill: {paymentSheet.booking.billedByName ?? cashierFallbackLabel}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-slate-900">Phương thức thanh toán</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPaymentSheet((prev) => (prev ? { ...prev, method: 'QR' } : prev))}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                      paymentSheet.method === 'QR'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-slate-300 bg-white text-slate-600'
+                    }`}
+                  >
+                    Quét QR
+                  </button>
+                  <button
+                    onClick={() =>
+                      setPaymentSheet((prev) => (prev ? { ...prev, method: 'CASH' } : prev))
+                    }
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                      paymentSheet.method === 'CASH'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-300 bg-white text-slate-600'
+                    }`}
+                  >
+                    Tiền mặt
+                  </button>
+                </div>
+
+                {paymentSheet.method === 'QR' ? (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="rounded-lg bg-white p-2">
+                        <QRCode
+                          value={buildPaymentQrValue({
+                            invoiceCode: `BK-${paymentSheet.booking.bookingId.slice(0, 8).toUpperCase()}`,
+                            totalCents: paymentSheet.booking.totalBillCents,
+                            patientPhone: paymentSheet.booking.patientPhone,
+                          })}
+                          size={132}
+                        />
+                      </div>
+                      <p className="text-center text-xs text-slate-600">
+                        Bệnh nhân quét mã QR để thanh toán.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                    Xác nhận đã nhận đủ tiền mặt trước khi bấm hoàn tất.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {payMutation.isError && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {payMutation.error instanceof Error
+                  ? payMutation.error.message
+                  : 'Thanh toán thất bại, vui lòng thử lại.'}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                onClick={() => {
+                  setPaymentSheet(null);
+                  payMutation.reset();
+                }}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() =>
+                  payMutation.mutate({
+                    bookingId: paymentSheet.booking.bookingId,
+                    method: paymentSheet.method,
+                  })
+                }
+                disabled={payMutation.isPending}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {payMutation.isPending ? 'Đang ghi nhận...' : 'Xác nhận thanh toán'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -763,6 +1018,10 @@ export function CashierPage() {
                 shiftLabel={invoicePreview.shiftLabel}
                 roomName={invoicePreview.roomName}
                 createdAt={invoicePreview.createdAt}
+                paidAt={invoicePreview.paidAt}
+                paymentMethod={invoicePreview.paymentMethod}
+                billedByName={invoicePreview.billedByName}
+                qrValue={invoicePreview.qrValue}
                 lines={invoicePreview.lines}
                 totalCents={invoicePreview.totalCents}
               />
@@ -773,13 +1032,13 @@ export function CashierPage() {
                 onClick={printInvoice}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                In hoa don
+                In hóa đơn
               </button>
               <button
                 onClick={() => setInvoicePreview(null)}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                Dong
+                Đóng
               </button>
             </div>
           </div>

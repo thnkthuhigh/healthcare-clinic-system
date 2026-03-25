@@ -1,6 +1,7 @@
 package com.clinic.backend.modules.customer.controller;
 
 import com.clinic.backend.modules.customer.dto.*;
+import com.clinic.backend.modules.doctor.entity.Booking;
 import com.clinic.backend.modules.customer.service.CustomerBookingService;
 import com.clinic.backend.modules.doctor.repository.ServiceRepository;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -17,6 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/customer")
 public class CustomerController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final CustomerBookingService bookingService;
     private final ServiceRepository serviceRepository;
@@ -31,8 +34,9 @@ public class CustomerController {
     // GET /api/customer/doctors
     // =====================================================
     @GetMapping("/doctors")
-    public ResponseEntity<List<DoctorSummaryDto>> getDoctors() {
-        return ResponseEntity.ok(bookingService.getAllDoctors());
+    public ResponseEntity<List<DoctorSummaryDto>> getDoctors(
+            @RequestParam(required = false) UUID serviceId) {
+        return ResponseEntity.ok(bookingService.getAllDoctors(serviceId));
     }
 
     // =====================================================
@@ -44,7 +48,7 @@ public class CustomerController {
             @PathVariable UUID doctorId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        LocalDate queryDate = date != null ? date : LocalDate.now();
+        LocalDate queryDate = date != null ? date : LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(bookingService.getAvailableShifts(doctorId, queryDate));
     }
 
@@ -78,8 +82,23 @@ public class CustomerController {
     // POST /api/customer/bookings/{bookingId}/pay
     // =====================================================
     @PostMapping("/bookings/{bookingId}/pay")
-    public ResponseEntity<BookingTicketDto> processPayment(@PathVariable UUID bookingId) {
-        return ResponseEntity.ok(bookingService.processPayment(bookingId));
+    public ResponseEntity<BookingTicketDto> processPayment(
+            @PathVariable UUID bookingId,
+            @RequestBody(required = false) BookingFeePaymentRequest request) {
+        Booking.PaymentMethod method = parsePaymentMethod(request);
+        return ResponseEntity.ok(bookingService.processBookingFee(bookingId, method));
+    }
+
+    private Booking.PaymentMethod parsePaymentMethod(BookingFeePaymentRequest request) {
+        if (request == null || request.method() == null || request.method().isBlank()) {
+            return Booking.PaymentMethod.QR;
+        }
+
+        try {
+            return Booking.PaymentMethod.valueOf(request.method().trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return Booking.PaymentMethod.QR;
+        }
     }
 
     // =====================================================

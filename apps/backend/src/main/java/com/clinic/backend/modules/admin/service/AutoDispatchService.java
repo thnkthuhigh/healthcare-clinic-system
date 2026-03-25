@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.UUID;
 public class AutoDispatchService {
 
     private static final String OVERRIDE_REASON = "FORCE_OVERRIDE";
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     @PersistenceContext
     private EntityManager em;
@@ -82,7 +84,7 @@ public class AutoDispatchService {
         UUID preferredDoctorId = parseOptionalUuid(request.getPreferredDoctorId(), "preferredDoctorId");
 
         boolean forceOverride = Boolean.TRUE.equals(request.getForceOverride());
-        List<CandidateShift> candidates = findCandidateShifts(serviceId, LocalDate.now());
+        List<CandidateShift> candidates = findCandidateShifts(serviceId, LocalDate.now(CLINIC_ZONE));
         if (candidates.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Khong co bac si phu trach dich vu nay hom nay");
         }
@@ -128,7 +130,7 @@ public class AutoDispatchService {
         UUID serviceId = parseUuid(rawServiceId, "serviceId");
         validateServiceExists(serviceId);
 
-        List<CandidateShift> candidates = findCandidateShifts(serviceId, LocalDate.now());
+        List<CandidateShift> candidates = findCandidateShifts(serviceId, LocalDate.now(CLINIC_ZONE));
         List<DispatchOptionDto> result = new ArrayList<>();
         for (CandidateShift candidate : candidates) {
             DispatchOptionDto dto = new DispatchOptionDto();

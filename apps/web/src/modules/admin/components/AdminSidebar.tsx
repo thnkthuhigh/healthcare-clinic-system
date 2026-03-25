@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../auth/useAuth';
@@ -21,35 +21,32 @@ const quickItems: NavItem[] = [
   { path: '/admin/cashier', icon: 'point_of_sale', label: 'Thu ngân' },
 ];
 
-const navGroups: NavGroup[] = [
+const commonGroups: NavGroup[] = [
   {
     id: 'clinic',
     title: 'Khám và hồ sơ',
     items: [
-      { path: '/admin/shifts', icon: 'calendar_month', label: 'Ca làm việc' },
       { path: '/admin/patients', icon: 'folder_shared', label: 'Hồ sơ khám' },
-      { path: '/admin/doctors', icon: 'medical_information', label: 'Bác sĩ' },
-      { path: '/admin/services', icon: 'medical_services', label: 'Dịch vụ' },
-      { path: '/admin/departments', icon: 'domain', label: 'Chuyên khoa' },
+      { path: '/admin/reports', icon: 'bar_chart', label: 'Báo cáo' },
     ],
-  },
-  {
-    id: 'inventory',
-    title: 'Cơ sở vật chất',
-    items: [
-      { path: '/admin/rooms', icon: 'meeting_room', label: 'Phòng khám' },
-      { path: '/admin/supplies', icon: 'inventory_2', label: 'Vật tư' },
-      { path: '/admin/assets', icon: 'inventory', label: 'Tài sản' },
-      { path: '/admin/medications', icon: 'medication', label: 'Thuốc' },
-      { path: '/admin/templates', icon: 'description', label: 'Mẫu toa thuốc' },
-    ],
-  },
-  {
-    id: 'report',
-    title: 'Tổng hợp',
-    items: [{ path: '/admin/reports', icon: 'bar_chart', label: 'Báo cáo và audit' }],
   },
 ];
+
+const ownerConfigGroup: NavGroup = {
+  id: 'owner-config',
+  title: 'Cấu hình owner',
+  items: [
+    { path: '/admin/shifts', icon: 'calendar_month', label: 'Ca làm việc' },
+    { path: '/admin/doctors', icon: 'medical_information', label: 'Quản lý bác sĩ' },
+    { path: '/admin/services', icon: 'medical_services', label: 'Dịch vụ' },
+    { path: '/admin/departments', icon: 'domain', label: 'Chuyên khoa' },
+    { path: '/admin/rooms', icon: 'meeting_room', label: 'Phòng khám' },
+    { path: '/admin/supplies', icon: 'inventory_2', label: 'Vật tư' },
+    { path: '/admin/assets', icon: 'inventory', label: 'Tài sản' },
+    { path: '/admin/medications', icon: 'medication', label: 'Thuốc' },
+    { path: '/admin/templates', icon: 'description', label: 'Mẫu toa thuốc' },
+  ],
+};
 
 function navIdFromPath(path: string) {
   const slug = path.replace('/admin/', '').replaceAll('/', '-');
@@ -60,9 +57,15 @@ export function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
 
   const roleBadge = user?.role === 'OWNER' ? 'Owner' : 'Admin';
+
+  const navGroups = useMemo(() => {
+    if (user?.role === 'OWNER') {
+      return [...commonGroups, ownerConfigGroup];
+    }
+    return commonGroups;
+  }, [user?.role]);
 
   const handleSignOut = () => {
     logout();
@@ -72,24 +75,6 @@ export function AdminSidebar() {
   const isRouteActive = (path: string) =>
     location.pathname === path ||
     (path !== '/admin/dashboard' && location.pathname.startsWith(path + '/'));
-
-  useEffect(() => {
-    const activeGroup = navGroups.find((group) =>
-      group.items.some(
-        (item) =>
-          location.pathname === item.path ||
-          (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path + '/')),
-      ),
-    );
-
-    if (activeGroup) {
-      setOpenGroupId(activeGroup.id);
-    }
-  }, [location.pathname]);
-
-  const toggleGroup = (groupId: string) => {
-    setOpenGroupId((current) => (current === groupId ? null : groupId));
-  };
 
   return (
     <aside className="ops-sidebar" data-testid="admin-sidebar">
@@ -117,34 +102,23 @@ export function AdminSidebar() {
         </section>
 
         {navGroups.map((group) => {
-          const isOpen = openGroupId === group.id;
           const hasActiveItem = group.items.some((item) => isRouteActive(item.path));
 
           return (
             <section key={group.id} className="space-y-1">
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.id)}
+              <p
                 data-testid={`admin-nav-group-${group.id}`}
-                className={`flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.14em] ${
-                  hasActiveItem ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'
+                className={`rounded-2xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] ${
+                  hasActiveItem ? 'bg-slate-100 text-slate-800' : 'text-slate-500'
                 }`}
               >
-                <span>{group.title}</span>
-                <span
-                  className={`material-symbols-outlined text-base transition-transform ${isOpen ? 'rotate-90' : ''}`}
-                >
-                  chevron_right
-                </span>
-              </button>
-
-              {isOpen && (
-                <div className="space-y-1">
-                  {group.items.map((item) => (
-                    <NavLink key={item.path} item={item} active={isRouteActive(item.path)} />
-                  ))}
-                </div>
-              )}
+                {group.title}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <NavLink key={item.path} item={item} active={isRouteActive(item.path)} />
+                ))}
+              </div>
             </section>
           );
         })}

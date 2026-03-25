@@ -253,6 +253,10 @@ export interface CashierBooking {
   channel: 'WEB' | 'WALK_IN';
   paymentStatus: 'UNPAID' | 'PAID' | 'VOID';
   completedAt: string | null;
+  paymentMethod: 'QR' | 'CASH' | null;
+  paidAt: string | null;
+  billedByUserId: string | null;
+  billedByName: string | null;
   prescriptionId: string | null;
   prescriptionStatus: 'HELD' | 'PAID' | 'CANCELED' | 'EXPIRED' | null;
   prescriptionItems: CashierPrescriptionItem[] | null;
@@ -286,6 +290,8 @@ export interface RetailSaleResponse {
   customerPhone: string | null;
   totalCents: number;
   createdAt: string;
+  billedByUserId: string | null;
+  billedByName: string | null;
   items: RetailSaleItem[];
 }
 

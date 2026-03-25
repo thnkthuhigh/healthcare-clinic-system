@@ -1,3 +1,4 @@
+import { addDaysToIsoDate, formatDateUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import type { AvailableShift } from '../types';
 
 interface ShiftPickerProps {
@@ -23,12 +24,8 @@ export function ShiftPicker({
   onShiftSelect,
   loading,
 }: ShiftPickerProps) {
-  const today = new Date();
-  const dates = Array.from({ length: 14 }, (_, i) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    return date.toISOString().split('T')[0] ?? '';
-  });
+  const today = toIsoDateUtc7();
+  const dates = Array.from({ length: 14 }, (_, index) => addDaysToIsoDate(today, index));
 
   return (
     <div className="space-y-6">
@@ -36,11 +33,10 @@ export function ShiftPicker({
         <p className="field-label">Chọn ngày khám</p>
         <div className="flex gap-3 overflow-x-auto pb-1">
           {dates.map((dateValue) => {
-            const date = new Date(`${dateValue}T00:00:00`);
             const isSelected = dateValue === selectedDate;
-            const dayName = date.toLocaleDateString('vi-VN', { weekday: 'short' });
-            const dayNum = date.getDate();
-            const month = date.toLocaleDateString('vi-VN', { month: '2-digit' });
+            const dayName = formatDateUtc7(dateValue, { weekday: 'short' });
+            const dayNum = formatDateUtc7(dateValue, { day: 'numeric' });
+            const month = formatDateUtc7(dateValue, { month: '2-digit' });
 
             return (
               <button
@@ -54,11 +50,15 @@ export function ShiftPicker({
                     : 'border-slate-200 bg-white text-slate-600 hover:border-primary/35 hover:shadow-soft'
                 }`}
               >
-                <span className={`uppercase tracking-[0.12em] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                <span
+                  className={`uppercase tracking-[0.12em] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}
+                >
                   {dayName}
                 </span>
                 <span className="mt-1 text-xl font-bold">{dayNum}</span>
-                <span className={`mt-1 text-[11px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                <span
+                  className={`mt-1 text-[11px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}
+                >
                   Tháng {month}
                 </span>
               </button>
@@ -68,10 +68,7 @@ export function ShiftPicker({
       </div>
 
       <div>
-        <div className="flex items-center justify-between gap-3">
-          <p className="field-label mb-0">Chọn ca khám</p>
-          <span className="text-xs text-slate-400">Hiển thị theo số chỗ còn trống</span>
-        </div>
+        <p className="field-label mb-0">Chọn ca khám</p>
 
         {loading && <p className="mt-4 text-sm text-slate-500">Đang tải danh sách ca khám...</p>}
         {!loading && shifts.length === 0 && (
@@ -103,19 +100,22 @@ export function ShiftPicker({
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-4">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isSelected ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'}`}>
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                        isSelected ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
                       <span className="material-symbols-outlined text-[22px]">
                         {shift.type === 'MORNING' ? 'light_mode' : 'bedtime'}
                       </span>
                     </div>
                     <div>
-                      <p className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-slate-950'}`}>
+                      <p
+                        className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-slate-950'}`}
+                      >
                         {SHIFT_LABELS[shift.type] ?? shift.type}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">{shift.timeRange}</p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        Phù hợp cho bệnh nhân cần đến đúng khung giờ đã hẹn
-                      </p>
                     </div>
                   </div>
 

@@ -9,12 +9,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin")
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class AdminController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final AdminService adminService;
 
@@ -29,7 +31,7 @@ public class AdminController {
     @GetMapping("/dashboard/stats")
     public ResponseEntity<DashboardStatsResponse> getDashboardStats(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
+        if (date == null) date = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(adminService.getDashboardStats(date));
     }
 
@@ -40,7 +42,7 @@ public class AdminController {
     @GetMapping("/dashboard/shifts")
     public ResponseEntity<List<ShiftOverviewDto>> getTodayShifts(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
+        if (date == null) date = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(adminService.getTodayShifts(date));
     }
 }

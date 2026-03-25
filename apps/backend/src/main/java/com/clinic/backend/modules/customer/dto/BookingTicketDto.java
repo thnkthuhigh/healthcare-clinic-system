@@ -21,5 +21,9 @@ public record BookingTicketDto(
     Instant createdAt,
     Instant appointmentTime,
     Integer currentServingQueueNumber,
-    Instant estimatedTurnAt
+    Instant estimatedTurnAt,
+    Integer bookingFeeCents,
+    Boolean bookingFeePaid,
+    Instant bookingFeePaidAt,
+    String bookingFeePaymentMethod
 ) {}

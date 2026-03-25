@@ -7,6 +7,7 @@ import type {
   MedicalRecord,
   Medication,
   Prescription,
+  PrescriptionTemplate,
   Patient,
   SaveMedicalRecordRequest,
   SavePrescriptionRequest,
@@ -43,11 +44,29 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'API Error' }));
-    throw new Error(error.message || 'API Error');
+    const rawBody = await response.text();
+    let parsedMessage = '';
+
+    if (rawBody) {
+      try {
+        const parsed = JSON.parse(rawBody) as { message?: string; error?: string };
+        parsedMessage = parsed.message || parsed.error || '';
+      } catch {
+        parsedMessage = rawBody.includes('<html') || rawBody.includes('<!doctype')
+          ? ''
+          : rawBody;
+      }
+    }
+
+    const fallbackMessage = `Lỗi API (${response.status})`;
+    throw new Error(parsedMessage || fallbackMessage);
   }
 
-  return response.json();
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
 }
 
 // ========== Doctor API ==========
@@ -167,4 +186,13 @@ export const consultationApi = {
     const params = query ? `?query=${encodeURIComponent(query)}` : '';
     return fetchApi<Medication[]>(`${API_BASE}/consultation/medications${params}`);
   },
+
+  getPrescriptionTemplates: () =>
+    fetchApi<PrescriptionTemplate[]>(`${API_BASE}/consultation/prescription-templates`),
+
+  completeLabResult: (bookingId: string, data: { resultSummary: string; impression?: string }) =>
+    fetchApi<QueueItem>(`${API_BASE}/consultation/bookings/${bookingId}/lab-result`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

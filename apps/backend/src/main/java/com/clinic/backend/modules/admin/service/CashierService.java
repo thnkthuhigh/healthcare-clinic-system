@@ -10,6 +10,7 @@ import com.clinic.backend.modules.doctor.entity.PrescriptionItem;
 import com.clinic.backend.modules.doctor.repository.BookingRepository;
 import com.clinic.backend.modules.doctor.repository.MedicationRepository;
 import com.clinic.backend.modules.doctor.repository.PrescriptionRepository;
+import com.clinic.backend.modules.doctor.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 @Service
 public class CashierService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     @PersistenceContext
     private EntityManager em;
@@ -37,39 +39,45 @@ public class CashierService {
     private final BookingRepository bookingRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final MedicationRepository medicationRepository;
+    private final UserRepository userRepository;
     private final AuditLogService auditLogService;
 
     public CashierService(BookingRepository bookingRepository,
                           PrescriptionRepository prescriptionRepository,
                           MedicationRepository medicationRepository,
+                          UserRepository userRepository,
                           AuditLogService auditLogService) {
         this.bookingRepository = bookingRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.medicationRepository = medicationRepository;
+        this.userRepository = userRepository;
         this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
     public List<CashierBookingDto> getCompletedBookings(LocalDate date) {
-        Instant dayStart = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Instant dayEnd = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant dayStart = date.atStartOfDay(CLINIC_ZONE).toInstant();
+        Instant dayEnd = date.plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant();
 
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT b.id, b.queue_number, p.full_name, p.phone,
                        u.full_name AS doctor_name,
                        sv.name AS service_name, sv.price_cents AS service_price,
                        b.status, b.channel, b.payment_status, b.completed_at,
+                       b.payment_method, b.paid_at, b.paid_by_user_id, COALESCE(cashier.full_name, cashier.phone) AS billed_by_name,
                        pr.id AS prescription_id, pr.status AS prescription_status
                 FROM bookings b
                 JOIN patients p ON p.id = b.patient_id
                 JOIN shifts s ON s.id = b.shift_id
                 JOIN doctors d ON d.id = s.doctor_id
                 JOIN users u ON u.id = d.user_id
+                LEFT JOIN users cashier ON cashier.id = b.paid_by_user_id
                 LEFT JOIN services sv ON sv.id = b.service_id
                 LEFT JOIN prescriptions pr ON pr.booking_id = b.id
                 WHERE b.status = 'COMPLETED'
-                AND b.created_at >= :dayStart AND b.created_at < :dayEnd
+                AND COALESCE(b.completed_at, b.created_at) >= :dayStart
+                AND COALESCE(b.completed_at, b.created_at) < :dayEnd
                 ORDER BY b.completed_at DESC
                 """)
             .setParameter("dayStart", dayStart)
@@ -90,9 +98,13 @@ public class CashierService {
             dto.setChannel((String) row[8]);
             dto.setPaymentStatus((String) row[9]);
             dto.setCompletedAt(toInstant(row[10]));
+            dto.setPaymentMethod(row[11] != null ? row[11].toString() : null);
+            dto.setPaidAt(toInstant(row[12]));
+            dto.setBilledByUserId((UUID) row[13]);
+            dto.setBilledByName(row[14] != null ? row[14].toString() : null);
 
-            UUID prescriptionId = (UUID) row[11];
-            String prescriptionStatus = (String) row[12];
+            UUID prescriptionId = (UUID) row[15];
+            String prescriptionStatus = (String) row[16];
             dto.setPrescriptionId(prescriptionId);
             dto.setPrescriptionStatus(prescriptionStatus);
 
@@ -144,6 +156,10 @@ public class CashierService {
         dto.setChannel(booking.getChannel().name());
         dto.setPaymentStatus(booking.getPaymentStatus().name());
         dto.setCompletedAt(booking.getCompletedAt());
+        dto.setPaymentMethod(booking.getPaymentMethod() != null ? booking.getPaymentMethod().name() : null);
+        dto.setPaidAt(booking.getPaidAt());
+        dto.setBilledByUserId(booking.getPaidByUserId());
+        dto.setBilledByName(getUserFullNameById(booking.getPaidByUserId()));
 
         prescriptionRepository.findByBookingIdWithItems(bookingId).ifPresent(prescription -> {
             dto.setPrescriptionId(prescription.getId());
@@ -174,7 +190,7 @@ public class CashierService {
     }
 
     @Transactional
-    public CashierBookingDto processPayment(UUID bookingId) {
+    public CashierBookingDto processPayment(UUID bookingId, String paymentMethodRaw) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
             .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich kham"));
 
@@ -185,7 +201,14 @@ public class CashierService {
             throw new IllegalStateException("Lich kham da duoc thanh toan");
         }
 
+        Booking.PaymentMethod paymentMethod = resolvePaymentMethod(paymentMethodRaw);
+        UUID actorUserId = getCurrentActorUserIdOrNull();
+        Instant paidAt = Instant.now();
+
         booking.setPaymentStatus(Booking.PaymentStatus.PAID);
+        booking.setPaymentMethod(paymentMethod);
+        booking.setPaidAt(paidAt);
+        booking.setPaidByUserId(actorUserId);
         bookingRepository.save(booking);
 
         prescriptionRepository.findByBookingIdWithItems(bookingId).ifPresent(prescription -> {
@@ -199,6 +222,13 @@ public class CashierService {
                 }
             }
         });
+
+        populateFinanceActorForBooking(bookingId, actorUserId);
+
+        var auditMeta = new LinkedHashMap<String, Object>();
+        auditMeta.put("paymentMethod", paymentMethod.name());
+        auditMeta.put("paidAt", paidAt.toString());
+        auditLogService.log("PROCESS_BOOKING_PAYMENT", "BOOKING", bookingId, auditMeta);
 
         return getBookingForPayment(bookingId);
     }
@@ -249,6 +279,7 @@ public class CashierService {
         }
 
         UUID actorUserId = getCurrentActorUserIdOrNull();
+        String billedByName = getUserFullNameById(actorUserId);
         String invoiceCode = "RTL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Instant now = Instant.now();
 
@@ -307,6 +338,8 @@ public class CashierService {
         response.setCustomerPhone(normalizeOptional(request.getCustomerPhone()));
         response.setTotalCents(total);
         response.setCreatedAt(now);
+        response.setBilledByUserId(actorUserId);
+        response.setBilledByName(billedByName);
         response.setItems(items);
         return response;
     }
@@ -354,6 +387,69 @@ public class CashierService {
             }
         }
         return null;
+    }
+
+    private String getUserFullNameById(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        return userRepository.findById(userId)
+            .map(user -> {
+                if (user.getFullName() != null && !user.getFullName().isBlank()) {
+                    return user.getFullName();
+                }
+                return user.getPhone();
+            })
+            .orElse(null);
+    }
+
+    private Booking.PaymentMethod resolvePaymentMethod(String rawMethod) {
+        if (rawMethod == null || rawMethod.isBlank()) {
+            return Booking.PaymentMethod.CASH;
+        }
+        try {
+            return Booking.PaymentMethod.valueOf(rawMethod.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phuong thuc thanh toan khong hop le");
+        }
+    }
+
+    private void populateFinanceActorForBooking(UUID bookingId, UUID actorUserId) {
+        if (actorUserId == null) {
+            return;
+        }
+
+        em.createNativeQuery("""
+                UPDATE finance_ledger
+                SET actor_user_id = :actorUserId
+                WHERE actor_user_id IS NULL
+                  AND ref_type = 'BOOKING'
+                  AND ref_id = :bookingId
+                  AND entry_type = 'INCOME'
+                  AND category = 'CONSULTATION_FEE'
+                """)
+            .setParameter("actorUserId", actorUserId)
+            .setParameter("bookingId", bookingId)
+            .executeUpdate();
+
+        em.createNativeQuery("""
+                UPDATE finance_ledger fl
+                SET actor_user_id = :actorUserId
+                WHERE fl.actor_user_id IS NULL
+                  AND fl.ref_type = 'PRESCRIPTION_ITEM'
+                  AND fl.entry_type = 'INCOME'
+                  AND fl.category = 'MEDICATION_SALE'
+                  AND EXISTS (
+                    SELECT 1
+                    FROM prescription_items pi
+                    JOIN prescriptions pr ON pr.id = pi.prescription_id
+                    WHERE pr.booking_id = :bookingId
+                      AND pi.id = fl.ref_id
+                  )
+                """)
+            .setParameter("actorUserId", actorUserId)
+            .setParameter("bookingId", bookingId)
+            .executeUpdate();
     }
 
     private String normalizeOptional(String value) {

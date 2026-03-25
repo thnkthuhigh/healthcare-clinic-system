@@ -3,11 +3,13 @@ package com.clinic.backend.modules.doctor.entity;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Entity
 @Table(name = "shifts")
 public class Shift {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -85,9 +87,9 @@ public class Shift {
     // Utility method for display
     public String getTimeRange() {
         // Format: "07:00 - 09:00"
-        java.time.format.DateTimeFormatter formatter = 
+        java.time.format.DateTimeFormatter formatter =
             java.time.format.DateTimeFormatter.ofPattern("HH:mm")
-                .withZone(java.time.ZoneId.systemDefault());
+                .withZone(CLINIC_ZONE);
         return formatter.format(startTime) + " - " + formatter.format(endTime);
     }
 }

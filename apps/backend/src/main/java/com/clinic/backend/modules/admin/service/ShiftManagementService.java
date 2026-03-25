@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ShiftManagementService {
+    private static final int DEFAULT_SHIFT_SLOT_COUNT = 20;
+    private static final int DEFAULT_COMMON_SLOT_COUNT = 16;
 
     private final ShiftRepository shiftRepository;
     private final DoctorRepository doctorRepository;
@@ -100,7 +102,7 @@ public class ShiftManagementService {
         }
 
         Shift shift = createShiftWithDefaultSlots(doctor, date, type, false, null);
-        return toShiftDto(shift, 16, 0);
+        return toShiftDto(shift, DEFAULT_SHIFT_SLOT_COUNT, 0);
     }
 
     @Transactional
@@ -128,7 +130,7 @@ public class ShiftManagementService {
                     }
 
                     Shift shift = createShiftWithDefaultSlots(doctor, targetDate, shiftType, false, null);
-                    created.add(toShiftDto(shift, 16, 0));
+                    created.add(toShiftDto(shift, DEFAULT_SHIFT_SLOT_COUNT, 0));
                 }
             }
         }
@@ -171,7 +173,7 @@ public class ShiftManagementService {
                     continue;
                 }
                 Shift shift = createShiftWithDefaultSlots(doctor, targetDate, shiftType, true, note);
-                created.add(toShiftDto(shift, 16, 0));
+                created.add(toShiftDto(shift, DEFAULT_SHIFT_SLOT_COUNT, 0));
             }
 
             for (Shift shift : existingShifts) {
@@ -298,10 +300,10 @@ public class ShiftManagementService {
         Instant endTime;
         if (type == Shift.ShiftType.MORNING) {
             startTime = date.atTime(7, 0).atZone(vn).toInstant();
-            endTime = date.atTime(11, 0).atZone(vn).toInstant();
+            endTime = date.atTime(12, 0).atZone(vn).toInstant();
         } else {
             startTime = date.atTime(13, 0).atZone(vn).toInstant();
-            endTime = date.atTime(17, 0).atZone(vn).toInstant();
+            endTime = date.atTime(18, 0).atZone(vn).toInstant();
         }
 
         Shift shift = new Shift();
@@ -314,8 +316,8 @@ public class ShiftManagementService {
         shift.setAdjustmentNote(normalizeNullable(adjustmentNote));
         shift = shiftRepository.saveAndFlush(shift);
 
-        for (int seq = 1; seq <= 16; seq++) {
-            String pool = seq <= 12 ? "COMMON" : "RESERVE";
+        for (int seq = 1; seq <= DEFAULT_SHIFT_SLOT_COUNT; seq++) {
+            String pool = seq <= DEFAULT_COMMON_SLOT_COUNT ? "COMMON" : "RESERVE";
             em.createNativeQuery(
                 "INSERT INTO slots (id, shift_id, sequence, pool, status) " +
                 "VALUES (gen_random_uuid(), :shiftId, :seq, CAST(:pool AS slot_pool), CAST('OPEN' AS slot_status))")

@@ -42,6 +42,26 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
+    @Column(name = "paid_by_user_id")
+    private UUID paidByUserId;
+
+    @Column(name = "booking_fee_cents", nullable = false)
+    private Integer bookingFeeCents = 10_000;
+
+    @Column(name = "booking_fee_paid_at")
+    private Instant bookingFeePaidAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "booking_fee_payment_method")
+    private PaymentMethod bookingFeePaymentMethod;
     
     @Column(name = "queue_number")
     private Integer queueNumber;
@@ -83,6 +103,10 @@ public class Booking {
     public enum PaymentStatus {
         UNPAID, PAID, VOID
     }
+
+    public enum PaymentMethod {
+        QR, CASH
+    }
     
     // Getters and Setters
     public UUID getId() { return id; }
@@ -111,6 +135,24 @@ public class Booking {
     
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Instant getPaidAt() { return paidAt; }
+    public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
+
+    public UUID getPaidByUserId() { return paidByUserId; }
+    public void setPaidByUserId(UUID paidByUserId) { this.paidByUserId = paidByUserId; }
+
+    public Integer getBookingFeeCents() { return bookingFeeCents; }
+    public void setBookingFeeCents(Integer bookingFeeCents) { this.bookingFeeCents = bookingFeeCents; }
+
+    public Instant getBookingFeePaidAt() { return bookingFeePaidAt; }
+    public void setBookingFeePaidAt(Instant bookingFeePaidAt) { this.bookingFeePaidAt = bookingFeePaidAt; }
+
+    public PaymentMethod getBookingFeePaymentMethod() { return bookingFeePaymentMethod; }
+    public void setBookingFeePaymentMethod(PaymentMethod bookingFeePaymentMethod) { this.bookingFeePaymentMethod = bookingFeePaymentMethod; }
     
     public Integer getQueueNumber() { return queueNumber; }
     public void setQueueNumber(Integer queueNumber) { this.queueNumber = queueNumber; }

@@ -82,6 +82,17 @@ public class ConsultationController {
     }
 
     /**
+     * Complete lab and return patient to waiting queue of the same doctor
+     * POST /api/doctor/consultation/bookings/{bookingId}/lab-result
+     */
+    @PostMapping("/bookings/{bookingId}/lab-result")
+    public ResponseEntity<QueueItemDto> completeLabResult(
+            @PathVariable UUID bookingId,
+            @Valid @RequestBody CompleteLabResultRequest request) {
+        return ResponseEntity.ok(consultationService.completeLabResult(bookingId, request));
+    }
+
+    /**
      * Save medical record
      * POST /api/doctor/consultation/bookings/{bookingId}/medical-record
      */
@@ -148,5 +159,14 @@ public class ConsultationController {
         
         List<MedicationDto> medications = consultationService.searchMedications(query);
         return ResponseEntity.ok(medications);
+    }
+
+    /**
+     * Get active prescription templates for quick apply
+     * GET /api/doctor/consultation/prescription-templates
+     */
+    @GetMapping("/prescription-templates")
+    public ResponseEntity<List<PrescriptionTemplateDto>> getPrescriptionTemplates() {
+        return ResponseEntity.ok(consultationService.getActivePrescriptionTemplates());
     }
 }

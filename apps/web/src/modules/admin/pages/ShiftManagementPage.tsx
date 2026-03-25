@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
+import { addDaysToIsoDate, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type {
   AdminDoctorDto,
@@ -18,13 +19,9 @@ type ShiftType = 'MORNING' | 'AFTERNOON';
 type DayShiftMap = Record<number, { MORNING: boolean; AFTERNOON: boolean }>;
 
 const TYPE_LABEL: Record<string, string> = {
-  MORNING: 'Sang (07:00-11:00)',
-  AFTERNOON: 'Chieu (13:00-17:00)',
+  MORNING: 'Sang (07:00-12:00)',
+  AFTERNOON: 'Chieu (13:00-18:00)',
 };
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function formatDate(iso: string) {
   const [y, m, d] = iso.split('-');
@@ -32,16 +29,23 @@ function formatDate(iso: string) {
 }
 
 function addDays(isoDate: string, days: number) {
-  const base = new Date(`${isoDate}T00:00:00`);
-  base.setDate(base.getDate() + days);
-  return toLocalDateString(base);
+  return addDaysToIsoDate(isoDate, days);
+}
+
+function toUtcDateFromIso(isoDate: string) {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1));
+}
+
+function toIsoFromUtcDate(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 function startOfWeekMonday(isoDate: string) {
-  const d = new Date(`${isoDate}T00:00:00`);
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
-  return toLocalDateString(d);
+  const d = toUtcDateFromIso(isoDate);
+  const day = d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() + (day === 0 ? -6 : 1 - day));
+  return toIsoFromUtcDate(d);
 }
 
 function getWeekDates(weekStartDate: string) {
@@ -54,27 +58,27 @@ function toMonthValue(isoDate: string) {
 
 function getWeekStartFromMonthWeek(monthValue: string, weekNo: number) {
   const parts = monthValue.split('-').map(Number);
-  const year = parts[0] ?? new Date().getFullYear();
+  const year = parts[0] ?? Number.parseInt(toIsoDateUtc7().slice(0, 4), 10);
   const month = parts[1] ?? 1;
-  const firstDay = new Date(year, month - 1, 1);
-  const day = firstDay.getDay();
+  const firstDay = new Date(Date.UTC(year, month - 1, 1));
+  const day = firstDay.getUTCDay();
   const shiftToMonday = day === 0 ? -6 : 1 - day;
-  firstDay.setDate(firstDay.getDate() + shiftToMonday + (weekNo - 1) * 7);
-  return toLocalDateString(firstDay);
+  firstDay.setUTCDate(firstDay.getUTCDate() + shiftToMonday + (weekNo - 1) * 7);
+  return toIsoFromUtcDate(firstDay);
 }
 
 function getWeekNoFromDate(isoDate: string) {
   const parts = isoDate.split('-').map(Number);
-  const year = parts[0] ?? new Date().getFullYear();
+  const year = parts[0] ?? Number.parseInt(toIsoDateUtc7().slice(0, 4), 10);
   const month = parts[1] ?? 1;
   const day = parts[2] ?? 1;
-  const target = new Date(year, month - 1, day);
-  const firstDay = new Date(year, month - 1, 1);
+  const target = new Date(Date.UTC(year, month - 1, day));
+  const firstDay = new Date(Date.UTC(year, month - 1, 1));
   const firstWeekMonday = new Date(firstDay);
-  const firstWeekDay = firstDay.getDay();
+  const firstWeekDay = firstDay.getUTCDay();
   const shiftToMonday = firstWeekDay === 0 ? -6 : 1 - firstWeekDay;
-  firstWeekMonday.setDate(firstWeekMonday.getDate() + shiftToMonday);
-  const diffDays = Math.floor((target.getTime() - firstWeekMonday.getTime()) / 86400000);
+  firstWeekMonday.setUTCDate(firstWeekMonday.getUTCDate() + shiftToMonday);
+  const diffDays = Math.floor((target.getTime() - firstWeekMonday.getTime()) / 86_400_000);
   const weekNo = Math.floor(diffDays / 7) + 1;
   return Math.min(5, Math.max(1, weekNo));
 }
@@ -781,7 +785,7 @@ function WeekCalendar({ doctors, weekDates, weekRows }: WeekCalendarProps) {
 
 export function ShiftManagementPage() {
   const queryClient = useQueryClient();
-  const today = toLocalDateString(new Date());
+  const today = toIsoDateUtc7();
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMode, setViewMode] = useState<ViewMode>('DAY');
   const [showPattern, setShowPattern] = useState(false);

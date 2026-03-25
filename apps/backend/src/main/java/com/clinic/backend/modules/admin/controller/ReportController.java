@@ -19,12 +19,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/reports")
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class ReportController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final ReportService reportService;
 
@@ -36,8 +38,8 @@ public class ReportController {
     public ResponseEntity<ReportSummaryDto> getSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        if (from == null) from = LocalDate.now().withDayOfMonth(1);
-        if (to == null) to = LocalDate.now();
+        if (from == null) from = LocalDate.now(CLINIC_ZONE).withDayOfMonth(1);
+        if (to == null) to = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(reportService.getSummary(from, to));
     }
 
@@ -47,8 +49,8 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String type) {
-        if (from == null) from = LocalDate.now().withDayOfMonth(1);
-        if (to == null) to = LocalDate.now();
+        if (from == null) from = LocalDate.now(CLINIC_ZONE).withDayOfMonth(1);
+        if (to == null) to = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(reportService.getFinanceLedger(from, to, category, type));
     }
 
@@ -56,8 +58,8 @@ public class ReportController {
     public ResponseEntity<FinanceSummaryDto> getFinanceSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        if (from == null) from = LocalDate.now().withDayOfMonth(1);
-        if (to == null) to = LocalDate.now();
+        if (from == null) from = LocalDate.now(CLINIC_ZONE).withDayOfMonth(1);
+        if (to == null) to = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(reportService.getFinanceSummary(from, to));
     }
 
@@ -69,7 +71,7 @@ public class ReportController {
     @GetMapping("/daily-invoices")
     public ResponseEntity<List<DailyInvoiceDto>> getDailyInvoices(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
+        if (date == null) date = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(reportService.getDailyInvoices(date));
     }
 
@@ -77,8 +79,8 @@ public class ReportController {
     public ResponseEntity<List<DoctorVisitStatsDto>> getVisitsByDoctor(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        if (from == null) from = LocalDate.now().withDayOfMonth(1);
-        if (to == null) to = LocalDate.now();
+        if (from == null) from = LocalDate.now(CLINIC_ZONE).withDayOfMonth(1);
+        if (to == null) to = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(reportService.getVisitsByDoctor(from, to));
     }
 
@@ -88,8 +90,8 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) String action) {
-        if (from == null) from = LocalDate.now().minusDays(7);
-        if (to == null) to = LocalDate.now();
+        if (from == null) from = LocalDate.now(CLINIC_ZONE).minusDays(7);
+        if (to == null) to = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(reportService.getAuditLogs(from, to, entityType, action));
     }
 }

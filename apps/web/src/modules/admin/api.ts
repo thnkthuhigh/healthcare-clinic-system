@@ -179,9 +179,10 @@ export const adminApi = {
   getCashierBookingDetail: (bookingId: string) =>
     fetchApi<CashierBooking>(`${API_BASE}/cashier/bookings/${bookingId}`),
 
-  processPayment: (bookingId: string) =>
+  processPayment: (bookingId: string, method: 'QR' | 'CASH') =>
     fetchApi<CashierBooking>(`${API_BASE}/cashier/pay/${bookingId}`, {
       method: 'POST',
+      body: JSON.stringify({ method }),
     }),
 
   removePrescriptionItem: (bookingId: string, itemId: string) =>

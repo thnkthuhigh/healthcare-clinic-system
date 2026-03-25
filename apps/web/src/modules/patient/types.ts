@@ -14,7 +14,7 @@ export interface AvailableShift {
   type: 'MORNING' | 'AFTERNOON';
   startTime: string; // ISO instant
   endTime: string;
-  timeRange: string; // e.g. "07:00 - 11:00"
+  timeRange: string; // e.g. "07:00 - 12:00"
   status: 'OPEN' | 'CLOSED';
   availableSlots: number;
   isFull: boolean;
@@ -55,6 +55,10 @@ export interface BookingTicket {
   appointmentTime: string;
   currentServingQueueNumber: number | null;
   estimatedTurnAt: string;
+  bookingFeeCents: number;
+  bookingFeePaid: boolean;
+  bookingFeePaidAt: string | null;
+  bookingFeePaymentMethod: 'QR' | 'CASH' | null;
 }
 
 export interface PatientSummary {
@@ -113,6 +117,10 @@ export interface PatientBooking {
   serviceName: string | null;
   status: string;
   paymentStatus: 'UNPAID' | 'PAID' | 'VOID';
+  bookingFeeCents: number;
+  bookingFeePaid: boolean;
+  bookingFeePaidAt: string | null;
+  bookingFeePaymentMethod: 'QR' | 'CASH' | null;
   createdAt: string;
   appointmentTime: string;
   currentServingQueueNumber: number | null;

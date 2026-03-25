@@ -3,11 +3,12 @@ services:
     image: postgres:16
     container_name: clinic_postgres
     restart: unless-stopped
+    command: ['postgres', '-c', 'timezone=Asia/Ho_Chi_Minh']
     environment:
       POSTGRES_DB: clinic_dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      TZ: UTC
+      TZ: Asia/Ho_Chi_Minh
     ports:
       - '5432:5432'
     volumes:
@@ -28,6 +29,7 @@ services:
       - '4000:4000'
     environment:
       SERVER_PORT: 4000
+      TZ: Asia/Ho_Chi_Minh
       DB_URL: jdbc:postgresql://postgres:5432/clinic_dev?stringtype=unspecified
       DB_USERNAME: postgres
       DB_PASSWORD: postgres

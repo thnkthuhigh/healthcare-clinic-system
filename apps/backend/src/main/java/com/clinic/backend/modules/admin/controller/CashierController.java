@@ -1,6 +1,7 @@
 package com.clinic.backend.modules.admin.controller;
 
 import com.clinic.backend.modules.admin.dto.CashierBookingDto;
+import com.clinic.backend.modules.admin.dto.ProcessPaymentRequest;
 import com.clinic.backend.modules.admin.dto.RetailSaleRequest;
 import com.clinic.backend.modules.admin.dto.RetailSaleResponse;
 import com.clinic.backend.modules.admin.service.CashierService;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +28,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/admin/cashier")
 @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
 public class CashierController {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final CashierService cashierService;
 
@@ -36,7 +39,7 @@ public class CashierController {
     @GetMapping("/bookings")
     public ResponseEntity<List<CashierBookingDto>> getCompletedBookings(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
+        if (date == null) date = LocalDate.now(CLINIC_ZONE);
         return ResponseEntity.ok(cashierService.getCompletedBookings(date));
     }
 
@@ -46,8 +49,11 @@ public class CashierController {
     }
 
     @PostMapping("/pay/{bookingId}")
-    public ResponseEntity<CashierBookingDto> processPayment(@PathVariable UUID bookingId) {
-        return ResponseEntity.ok(cashierService.processPayment(bookingId));
+    public ResponseEntity<CashierBookingDto> processPayment(
+            @PathVariable UUID bookingId,
+            @RequestBody(required = false) ProcessPaymentRequest request) {
+        String method = request != null ? request.getMethod() : null;
+        return ResponseEntity.ok(cashierService.processPayment(bookingId, method));
     }
 
     @DeleteMapping("/bookings/{bookingId}/items/{itemId}")

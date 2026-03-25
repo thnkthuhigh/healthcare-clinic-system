@@ -12,6 +12,7 @@
     "dev:api": "npm run dev -w apps/api",
     "dev:backend": "npm run dev -w apps/backend",
     "dev:web": "npm run dev -w apps/web",
+    "web:refresh": "npm run build -w apps/web && docker compose restart web",
     "build": "npm run build --workspaces",
     "check": "npm run lint && npm run typecheck && npm run format:check",
     "check:all": "npm run check && npm run build",

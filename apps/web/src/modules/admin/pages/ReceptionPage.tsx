@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { formatDateTimeUtc7, formatDateUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type {
   AdminPatientDto,
@@ -98,9 +99,12 @@ function normalizeDateForInput(rawDate: string | null) {
 
 function dateTimeLabel(raw: string | null) {
   if (!raw) return 'Chua cap nhat';
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return raw;
-  return parsed.toLocaleString('vi-VN');
+  return formatDateTimeUtc7(raw);
+}
+
+function bookingDateLabel(raw: string | null) {
+  if (!raw) return 'Chua co ngay';
+  return formatDateUtc7(raw, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function toSortTimestamp(raw: string | null) {
@@ -110,9 +114,13 @@ function toSortTimestamp(raw: string | null) {
   return parsed.getTime();
 }
 
+function getLocalDateIso() {
+  return toIsoDateUtc7();
+}
+
 export function ReceptionPage() {
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateIso();
 
   const [activeTab, setActiveTab] = useState<TabType>('board');
   const [selectedShiftId, setSelectedShiftId] = useState('');
@@ -413,7 +421,7 @@ export function ReceptionPage() {
         </head>
         <body>
           <h1>Phieu kham benh</h1>
-          <div class="muted">Thoi gian in: ${new Date().toLocaleString('vi-VN')}</div>
+          <div class="muted">Thoi gian in: ${formatDateTimeUtc7(new Date())}</div>
           <div class="box">
             <div class="queue">STT #${createVisitResult.queueNumber}</div>
             <div class="row"><div class="label">Benh nhan</div><div class="value">${createVisitResult.patientName}</div></div>
@@ -556,7 +564,12 @@ export function ReceptionPage() {
                     return (
                       <tr key={booking.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 font-mono font-bold text-slate-900">
-                          {booking.queueNumber ?? '-'}
+                          <div className="space-y-1">
+                            <p>{booking.queueNumber ?? '-'}</p>
+                            <p className="text-xs font-medium text-slate-500">
+                              Ngay dat: {bookingDateLabel(booking.createdAt)}
+                            </p>
+                          </div>
                         </td>
                         <td className="px-4 py-3 font-medium text-slate-900">
                           {booking.patientName}
@@ -1183,7 +1196,7 @@ export function ReceptionPage() {
                       </head>
                       <body>
                         <h1>Phieu kham benh</h1>
-                        <div class="muted">Thoi gian in: ${new Date().toLocaleString('vi-VN')}</div>
+                        <div class="muted">Thoi gian in: ${formatDateTimeUtc7(new Date())}</div>
                         <div class="box">
                           <div class="queue">STT #${selectedBookingDetail.queueNumber ?? '-'}</div>
                           <div class="row"><div class="label">Benh nhan</div><div class="value">${selectedBookingDetail.patientName}</div></div>

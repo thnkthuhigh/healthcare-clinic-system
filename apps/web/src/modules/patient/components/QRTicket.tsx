@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import QRCode from 'react-qr-code';
 
+import { formatDateUtc7, formatTimeUtc7 } from '../../../lib/time';
 import type { BookingTicket } from '../types';
 
 interface QRTicketProps {
@@ -12,30 +13,67 @@ const SHIFT_LABEL: Record<string, string> = {
   AFTERNOON: 'Buổi chiều',
 };
 
+function formatVnd(value: number): string {
+  return `${new Intl.NumberFormat('vi-VN').format(value)} đ`;
+}
+
 export function QRTicket({ ticket }: QRTicketProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
+  const [downloadPopup, setDownloadPopup] = useState<string | null>(null);
+  const isDownloadError = downloadPopup?.startsWith('Không thể') ?? false;
   const displayQueueNumber = ticket.queueNumber ?? ticket.slotSequence;
   const displayQueueLabel =
-    ticket.queueNumber !== null ? 'Số thứ tự đến lượt' : 'Số thứ tự tham khảo';
+    ticket.queueNumber !== null ? 'Số thứ tự đến lượt' : 'Số thứ tự dự kiến';
   const ticketCode = buildTicketCode(ticket.bookingId, ticket.date);
+
+  useEffect(() => {
+    if (!downloadPopup) return undefined;
+    const timer = window.setTimeout(() => setDownloadPopup(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [downloadPopup]);
 
   const handleSave = () => {
     const svgEl = ticketRef.current?.querySelector<SVGElement>('svg');
-    if (!svgEl) return;
+    if (!svgEl) {
+      setDownloadPopup('Không thể lưu ảnh phiếu khám. Vui lòng thử lại.');
+      return;
+    }
 
     const serializer = new XMLSerializer();
     const svgStr = serializer.serializeToString(svgEl);
-    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
+    const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`;
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${ticketCode.toLowerCase()}.svg`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        setDownloadPopup('Không thể lưu ảnh phiếu khám. Vui lòng thử lại.');
+        return;
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0);
+
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `${ticketCode.toLowerCase()}.png`;
+      link.click();
+      setDownloadPopup('Đã lưu ảnh phiếu khám (.png) thành công.');
+    };
+
+    image.onerror = () => {
+      setDownloadPopup('Không thể lưu ảnh phiếu khám. Vui lòng thử lại.');
+    };
+
+    image.src = svgDataUrl;
   };
 
-  const dateDisplay = new Date(`${ticket.date}T00:00:00`).toLocaleDateString('vi-VN', {
+  const dateDisplay = formatDateUtc7(ticket.date, {
     weekday: 'long',
     day: '2-digit',
     month: '2-digit',
@@ -67,10 +105,7 @@ export function QRTicket({ ticket }: QRTicketProps) {
 
         <div className="grid gap-5 px-5 py-5 sm:grid-cols-[160px_minmax(0,1fr)]">
           <div className="flex flex-col items-center gap-3">
-            <div
-              className="rounded-2xl border border-slate-200 bg-white p-3"
-              data-testid="patient-booking-ticket-qr"
-            >
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
               <QRCode value={ticket.bookingId} size={110} level="M" />
             </div>
             <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -99,9 +134,14 @@ export function QRTicket({ ticket }: QRTicketProps) {
             />
             <InfoBlock label="Giờ dự kiến tới lượt" value={formatClock(ticket.estimatedTurnAt)} />
             <InfoBlock
-              label="Thanh toán"
-              value={ticket.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chờ thanh toán'}
+              label="Phí đặt lịch"
+              value={
+                ticket.bookingFeePaid
+                  ? `Đã thanh toán ${formatVnd(ticket.bookingFeeCents)}`
+                  : 'Chưa thanh toán'
+              }
             />
+            <InfoBlock label="Phí khám dịch vụ" value="Thanh toán tại quầy sau khám" />
             {ticket.serviceName && <InfoBlock label="Dịch vụ" value={ticket.serviceName} />}
           </div>
         </div>
@@ -114,7 +154,8 @@ export function QRTicket({ ticket }: QRTicketProps) {
             : 'Số hiện tại là số thứ tự đã được cấp cho bệnh nhân trong ca khám này.'}
         </p>
         <p className="mt-2">
-          Xuất trình mã QR hoặc đọc số điện thoại <strong>{ticket.patientPhone}</strong> cho nhân viên lễ tân.
+          Xuất trình mã QR hoặc đọc số điện thoại <strong>{ticket.patientPhone}</strong> cho nhân viên
+          lễ tân.
         </p>
       </div>
 
@@ -127,6 +168,16 @@ export function QRTicket({ ticket }: QRTicketProps) {
         <span className="material-symbols-outlined text-base">download</span>
         <span>Lưu ảnh phiếu khám</span>
       </button>
+
+      {downloadPopup && (
+        <div
+          className={`fixed right-5 top-5 z-50 rounded-2xl border bg-white px-4 py-3 text-sm font-medium shadow-lg ${
+            isDownloadError ? 'border-red-200 text-red-700' : 'border-emerald-200 text-emerald-700'
+          }`}
+        >
+          {downloadPopup}
+        </div>
+      )}
     </div>
   );
 }
@@ -146,7 +197,7 @@ function buildTicketCode(bookingId: string, date: string) {
 }
 
 function formatClock(value: string) {
-  return new Date(value).toLocaleTimeString('vi-VN', {
+  return formatTimeUtc7(value, {
     hour: '2-digit',
     minute: '2-digit',
   });

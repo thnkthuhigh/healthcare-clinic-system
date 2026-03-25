@@ -8,14 +8,16 @@ interface SidebarProps {
   avatarUrl?: string;
 }
 
-const navItems = [
+const mainNavItems = [
   { path: '/doctor/dashboard', icon: 'grid_view', label: 'Tổng quan' },
   { path: '/doctor/queue', icon: 'list_alt', label: 'Hàng chờ' },
+  { path: '/doctor/lab', icon: 'science', label: 'Xét nghiệm' },
   { path: '/doctor/schedule', icon: 'calendar_month', label: 'Lịch làm việc' },
   { path: '/doctor/patients', icon: 'group', label: 'Bệnh nhân' },
+  { path: '/doctor/settings', icon: 'settings', label: 'Thiết lập' },
 ];
 
-const ownerNavItems = [{ path: '/doctor/accounts', icon: 'manage_accounts', label: 'Tài khoản' }];
+const ownerNavItem = { path: '/doctor/accounts', icon: 'manage_accounts', label: 'Tài khoản' };
 
 function navIdFromPath(path: string) {
   const slug = path.replace('/doctor/', '').replaceAll('/', '-');
@@ -28,6 +30,9 @@ export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps
   const { logout, user } = useAuth();
 
   const roleBadge = user?.role === 'OWNER' ? 'Owner' : user?.role === 'ADMIN' ? 'Admin' : 'Bác sĩ';
+
+  const allNavItems =
+    user?.role === 'OWNER' ? [...mainNavItems, ownerNavItem] : [...mainNavItems];
 
   const handleSignOut = () => {
     logout();
@@ -62,60 +67,22 @@ export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4" data-testid="doctor-nav">
-        <section className="space-y-1">
-          <p className="ops-section-label px-2">Điều phối khám</p>
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                data-testid={`doctor-nav-${navIdFromPath(item.path)}`}
-                className={`ops-nav-link ${isActive ? 'ops-nav-link-active' : 'ops-nav-link-idle'}`}
-              >
-                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </section>
-
-        {user?.role === 'OWNER' && (
-          <section className="space-y-1">
-            <p className="ops-section-label px-2">Owner</p>
-            {ownerNavItems.map((item) => {
-              const isActive = location.pathname.startsWith(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  data-testid={`doctor-nav-${navIdFromPath(item.path)}`}
-                  className={`ops-nav-link ${isActive ? 'ops-nav-link-active' : 'ops-nav-link-idle'}`}
-                >
-                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </section>
-        )}
-
-        <section className="space-y-1">
-          <p className="ops-section-label px-2">Cá nhân</p>
-          <Link
-            to="/doctor/settings"
-            data-testid="doctor-nav-settings"
-            className={`ops-nav-link ${
-              location.pathname.startsWith('/doctor/settings')
-                ? 'ops-nav-link-active'
-                : 'ops-nav-link-idle'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-            <span>Thiết lập</span>
-          </Link>
-        </section>
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4" data-testid="doctor-nav">
+        <p className="ops-section-label px-2 pb-1">Điều hướng</p>
+        {allNavItems.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              data-testid={`doctor-nav-${navIdFromPath(item.path)}`}
+              className={`ops-nav-link ${isActive ? 'ops-nav-link-active' : 'ops-nav-link-idle'}`}
+            >
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="border-t border-slate-100 p-4">

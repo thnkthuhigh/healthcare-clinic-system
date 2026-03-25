@@ -41,7 +41,7 @@ public class PrescriptionTemplateService {
     @Transactional(readOnly = true)
     public AdminPrescriptionTemplateDto getTemplate(UUID id) {
         PrescriptionTemplate template = templateRepository.findByIdWithItems(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay mau"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy toa mẫu"));
         return toDtoFull(template);
     }
 
@@ -49,7 +49,7 @@ public class PrescriptionTemplateService {
     public AdminPrescriptionTemplateDto createTemplate(SavePrescriptionTemplateRequest request) {
         String normalizedName = normalizeRequiredName(request.getName());
         if (templateRepository.existsByNameIgnoreCase(normalizedName)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten mau da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên toa mẫu đã tồn tại");
         }
 
         PrescriptionTemplate template = new PrescriptionTemplate();
@@ -65,11 +65,11 @@ public class PrescriptionTemplateService {
         String normalizedName = normalizeRequiredName(request.getName());
 
         PrescriptionTemplate template = templateRepository.findByIdWithItems(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay mau"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy toa mẫu"));
 
         if (!template.getName().equalsIgnoreCase(normalizedName)
                 && templateRepository.existsByNameIgnoreCase(normalizedName)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten mau da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên toa mẫu đã tồn tại");
         }
 
         template.setName(normalizedName);
@@ -87,7 +87,7 @@ public class PrescriptionTemplateService {
     @Transactional
     public AdminPrescriptionTemplateDto toggleActive(UUID id) {
         PrescriptionTemplate template = templateRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay mau"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy toa mẫu"));
         template.setIsActive(!template.getIsActive());
         return toDtoSummary(templateRepository.save(template));
     }
@@ -95,7 +95,7 @@ public class PrescriptionTemplateService {
     @Transactional
     public void deleteTemplate(UUID id) {
         PrescriptionTemplate template = templateRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay mau"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy toa mẫu"));
 
         // Keep delete robust even if DB FK cascade differs between environments.
         templateRepository.deleteItemsByTemplateId(id);
@@ -105,7 +105,7 @@ public class PrescriptionTemplateService {
 
     private void applyItems(PrescriptionTemplate template, SavePrescriptionTemplateRequest request) {
         if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Toa mau phai co it nhat 1 thuoc");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Toa mẫu phải có ít nhất 1 thuốc");
         }
 
         Set<UUID> seenMedicationIds = new HashSet<>();
@@ -115,17 +115,17 @@ public class PrescriptionTemplateService {
             if (!seenMedicationIds.add(medId)) {
                 throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Moi thuoc chi duoc xuat hien 1 lan trong toa mau"
+                    "Mỗi thuốc chỉ được xuất hiện 1 lần trong toa mẫu"
                 );
             }
             if (itemReq.getQty() < 1) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "So luong thuoc phai >= 1");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số lượng thuốc phải >= 1");
             }
 
             Medication medication = medicationRepository.findById(medId)
                 .orElseThrow(() -> new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
-                    "Khong tim thay thuoc: " + itemReq.getMedicationId()
+                    "Không tìm thấy thuốc: " + itemReq.getMedicationId()
                 ));
 
             PrescriptionTemplateItem item = new PrescriptionTemplateItem();
@@ -140,12 +140,12 @@ public class PrescriptionTemplateService {
 
     private String normalizeRequiredName(String rawName) {
         if (rawName == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten toa mau la bat buoc");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên toa mẫu là bắt buộc");
         }
 
         String normalized = rawName.trim();
         if (normalized.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten toa mau la bat buoc");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên toa mẫu là bắt buộc");
         }
 
         return normalized;
@@ -162,13 +162,13 @@ public class PrescriptionTemplateService {
 
     private UUID parseMedicationId(String medicationId) {
         if (medicationId == null || medicationId.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thieu medicationId");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu medicationId");
         }
 
         try {
             return UUID.fromString(medicationId);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "medicationId khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "medicationId không hợp lệ");
         }
     }
 

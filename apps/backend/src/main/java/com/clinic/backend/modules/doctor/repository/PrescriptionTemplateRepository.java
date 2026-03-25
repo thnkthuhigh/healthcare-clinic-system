@@ -16,6 +16,15 @@ public interface PrescriptionTemplateRepository extends JpaRepository<Prescripti
 
     List<PrescriptionTemplate> findAllByOrderByNameAsc();
 
+    @Query("""
+        SELECT DISTINCT t
+        FROM PrescriptionTemplate t
+        LEFT JOIN FETCH t.items i
+        LEFT JOIN FETCH i.medication
+        WHERE t.isActive = true
+        """)
+    List<PrescriptionTemplate> findActiveWithItems();
+
     @Query("SELECT t FROM PrescriptionTemplate t LEFT JOIN FETCH t.items i LEFT JOIN FETCH i.medication WHERE t.id = :id")
     Optional<PrescriptionTemplate> findByIdWithItems(@Param("id") UUID id);
 

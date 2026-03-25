@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { OpsPageHeader } from '../../../components/ClinicUI';
+import { formatDateUtc7 } from '../../../lib/time';
 import { ownerApi } from '../api';
 import type { AccountInfo, AccountRole, CreateAccountData } from '../types';
 
@@ -198,7 +199,7 @@ export function AccountManagementPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">
-                        {new Date(account.createdAt).toLocaleDateString('vi-VN')}
+                        {formatDateUtc7(account.createdAt)}
                       </td>
                       <td className="px-4 py-3">
                         {account.role !== 'OWNER' && (

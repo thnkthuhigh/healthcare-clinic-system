@@ -7,7 +7,6 @@ import com.clinic.backend.modules.doctor.dto.PrescriptionItemDto;
 import com.clinic.backend.modules.doctor.entity.Booking;
 import com.clinic.backend.modules.doctor.entity.Doctor;
 import com.clinic.backend.modules.doctor.entity.Patient;
-import com.clinic.backend.modules.doctor.entity.Prescription;
 import com.clinic.backend.modules.doctor.entity.Rating;
 import com.clinic.backend.modules.doctor.entity.Shift;
 import com.clinic.backend.modules.doctor.entity.Slot;
@@ -23,12 +22,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 @Component
 @Transactional
 public class CustomerBookingService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final DoctorRepository doctorRepository;
     private final ShiftRepository shiftRepository;
@@ -69,15 +70,23 @@ public class CustomerBookingService {
     // =====================================================
 
     @Transactional(readOnly = true)
-    public List<DoctorSummaryDto> getAllDoctors() {
-        return doctorRepository.findAll().stream()
-                .map(d -> new DoctorSummaryDto(
-                        d.getId(),
-                        d.getDisplayName(),
-                        d.getSpecialty(),
-                        d.getAvatarUrl(),
-                        ratingRepository.findAverageStarsByDoctorId(d.getId())))
+    public List<DoctorSummaryDto> getAllDoctors(UUID serviceId) {
+        List<Doctor> doctors = serviceId == null
+                ? doctorRepository.findAll()
+                : doctorRepository.findAvailableForService(serviceId);
+
+        return doctors.stream()
+                .map(this::toDoctorSummaryDto)
                 .toList();
+    }
+
+    private DoctorSummaryDto toDoctorSummaryDto(Doctor doctor) {
+        return new DoctorSummaryDto(
+                doctor.getId(),
+                doctor.getDisplayName(),
+                doctor.getSpecialty(),
+                doctor.getAvatarUrl(),
+                ratingRepository.findAverageStarsByDoctorId(doctor.getId()));
     }
 
     // =====================================================
@@ -169,27 +178,25 @@ public class CustomerBookingService {
     }
 
     // =====================================================
-    // 4. Simulate payment — marks booking & prescription PAID
+    // 4. Collect booking prepayment fee (10,000 VND)
     // =====================================================
 
-    public BookingTicketDto processPayment(UUID bookingId) {
+    public BookingTicketDto processBookingFee(UUID bookingId, Booking.PaymentMethod method) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
 
-        if (booking.getPaymentStatus() == Booking.PaymentStatus.PAID) {
+        if (booking.getBookingFeePaidAt() != null) {
             return toTicketDto(booking);
         }
 
-        booking.setPaymentStatus(Booking.PaymentStatus.PAID);
-        bookingRepository.save(booking);
+        if (booking.getStatus() == Booking.BookingStatus.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lich hen da bi huy");
+        }
 
-        // If there's a prescription in HELD state, move it to PAID
-        prescriptionRepository.findByBookingId(bookingId).ifPresent(prescription -> {
-            if (prescription.getStatus() == Prescription.PrescriptionStatus.HELD) {
-                prescription.setStatus(Prescription.PrescriptionStatus.PAID);
-                prescriptionRepository.save(prescription);
-            }
-        });
+        booking.setBookingFeeCents(10_000);
+        booking.setBookingFeePaidAt(Instant.now());
+        booking.setBookingFeePaymentMethod(method != null ? method : Booking.PaymentMethod.QR);
+        bookingRepository.save(booking);
 
         return toTicketDto(booking);
     }
@@ -247,7 +254,7 @@ public class CustomerBookingService {
 
         // Find today's BOOKED booking
         List<Booking> todayBookings = bookingRepository.findTodayBookedByPatientId(
-                patient.getId(), LocalDate.now());
+                patient.getId(), LocalDate.now(CLINIC_ZONE));
 
         if (todayBookings.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -386,7 +393,11 @@ public class CustomerBookingService {
                 booking.getCreatedAt(),
                 appointmentTime,
                 currentServingQueueNumber,
-                estimatedTurnAt);
+                estimatedTurnAt,
+                booking.getBookingFeeCents(),
+                booking.getBookingFeePaidAt() != null,
+                booking.getBookingFeePaidAt(),
+                booking.getBookingFeePaymentMethod() != null ? booking.getBookingFeePaymentMethod().name() : null);
     }
 
     private PatientBookingDto toPatientBookingDto(Booking booking) {
@@ -439,6 +450,10 @@ public class CustomerBookingService {
                 booking.getService() != null ? booking.getService().getName() : null,
                 booking.getStatus().name(),
                 booking.getPaymentStatus().name(),
+                booking.getBookingFeeCents(),
+                booking.getBookingFeePaidAt() != null,
+                booking.getBookingFeePaidAt(),
+                booking.getBookingFeePaymentMethod() != null ? booking.getBookingFeePaymentMethod().name() : null,
                 booking.getCreatedAt(),
                 appointmentTime,
                 currentServingQueueNumber,
@@ -465,7 +480,7 @@ public class CustomerBookingService {
 
     private Instant calculateEstimatedTurnAt(Booking booking, int slotSequence, Integer currentServingQueueNumber) {
         Instant appointmentTime = calculateAppointmentTime(booking.getShift(), slotSequence);
-        if (!booking.getShift().getDate().equals(LocalDate.now()) || currentServingQueueNumber == null) {
+        if (!booking.getShift().getDate().equals(LocalDate.now(CLINIC_ZONE)) || currentServingQueueNumber == null) {
             return appointmentTime;
         }
 

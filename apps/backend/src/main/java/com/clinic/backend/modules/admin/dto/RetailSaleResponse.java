@@ -11,6 +11,8 @@ public class RetailSaleResponse {
     private String customerPhone;
     private long totalCents;
     private Instant createdAt;
+    private UUID billedByUserId;
+    private String billedByName;
     private List<RetailSaleItemDto> items;
 
     public String getInvoiceCode() {
@@ -51,6 +53,22 @@ public class RetailSaleResponse {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public UUID getBilledByUserId() {
+        return billedByUserId;
+    }
+
+    public void setBilledByUserId(UUID billedByUserId) {
+        this.billedByUserId = billedByUserId;
+    }
+
+    public String getBilledByName() {
+        return billedByName;
+    }
+
+    public void setBilledByName(String billedByName) {
+        this.billedByName = billedByName;
     }
 
     public List<RetailSaleItemDto> getItems() {

@@ -11,5 +11,5 @@ export const CLINIC_CONTACT = {
   address: '123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP. Hồ Chí Minh',
   phone: '(028) 3838 1234',
   email: 'contact@healthcareclinic.vn',
-  hours: 'Thứ 2 - Thứ 7, 07:00 - 17:30',
+  hours: 'Thứ 2 - Thứ 7, 07:00 - 18:00',
 };

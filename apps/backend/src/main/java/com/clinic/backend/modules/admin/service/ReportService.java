@@ -28,6 +28,7 @@ import java.util.UUID;
 
 @Service
 public class ReportService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     @PersistenceContext
     private EntityManager em;
@@ -47,8 +48,8 @@ public class ReportService {
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
     public ReportSummaryDto getSummary(LocalDate from, LocalDate to) {
-        Instant fromInstant = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Instant toInstant = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant fromInstant = from.atStartOfDay(CLINIC_ZONE).toInstant();
+        Instant toInstant = to.plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant();
 
         ReportSummaryDto dto = new ReportSummaryDto();
 
@@ -218,7 +219,7 @@ public class ReportService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amountCents phai > 0");
         }
 
-        LocalDate entryDate = request.getEntryDate() != null ? request.getEntryDate() : LocalDate.now();
+        LocalDate entryDate = request.getEntryDate() != null ? request.getEntryDate() : LocalDate.now(CLINIC_ZONE);
         BigDecimal qty = request.getQty();
         String unit = normalizeNullable(request.getUnit());
 
@@ -428,8 +429,8 @@ public class ReportService {
      */
     @Transactional(readOnly = true)
     public List<AuditLogDto> getAuditLogs(LocalDate from, LocalDate to, String entityType, String action) {
-        Instant fromInstant = from.atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Instant toInstant = to.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant fromInstant = from.atStartOfDay(CLINIC_ZONE).toInstant();
+        Instant toInstant = to.plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant();
 
         String normalizedEntityType = normalizeNullable(entityType);
         String normalizedAction = normalizeNullable(action);

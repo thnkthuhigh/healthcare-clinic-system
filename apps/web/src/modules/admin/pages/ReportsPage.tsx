@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { addDaysToIsoDate, formatDateTimeUtc7, startOfMonthIsoUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type {
   AuditLogDto,
@@ -15,18 +16,15 @@ type TabId = 'summary' | 'finance' | 'audit';
 type ManualFlowType = 'THU' | 'CHI' | 'NHAP' | 'XUAT';
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDateUtc7();
 }
 
 function monthStartStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  return startOfMonthIsoUtc7();
 }
 
 function weekAgoStr() {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
+  return addDaysToIsoDate(toIsoDateUtc7(), -7);
 }
 
 function formatMoney(cents: number) {
@@ -35,9 +33,7 @@ function formatMoney(cents: number) {
 
 function formatDateTime(value: string | null) {
   if (!value) return '-';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString('vi-VN');
+  return formatDateTimeUtc7(value);
 }
 
 function entryTypeLabel(value: string) {

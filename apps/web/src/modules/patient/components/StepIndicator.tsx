@@ -6,7 +6,7 @@ interface StepIndicatorProps {
 export function StepIndicator({ current, steps }: StepIndicatorProps) {
   return (
     <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-3 sm:p-4">
-      <div className="flex items-start gap-3 overflow-x-auto pb-1">
+      <div className="flex items-stretch gap-3 overflow-x-auto pb-1">
         {steps.map((label, i) => {
           const step = i + 1;
           const isDone = step < current;
@@ -15,7 +15,7 @@ export function StepIndicator({ current, steps }: StepIndicatorProps) {
           return (
             <div
               key={step}
-              className={`min-w-[134px] flex-1 rounded-[20px] border px-3 py-3 transition-colors ${
+              className={`min-h-[92px] min-w-[148px] basis-0 flex-1 rounded-[20px] border px-3 py-3 transition-colors ${
                 isDone
                   ? 'border-primary/20 bg-white'
                   : isActive
@@ -23,7 +23,7 @@ export function StepIndicator({ current, steps }: StepIndicatorProps) {
                     : 'border-slate-200 bg-white'
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex h-full items-center gap-3">
                 <div
                   className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${
                     isDone
@@ -44,7 +44,7 @@ export function StepIndicator({ current, steps }: StepIndicatorProps) {
                     Bước {step}
                   </p>
                   <p
-                    className={`mt-1 text-sm leading-5 ${
+                    className={`mt-1 min-h-10 text-sm leading-5 ${
                       isActive
                         ? 'font-semibold text-primary'
                         : isDone

@@ -1,3 +1,4 @@
+import { formatDateUtc7 } from '../../../lib/time';
 import type { PatientBooking } from '../types';
 
 interface BookingCardProps {
@@ -47,7 +48,7 @@ export function BookingCard({
   const isPaid = booking.paymentStatus === 'PAID';
   const isCompleted = booking.status === 'COMPLETED';
 
-  const dateDisplay = new Date(`${booking.date}T00:00:00`).toLocaleDateString('vi-VN', {
+  const dateDisplay = formatDateUtc7(booking.date, {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',

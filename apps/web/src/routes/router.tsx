@@ -27,6 +27,7 @@ import {
   DoctorDashboardPage,
   PatientQueuePage,
   ConsultationPage,
+  DoctorLabPage,
   DoctorSchedulePage,
   DoctorPatientsPage,
   DoctorSettingsPage,
@@ -128,6 +129,10 @@ export const router = createBrowserRouter([
           {
             path: 'queue/:shiftId',
             element: <PatientQueuePage />,
+          },
+          {
+            path: 'lab',
+            element: <DoctorLabPage />,
           },
           {
             path: 'consultation/:bookingId',

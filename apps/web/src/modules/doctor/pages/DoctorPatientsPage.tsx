@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
+import { formatDateUtc7 } from '../../../lib/time';
 import { doctorApi, consultationApi } from '../api';
 import type { Patient, MedicalRecord } from '../types';
 
@@ -66,7 +67,7 @@ export function DoctorPatientsPage() {
   };
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' });
+    formatDateUtc7(iso, { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <div

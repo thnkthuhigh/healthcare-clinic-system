@@ -20,6 +20,10 @@ public class CashierBookingDto {
     private String channel;
     private String paymentStatus;
     private Instant completedAt;
+    private String paymentMethod;
+    private Instant paidAt;
+    private UUID billedByUserId;
+    private String billedByName;
 
     // Prescription info
     private UUID prescriptionId;
@@ -63,6 +67,18 @@ public class CashierBookingDto {
 
     public Instant getCompletedAt() { return completedAt; }
     public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Instant getPaidAt() { return paidAt; }
+    public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
+
+    public UUID getBilledByUserId() { return billedByUserId; }
+    public void setBilledByUserId(UUID billedByUserId) { this.billedByUserId = billedByUserId; }
+
+    public String getBilledByName() { return billedByName; }
+    public void setBilledByName(String billedByName) { this.billedByName = billedByName; }
 
     public UUID getPrescriptionId() { return prescriptionId; }
     public void setPrescriptionId(UUID prescriptionId) { this.prescriptionId = prescriptionId; }

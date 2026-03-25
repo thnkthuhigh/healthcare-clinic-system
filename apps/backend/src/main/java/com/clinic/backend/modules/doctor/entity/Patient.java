@@ -4,11 +4,13 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Entity
 @Table(name = "patients")
 public class Patient {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -94,6 +96,6 @@ public class Patient {
     // Utility methods
     public Integer getAge() {
         if (dateOfBirth == null) return null;
-        return java.time.Period.between(dateOfBirth, LocalDate.now()).getYears();
+        return java.time.Period.between(dateOfBirth, LocalDate.now(CLINIC_ZONE)).getYears();
     }
 }

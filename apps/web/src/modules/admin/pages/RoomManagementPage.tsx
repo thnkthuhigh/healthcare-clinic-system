@@ -56,15 +56,15 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
     const normalizedName = name.trim();
 
     if (!normalizedCode) {
-      setError('Ma phong khong duoc de trong');
+      setError('Mã phòng không được để trống');
       return;
     }
     if (!normalizedName) {
-      setError('Ten phong khong duoc de trong');
+      setError('Tên phòng không được để trống');
       return;
     }
     if (!serviceId) {
-      setError('Vui long chon dich vu phu trach');
+      setError('Vui lòng chọn dịch vụ phụ trách');
       return;
     }
 
@@ -91,7 +91,7 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
       <div className="w-full max-w-md rounded-xl bg-white shadow-xl dark:bg-card-dark">
         <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-700">
           <h2 className="font-semibold text-slate-900 dark:text-white">
-            {isEdit ? 'Sua phong kham' : 'Them phong kham'}
+            {isEdit ? 'Sửa phòng khám' : 'Thêm phòng khám'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
@@ -108,7 +108,7 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Ma phong *
+                Mã phòng *
               </label>
               <input
                 type="text"
@@ -120,14 +120,14 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Dich vu *
+                Dịch vụ *
               </label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
               >
-                <option value="">-- Chon dich vu --</option>
+                <option value="">-- Chọn dịch vụ --</option>
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
                     {service.name}
@@ -139,7 +139,7 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Ten phong *
+              Tên phòng *
             </label>
             <input
               type="text"
@@ -152,7 +152,7 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Trang thai
+              Trạng thái
             </label>
             <select
               value={status}
@@ -173,14 +173,14 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
               onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="submit"
               disabled={isPending}
               className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
             >
-              {isPending ? 'Dang luu...' : isEdit ? 'Luu' : 'Them phong'}
+              {isPending ? 'Đang lưu...' : isEdit ? 'Lưu' : 'Thêm phòng'}
             </button>
           </div>
         </form>
@@ -234,13 +234,13 @@ export function RoomManagementPage() {
 
   return (
     <div className="flex h-full flex-col bg-slate-50 dark:bg-background-dark">
-      <div className="border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-700 dark:bg-card-dark">
+      <div className="px-6 pb-4 pt-2">
         <div className="flex flex-wrap items-center gap-4">
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Quan ly Phong kham</h1>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white">Quản lý phòng khám</h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              {stats.active}/{stats.total} phong dang hoat dong - {stats.maintenance} phong bao tri
-              - {stats.assets} tai san
+              {stats.active}/{stats.total} phòng đang hoạt động - {stats.maintenance} phòng bảo trì
+              - {stats.assets} tài sản
             </p>
           </div>
           <div className="flex-1" />
@@ -249,7 +249,7 @@ export function RoomManagementPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
           >
-            <option value="">Tat ca trang thai</option>
+            <option value="">Tất cả trạng thái</option>
             {ROOM_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {status}
@@ -261,7 +261,7 @@ export function RoomManagementPage() {
             onChange={(e) => setServiceFilter(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
           >
-            <option value="">Tat ca dich vu</option>
+            <option value="">Tất cả dịch vụ</option>
             {activeServices.map((service) => (
               <option key={service.id} value={service.id}>
                 {service.name}
@@ -276,7 +276,7 @@ export function RoomManagementPage() {
             className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
           >
             <span className="material-symbols-outlined text-sm">add</span>
-            Them phong
+            Thêm phòng
           </button>
         </div>
       </div>
@@ -285,12 +285,12 @@ export function RoomManagementPage() {
         {isLoading ? (
           <div className="flex h-40 items-center justify-center gap-2 text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
-            Dang tai...
+            Đang tải...
           </div>
         ) : rooms.length === 0 ? (
           <div className="flex h-40 flex-col items-center justify-center text-center text-slate-400">
             <span className="material-symbols-outlined mb-2 text-5xl">meeting_room</span>
-            <p className="text-sm">Chua co phong kham nao</p>
+            <p className="text-sm">Chưa có phòng khám nào</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-card-dark">
@@ -298,22 +298,22 @@ export function RoomManagementPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Ma phong
+                    Mã phòng
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Ten phong
+                    Tên phòng
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Dich vu phu trach
+                    Dịch vụ phụ trách
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Trang thai
+                    Trạng thái
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Tai san
+                    Tài sản
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Thao tac
+                    Thao tác
                   </th>
                 </tr>
               </thead>
@@ -328,7 +328,7 @@ export function RoomManagementPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-900 dark:text-white">{room.name}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                      {room.serviceName ?? 'Chua gan dich vu'}
+                      {room.serviceName ?? 'Chưa gán dịch vụ'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
@@ -346,7 +346,7 @@ export function RoomManagementPage() {
                           onClick={() => toggleMutation.mutate(room.id)}
                           className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                         >
-                          {room.status === 'ACTIVE' ? 'Tat' : 'Bat'}
+                          {room.status === 'ACTIVE' ? 'Tắt' : 'Bật'}
                         </button>
                         <button
                           onClick={() => {
@@ -355,7 +355,7 @@ export function RoomManagementPage() {
                           }}
                           className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                         >
-                          Sua
+                          Sửa
                         </button>
                       </div>
                     </td>

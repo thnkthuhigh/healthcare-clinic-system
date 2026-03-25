@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 import { FlatTaskHeader } from '../../../components/ClinicUI';
+import { formatDateUtc7 } from '../../../lib/time';
 import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
@@ -77,13 +78,13 @@ function canCancel(booking: PatientBooking): boolean {
   const startTime = booking.timeRange.split(' - ')[0] ?? '07:00';
   const [hour, minute] = startTime.split(':').map(Number);
   const appointmentDate = new Date(
-    `${booking.date}T${String(hour).padStart(2, '0')}:${String(minute ?? 0).padStart(2, '0')}:00`,
+    `${booking.date}T${String(hour).padStart(2, '0')}:${String(minute ?? 0).padStart(2, '0')}:00+07:00`,
   );
   return appointmentDate.getTime() - Date.now() > 24 * 60 * 60 * 1000;
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('vi-VN', {
+  return formatDateUtc7(dateStr, {
     weekday: 'short',
     year: 'numeric',
     month: '2-digit',
@@ -110,6 +111,10 @@ function toBookingTicket(booking: PatientBooking, patientName: string, phone: st
     appointmentTime: booking.appointmentTime,
     currentServingQueueNumber: booking.currentServingQueueNumber,
     estimatedTurnAt: booking.estimatedTurnAt,
+    bookingFeeCents: booking.bookingFeeCents ?? 10000,
+    bookingFeePaid: booking.bookingFeePaid ?? false,
+    bookingFeePaidAt: booking.bookingFeePaidAt ?? null,
+    bookingFeePaymentMethod: booking.bookingFeePaymentMethod ?? null,
   };
 }
 
@@ -430,7 +435,10 @@ export function AppointmentsPage() {
         const orderA = order[a.status as keyof typeof order] ?? 3;
         const orderB = order[b.status as keyof typeof order] ?? 3;
         if (orderA !== orderB) return orderA - orderB;
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return (
+          new Date(`${b.date}T00:00:00+07:00`).getTime() -
+          new Date(`${a.date}T00:00:00+07:00`).getTime()
+        );
       })
     : [];
 

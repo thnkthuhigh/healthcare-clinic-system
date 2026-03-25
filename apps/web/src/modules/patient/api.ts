@@ -37,7 +37,10 @@ async function fetchApi<T>(url: string, options?: FetchApiOptions): Promise<T> {
 // ========== Doctors & Shifts ==========
 
 export const customerApi = {
-  getDoctors: () => fetchApi<DoctorSummary[]>(`${API_BASE}/doctors`),
+  getDoctors: (serviceId?: string | null) =>
+    fetchApi<DoctorSummary[]>(
+      `${API_BASE}/doctors${serviceId ? `?serviceId=${encodeURIComponent(serviceId)}` : ''}`,
+    ),
 
   getAvailableShifts: (doctorId: string, date: string) =>
     fetchApi<AvailableShift[]>(`${API_BASE}/doctors/${doctorId}/shifts?date=${date}`),
@@ -52,9 +55,10 @@ export const customerApi = {
       body: JSON.stringify(data),
     }),
 
-  processPayment: (bookingId: string) =>
+  processPayment: (bookingId: string, method: 'QR' | 'CASH' = 'QR') =>
     fetchApi<BookingTicket>(`${API_BASE}/bookings/${bookingId}/pay`, {
       method: 'POST',
+      body: JSON.stringify({ method }),
     }),
 
   getBookingTicket: (bookingId: string) =>

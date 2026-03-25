@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 @Repository
 public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
@@ -17,4 +18,19 @@ public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
     
     @Query("SELECT d FROM Doctor d JOIN FETCH d.user WHERE d.user.phone = :phone")
     Optional<Doctor> findByUserPhone(@Param("phone") String phone);
+
+    @Query(value = """
+            SELECT DISTINCT d.*
+            FROM doctors d
+            LEFT JOIN doctor_services ds ON ds.doctor_id = d.id
+            LEFT JOIN services s ON s.id = :serviceId
+            LEFT JOIN departments dep ON dep.id = s.specialty_id
+            WHERE ds.service_id = :serviceId
+               OR (
+                    s.specialty_id IS NOT NULL
+                    AND lower(trim(coalesce(d.specialty, ''))) = lower(trim(coalesce(dep.name, '')))
+               )
+            ORDER BY d.display_name
+            """, nativeQuery = true)
+    List<Doctor> findAvailableForService(@Param("serviceId") UUID serviceId);
 }

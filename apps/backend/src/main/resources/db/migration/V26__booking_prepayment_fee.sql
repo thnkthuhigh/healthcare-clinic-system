@@ -1,0 +1,8 @@
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS booking_fee_cents INTEGER NOT NULL DEFAULT 10000;
+
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS booking_fee_paid_at TIMESTAMPTZ;
+
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS booking_fee_payment_method VARCHAR(20);

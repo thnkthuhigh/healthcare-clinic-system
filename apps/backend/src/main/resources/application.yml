@@ -30,7 +30,9 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     hikari:
-      connection-init-sql: SET TIME ZONE 'UTC'
+      connection-init-sql: SET TIME ZONE 'Asia/Ho_Chi_Minh'
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
   jpa:
     open-in-view: false
     hibernate:
@@ -38,7 +40,7 @@ spring:
     properties:
       hibernate:
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Ho_Chi_Minh
 
 management:
   endpoints:

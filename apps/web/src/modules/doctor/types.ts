@@ -124,6 +124,23 @@ export interface Medication {
   availableStock: number;
 }
 
+export interface PrescriptionTemplateItem {
+  medicationId: string;
+  medicationName: string;
+  unit: string;
+  qty: number;
+  dosage: string | null;
+  note: string | null;
+  priceCents: number;
+}
+
+export interface PrescriptionTemplate {
+  id: string;
+  name: string;
+  note: string | null;
+  items: PrescriptionTemplateItem[];
+}
+
 export type PrescriptionStatus = 'HELD' | 'PAID' | 'CANCELED' | 'EXPIRED';
 
 export interface PrescriptionItem {
@@ -170,6 +187,8 @@ export interface SaveMedicalRecordRequest {
   diagnosis?: string;
   conclusion?: string;
   notes?: string;
+  weightKg?: number;
+  heightCm?: number;
 }
 
 export interface SavePrescriptionRequest {

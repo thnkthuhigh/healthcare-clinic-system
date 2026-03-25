@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 import type { ClinicService } from '../types';
@@ -9,17 +9,16 @@ export interface PatientInfoFormValues {
   nationalId: string;
   dateOfBirth: string;
   gender: string;
-  serviceId: string;
   notes: string;
 }
 
 interface PatientInfoFormProps {
-  services: ClinicService[];
+  selectedService: ClinicService | null;
   onSubmit: (values: PatientInfoFormValues) => void;
-  initialValues?: Partial<PatientInfoFormValues> | undefined;
+  initialValues?: Partial<PatientInfoFormValues>;
 }
 
-export function PatientInfoForm({ services, onSubmit, initialValues }: PatientInfoFormProps) {
+export function PatientInfoForm({ selectedService, onSubmit, initialValues }: PatientInfoFormProps) {
   const {
     register,
     handleSubmit,
@@ -32,7 +31,6 @@ export function PatientInfoForm({ services, onSubmit, initialValues }: PatientIn
       nationalId: '',
       dateOfBirth: '',
       gender: '',
-      serviceId: '',
       notes: '',
       ...initialValues,
     },
@@ -116,29 +114,25 @@ export function PatientInfoForm({ services, onSubmit, initialValues }: PatientIn
           </select>
         </div>
 
-        {services.length > 0 && (
-          <div>
-            <label className="field-label">Dịch vụ khám</label>
-            <select
-              {...register('serviceId')}
-              className="input-field"
-              data-testid="patient-booking-service"
-            >
-              <option value="">Chọn sau tại quầy</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}{' '}
-                  ({
-                    (service.priceCents / 100).toLocaleString('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                    })
-                  })
-                </option>
-              ))}
-            </select>
+        <div>
+          <label className="field-label">Dịch vụ khám</label>
+          <div
+            className="input-field flex min-h-11 items-center justify-between gap-3 bg-slate-50"
+            data-testid="patient-booking-service-auto"
+          >
+            <span className={selectedService ? 'text-slate-800' : 'text-slate-500'}>
+              {selectedService?.name ?? 'Tự động gán theo bác sĩ đã chọn'}
+            </span>
+            {selectedService && (
+              <span className="text-xs font-semibold text-slate-500">
+                {(selectedService.priceCents / 100).toLocaleString('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND',
+                })}
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { formatDateUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type { DashboardStats, ShiftOverview } from '../types';
 
@@ -9,7 +10,7 @@ export function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toIsoDateUtc7();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,7 +56,7 @@ export function AdminDashboardPage() {
   };
 
   const formatDate = () => {
-    return new Date().toLocaleDateString('vi-VN', {
+    return formatDateUtc7(new Date(), {
       weekday: 'long',
       day: 'numeric',
       month: 'long',

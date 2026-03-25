@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { OpsPageHeader } from '../../../components/ClinicUI';
+import { formatDateUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { useAuth } from '../../auth/useAuth';
 import { doctorApi } from '../api';
 import type { Shift } from '../types';
@@ -18,7 +19,7 @@ function getShiftStatus(shift: Shift) {
 
 export function DoctorDashboardPage() {
   const { user } = useAuth();
-  const [selectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate] = useState(() => toIsoDateUtc7());
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function DoctorDashboardPage() {
     fetchShifts();
   }, [selectedDate, user]);
 
-  const formattedDate = new Date(`${selectedDate}T00:00:00`).toLocaleDateString('vi-VN', {
+  const formattedDate = formatDateUtc7(selectedDate, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
