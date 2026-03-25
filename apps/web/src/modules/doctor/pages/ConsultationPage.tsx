@@ -717,6 +717,11 @@ export function ConsultationPage() {
                     onClick={() => setActiveTab('lab')}
                     label="Xét nghiệm"
                   />
+                  <TabButton
+                    active={activeTab === 'vitals'}
+                    onClick={() => setActiveTab('vitals')}
+                    label="Sinh hiệu"
+                  />
                 </div>
               </div>
 
@@ -802,7 +807,41 @@ export function ConsultationPage() {
                     </div>
                   ))}
                 {activeTab === 'vitals' && (
-                  <EmptyState icon="monitor_heart" title="Chưa có dữ liệu sinh hiệu" />
+                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Cập nhật sinh hiệu
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="field-label text-xs">Cân nặng (kg)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={weightInput}
+                          onChange={(event) => setWeightInput(event.target.value)}
+                          placeholder="Ví dụ: 52.5"
+                          className="input-field bg-white"
+                          data-testid="doctor-consultation-vitals-weight-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="field-label text-xs">Chiều cao (cm)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={heightInput}
+                          onChange={(event) => setHeightInput(event.target.value)}
+                          placeholder="Ví dụ: 160"
+                          className="input-field bg-white"
+                          data-testid="doctor-consultation-vitals-height-input"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Nhập sinh hiệu tại đây rồi bấm <strong>Lưu nháp</strong> hoặc{' '}
+                        <strong>Lưu và hoàn thành</strong> để ghi vào hồ sơ.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             </section>
