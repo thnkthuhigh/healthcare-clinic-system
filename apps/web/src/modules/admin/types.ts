@@ -105,6 +105,10 @@ export interface ReceptionBooking {
   checkInAt: string | null;
   createdAt: string | null;
   priorityScore: number;
+  followUp: boolean;
+  followUpSourceBookingId: string | null;
+  followUpScheduledAt: string | null;
+  followUpNote: string | null;
 }
 
 export interface WalkInRequest {
@@ -249,6 +253,7 @@ export interface CashierBooking {
   doctorName: string;
   serviceName: string | null;
   servicePriceCents: number;
+  labFeeCents: number;
   status: string;
   channel: 'WEB' | 'WALK_IN';
   paymentStatus: 'UNPAID' | 'PAID' | 'VOID';
@@ -687,6 +692,7 @@ export interface DailyInvoiceDto {
   paymentStatus: string;
   invoiceAt: string | null;
   serviceAmountCents: number;
+  labAmountCents: number;
   medicationAmountCents: number;
   totalAmountCents: number;
 }

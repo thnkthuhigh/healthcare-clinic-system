@@ -57,7 +57,8 @@ public class ReceptionService {
         String sql = "SELECT b.id, b.queue_number, p.full_name, p.phone, d.display_name, " +
                 "s.id AS shift_id, s.type, sv.name AS service_name, b.status, b.channel, " +
                 "b.payment_status, b.check_in_at, b.created_at, b.priority_score, " +
-                "COALESCE(r.name, 'Chua gan phong') AS room_name, CAST(sl.pool AS text) AS slot_pool " +
+                "COALESCE(r.name, 'Chưa gán phòng') AS room_name, CAST(sl.pool AS text) AS slot_pool, " +
+                "b.is_follow_up, b.follow_up_source_booking_id, b.follow_up_scheduled_at, b.follow_up_note " +
                 "FROM bookings b " +
                 "JOIN shifts s ON b.shift_id = s.id " +
                 "JOIN patients p ON b.patient_id = p.id " +
@@ -100,6 +101,10 @@ public class ReceptionService {
             dto.setPriorityScore(((Number) row[13]).intValue());
             dto.setRoomName(row[14] != null ? row[14].toString() : null);
             dto.setSlotPool(row[15] != null ? row[15].toString() : null);
+            dto.setFollowUp(row[16] != null && (Boolean) row[16]);
+            dto.setFollowUpSourceBookingId(row[17] != null ? row[17].toString() : null);
+            dto.setFollowUpScheduledAt(toInstant(row[18]));
+            dto.setFollowUpNote(row[19] != null ? row[19].toString() : null);
             result.add(dto);
         }
         return result;
@@ -109,11 +114,12 @@ public class ReceptionService {
      * Search bookings by patient phone (for check-in). Only BOOKED status.
      */
     @Transactional(readOnly = true)
-    public List<ReceptionBookingDto> searchBookingsByPhone(String phone, LocalDate date) {
+    public List<ReceptionBookingDto> searchBookingsByPhone(String phone, LocalDate date, boolean followUpOnly) {
         String sql = "SELECT b.id, b.queue_number, p.full_name, p.phone, d.display_name, " +
                 "s.id AS shift_id, s.type, sv.name AS service_name, b.status, b.channel, " +
                 "b.payment_status, b.check_in_at, b.created_at, b.priority_score, " +
-                "COALESCE(r.name, 'Chua gan phong') AS room_name, CAST(sl.pool AS text) AS slot_pool " +
+                "COALESCE(r.name, 'Chưa gán phòng') AS room_name, CAST(sl.pool AS text) AS slot_pool, " +
+                "b.is_follow_up, b.follow_up_source_booking_id, b.follow_up_scheduled_at, b.follow_up_note " +
                 "FROM bookings b " +
                 "JOIN shifts s ON b.shift_id = s.id " +
                 "JOIN patients p ON b.patient_id = p.id " +
@@ -121,8 +127,11 @@ public class ReceptionService {
                 "LEFT JOIN services sv ON b.service_id = sv.id " +
                 "LEFT JOIN rooms r ON r.id = s.room_id " +
                 "LEFT JOIN slots sl ON sl.id = b.slot_id " +
-                "WHERE p.phone = :phone AND s.date = :date AND b.status = 'BOOKED' " +
-                "ORDER BY s.start_time ASC";
+                "WHERE p.phone = :phone AND b.status = 'BOOKED' " +
+                (followUpOnly
+                        ? "AND b.is_follow_up = TRUE AND s.date >= :date "
+                        : "AND s.date = :date ") +
+                "ORDER BY s.date ASC, s.start_time ASC";
 
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createNativeQuery(sql)
@@ -149,6 +158,10 @@ public class ReceptionService {
             dto.setPriorityScore(((Number) row[13]).intValue());
             dto.setRoomName(row[14] != null ? row[14].toString() : null);
             dto.setSlotPool(row[15] != null ? row[15].toString() : null);
+            dto.setFollowUp(row[16] != null && (Boolean) row[16]);
+            dto.setFollowUpSourceBookingId(row[17] != null ? row[17].toString() : null);
+            dto.setFollowUpScheduledAt(toInstant(row[18]));
+            dto.setFollowUpNote(row[19] != null ? row[19].toString() : null);
             result.add(dto);
         }
         return result;
@@ -263,13 +276,13 @@ public class ReceptionService {
     @Transactional
     public void markNoShow(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich kham"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch khám"));
 
         String previousStatus = booking.getStatus().name();
 
         if (booking.getStatus() == Booking.BookingStatus.COMPLETED ||
             booking.getStatus() == Booking.BookingStatus.IN_CONSULTATION) {
-            throw new IllegalArgumentException("Khong the danh dau NO_SHOW cho lich dang kham hoac da hoan thanh");
+            throw new IllegalArgumentException("Không thể đánh dấu NO_SHOW cho lịch đang khám hoặc đã hoàn thành");
         }
 
         booking.setStatus(Booking.BookingStatus.NO_SHOW);
@@ -407,18 +420,24 @@ public class ReceptionService {
         dto.setPriorityScore(booking.getPriorityScore());
         dto.setRoomName(fetchRoomName(booking.getShift().getId()));
         dto.setSlotPool(fetchSlotPool(booking.getSlotId()));
+        dto.setFollowUp(Boolean.TRUE.equals(booking.getIsFollowUp()));
+        dto.setFollowUpSourceBookingId(
+            booking.getFollowUpSourceBooking() != null ? booking.getFollowUpSourceBooking().getId().toString() : null
+        );
+        dto.setFollowUpScheduledAt(booking.getFollowUpScheduledAt());
+        dto.setFollowUpNote(booking.getFollowUpNote());
         return dto;
     }
 
     private String fetchRoomName(UUID shiftId) {
         @SuppressWarnings("unchecked")
         List<Object> rows = em.createNativeQuery(
-                "SELECT COALESCE(r.name, 'Chua gan phong') " +
+                "SELECT COALESCE(r.name, 'Chưa gán phòng') " +
                 "FROM shifts s LEFT JOIN rooms r ON r.id = s.room_id " +
                 "WHERE s.id = :shiftId")
             .setParameter("shiftId", shiftId)
             .getResultList();
-        return rows.isEmpty() ? "Chua gan phong" : rows.get(0).toString();
+        return rows.isEmpty() ? "Chưa gán phòng" : rows.get(0).toString();
     }
 
     private String fetchSlotPool(UUID slotId) {

@@ -71,9 +71,20 @@ public class CustomerBookingService {
 
     @Transactional(readOnly = true)
     public List<DoctorSummaryDto> getAllDoctors(UUID serviceId) {
-        List<Doctor> doctors = serviceId == null
-                ? doctorRepository.findAll()
-                : doctorRepository.findAvailableForService(serviceId);
+        List<Doctor> doctors;
+        if (serviceId == null) {
+            doctors = doctorRepository.findAll();
+        } else {
+            Service service = serviceRepository.findById(serviceId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dịch vụ"));
+
+            // Ưu tiên lọc bác sĩ theo chuyên khoa của dịch vụ để đảm bảo danh sách đúng ngữ cảnh khám.
+            if (service.getSpecialtyId() != null) {
+                doctors = doctorRepository.findByServiceSpecialty(serviceId);
+            } else {
+                doctors = doctorRepository.findByServiceMapping(serviceId);
+            }
+        }
 
         return doctors.stream()
                 .map(this::toDoctorSummaryDto)
@@ -120,7 +131,7 @@ public class CustomerBookingService {
     public BookingTicketDto createBooking(CreateBookingRequest req) {
         // 3a. Load shift
         Shift shift = shiftRepository.findById(req.shiftId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ca khám"));
 
         if (shift.getStatus() != Shift.ShiftStatus.OPEN) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ca khám đã đóng");
@@ -183,17 +194,17 @@ public class CustomerBookingService {
 
     public BookingTicketDto processBookingFee(UUID bookingId, Booking.PaymentMethod method) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch khám"));
 
         if (booking.getBookingFeePaidAt() != null) {
             return toTicketDto(booking);
         }
 
         if (booking.getStatus() == Booking.BookingStatus.CANCELED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lich hen da bi huy");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lịch hẹn đã bị hủy");
         }
 
-        booking.setBookingFeeCents(10_000);
+        booking.setBookingFeeCents(1_000_000);
         booking.setBookingFeePaidAt(Instant.now());
         booking.setBookingFeePaymentMethod(method != null ? method : Booking.PaymentMethod.QR);
         bookingRepository.save(booking);
@@ -208,7 +219,7 @@ public class CustomerBookingService {
     @Transactional(readOnly = true)
     public BookingTicketDto getBookingTicket(UUID bookingId) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch khám"));
         return toTicketDto(booking);
     }
 
@@ -218,7 +229,7 @@ public class CustomerBookingService {
 
     public BookingTicketDto checkInByBookingId(UUID bookingId) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch khám"));
 
         if (booking.getStatus() == Booking.BookingStatus.CHECKED_IN
                 || booking.getStatus() == Booking.BookingStatus.WAITING
@@ -228,7 +239,7 @@ public class CustomerBookingService {
 
         if (booking.getStatus() != Booking.BookingStatus.BOOKED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Booking cannot be checked in (status: " + booking.getStatus() + ")");
+                    "Không thể check-in lịch khám (trạng thái: " + booking.getStatus() + ")");
         }
 
         booking.setStatus(Booking.BookingStatus.WAITING);
@@ -298,11 +309,19 @@ public class CustomerBookingService {
 
     public void submitRating(UUID bookingId, RatingRequest req) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch khám"));
 
-        if (booking.getStatus() != Booking.BookingStatus.COMPLETED) {
+        if (booking.getShift() == null || booking.getShift().getDoctor() == null || booking.getPatient() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Lịch khám thiếu thông tin bác sĩ hoặc bệnh nhân, chưa thể gửi đánh giá");
+        }
+
+        boolean canRate = booking.getStatus() == Booking.BookingStatus.COMPLETED
+                || booking.getPaymentStatus() == Booking.PaymentStatus.PAID;
+        if (!canRate) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Chỉ có thể đánh giá sau khi khám xong");
+                    "Chỉ có thể đánh giá sau khi buổi khám hoàn tất");
         }
 
         Rating rating = ratingRepository.findByBookingId(bookingId)
@@ -315,7 +334,7 @@ public class CustomerBookingService {
                 });
 
         rating.setStars(req.stars());
-        rating.setComment(req.comment());
+        rating.setComment(req.comment() != null ? req.comment().trim() : null);
         ratingRepository.save(rating);
     }
 
@@ -325,7 +344,7 @@ public class CustomerBookingService {
 
         public void cancelBooking(UUID bookingId, String phone) {
                 Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                                .orElseThrow(() -> new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Booking not found"));
+                                .orElseThrow(() -> new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy lịch khám"));
 
                 String normalizedPhone = phone == null ? "" : phone.trim();
                 if (normalizedPhone.isBlank()) {
@@ -437,6 +456,12 @@ public class CustomerBookingService {
                 .orElse(null);
 
         Rating rating = ratingRepository.findByBookingId(booking.getId()).orElse(null);
+        int servicePriceCents = booking.getService() != null && booking.getService().getPriceCents() != null
+                ? booking.getService().getPriceCents()
+                : 0;
+        int labFeeCents = booking.getLabFeeCents() != null ? booking.getLabFeeCents() : 0;
+        int prescriptionAmountCents = prescDto != null ? prescDto.totalCents() : 0;
+        int totalBillCents = servicePriceCents + labFeeCents + prescriptionAmountCents;
 
         return new PatientBookingDto(
                 booking.getId(),
@@ -450,12 +475,22 @@ public class CustomerBookingService {
                 booking.getService() != null ? booking.getService().getName() : null,
                 booking.getStatus().name(),
                 booking.getPaymentStatus().name(),
+                servicePriceCents,
+                labFeeCents,
+                prescriptionAmountCents,
+                totalBillCents,
                 booking.getBookingFeeCents(),
                 booking.getBookingFeePaidAt() != null,
                 booking.getBookingFeePaidAt(),
                 booking.getBookingFeePaymentMethod() != null ? booking.getBookingFeePaymentMethod().name() : null,
+                Boolean.TRUE.equals(booking.getIsFollowUp()),
+                booking.getFollowUpSourceBooking() != null ? booking.getFollowUpSourceBooking().getId() : null,
+                booking.getFollowUpScheduledAt(),
+                booking.getFollowUpNote(),
                 booking.getCreatedAt(),
                 appointmentTime,
+                booking.getCheckInAt(),
+                booking.getCompletedAt(),
                 currentServingQueueNumber,
                 estimatedTurnAt,
                 medRecord,

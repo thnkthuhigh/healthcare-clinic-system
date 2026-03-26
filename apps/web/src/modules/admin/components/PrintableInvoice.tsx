@@ -1,9 +1,8 @@
-import QRCode from 'react-qr-code';
-
+import { formatVndFromCents } from '../../../lib/currency';
 import { formatDateTimeUtc7 } from '../../../lib/time';
 
 interface PrintableInvoiceLine {
-  category?: 'SERVICE' | 'MEDICATION' | null;
+  category?: 'SERVICE' | 'LAB' | 'MEDICATION' | null;
   name: string;
   unit?: string | null;
   qty: number;
@@ -25,13 +24,12 @@ interface PrintableInvoiceProps {
   paidAt?: string | null | undefined;
   paymentMethod?: 'QR' | 'CASH' | null | undefined;
   billedByName?: string | null | undefined;
-  qrValue?: string | null | undefined;
   lines: PrintableInvoiceLine[];
   totalCents: number;
 }
 
 function formatMoney(cents: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(cents)} đ`;
+  return formatVndFromCents(cents);
 }
 
 function formatDateTime(value: string) {
@@ -62,12 +60,14 @@ export function PrintableInvoice({
   paidAt,
   paymentMethod,
   billedByName,
-  qrValue,
   lines,
   totalCents,
 }: PrintableInvoiceProps) {
   const serviceTotal = lines
     .filter((line) => line.category === 'SERVICE')
+    .reduce((sum, line) => sum + line.totalCents, 0);
+  const labTotal = lines
+    .filter((line) => line.category === 'LAB')
     .reduce((sum, line) => sum + line.totalCents, 0);
   const medicationTotal = lines
     .filter((line) => line.category === 'MEDICATION')
@@ -148,22 +148,6 @@ export function PrintableInvoice({
         </div>
       </section>
 
-      {qrValue && (
-        <section className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-white p-2 shadow-sm">
-              <QRCode value={qrValue} size={104} />
-            </div>
-            <div className="space-y-1 text-sm">
-              <p className="font-semibold text-slate-900">QR thanh toán</p>
-              <p className="text-slate-600">Bệnh nhân có thể quét mã để thanh toán nhanh.</p>
-              <p className="text-xs text-slate-500 break-all">Nội dung mã: {qrValue}</p>
-            </div>
-          </div>
-          <p className="text-xs text-slate-500">Nếu thu tiền mặt, bỏ qua bước quét QR.</p>
-        </section>
-      )}
-
       <section className="mt-4 overflow-hidden rounded-lg border border-slate-200">
         <table className="w-full text-sm">
           <thead className="bg-slate-100 text-slate-700">
@@ -183,7 +167,11 @@ export function PrintableInvoice({
                 <td className="px-3 py-2">
                   <p className="font-medium">{line.name}</p>
                   <p className="text-xs text-slate-500">
-                    {line.category === 'SERVICE' ? 'Dịch vụ khám' : 'Thuốc'}
+                    {line.category === 'SERVICE'
+                      ? 'Dịch vụ khám'
+                      : line.category === 'LAB'
+                        ? 'Xét nghiệm'
+                        : 'Thuốc'}
                   </p>
                 </td>
                 <td className="px-3 py-2 text-center">{line.unit ?? '-'}</td>
@@ -199,6 +187,12 @@ export function PrintableInvoice({
                 Tổng dịch vụ khám
               </td>
               <td className="px-3 py-2 text-right font-semibold">{formatMoney(serviceTotal)}</td>
+            </tr>
+            <tr className="border-t border-slate-300 bg-slate-50">
+              <td className="px-3 py-2 text-right font-medium text-slate-600" colSpan={5}>
+                Tổng xét nghiệm
+              </td>
+              <td className="px-3 py-2 text-right font-semibold">{formatMoney(labTotal)}</td>
             </tr>
             <tr className="border-t border-slate-300 bg-slate-50">
               <td className="px-3 py-2 text-right font-medium text-slate-600" colSpan={5}>

@@ -145,7 +145,7 @@ function RoomModal({ initial, services, onClose, onSaved }: RoomModalProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Phong kham 1"
+              placeholder="Phòng khám 1"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
             />
           </div>

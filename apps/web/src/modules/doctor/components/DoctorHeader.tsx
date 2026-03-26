@@ -1,48 +1,7 @@
-import { useLocation } from 'react-router-dom';
-
 import { formatDateUtc7 } from '../../../lib/time';
 
-const routeMeta: Record<string, { title: string; icon: string }> = {
-  '/doctor/dashboard': {
-    title: 'Tổng quan ca khám',
-    icon: 'grid_view',
-  },
-  '/doctor/queue': {
-    title: 'Hàng chờ khám',
-    icon: 'list_alt',
-  },
-  '/doctor/lab': {
-    title: 'Xét nghiệm',
-    icon: 'science',
-  },
-  '/doctor/consultation': {
-    title: 'Khám bệnh',
-    icon: 'medical_information',
-  },
-  '/doctor/schedule': {
-    title: 'Lịch làm việc',
-    icon: 'calendar_month',
-  },
-  '/doctor/patients': {
-    title: 'Bệnh nhân',
-    icon: 'group',
-  },
-  '/doctor/settings': {
-    title: 'Thiết lập',
-    icon: 'settings',
-  },
-  '/doctor/accounts': {
-    title: 'Tài khoản',
-    icon: 'manage_accounts',
-  },
-};
-
 export function DoctorHeader() {
-  const location = useLocation();
-
-  const current = Object.entries(routeMeta).find(([path]) =>
-    location.pathname.startsWith(path),
-  )?.[1] ?? {
+  const current = {
     title: 'Khu vực bác sĩ',
     icon: 'stethoscope',
   };

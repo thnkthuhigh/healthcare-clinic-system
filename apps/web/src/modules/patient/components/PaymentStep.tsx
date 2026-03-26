@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import QRCode from 'react-qr-code';
 
 import { formatDateUtc7 } from '../../../lib/time';
 import type { AvailableShift, BookingTicket, ClinicService, DoctorSummary } from '../types';
@@ -10,7 +11,7 @@ interface PaymentStepProps {
   service: ClinicService | null;
   patientName: string;
   patientPhone: string;
-  onPay: (method: 'QR' | 'CASH') => void;
+  onPay: () => void;
   paying: boolean;
 }
 
@@ -37,9 +38,9 @@ export function PaymentStep({
 }: PaymentStepProps) {
   const [confirmed, setConfirmed] = useState(false);
   const [showBillPopup, setShowBillPopup] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'QR' | 'CASH'>('QR');
 
   const draftBillCode = `BL-${(ticket?.bookingId ?? 'TEMP').slice(0, 8).toUpperCase()}`;
+  const paymentQrValue = `HC_BOOKING_FEE|BILL:${draftBillCode}|AMOUNT:${BOOKING_FEE_VND}|PHONE:${patientPhone}`;
 
   return (
     <div className="space-y-5">
@@ -156,31 +157,15 @@ export function PaymentStep({
               Phí khám dịch vụ và thuốc sẽ thanh toán tại quầy thu ngân sau khi khám.
             </div>
 
-            <div className="mt-4">
-              <p className="mb-2 text-sm font-semibold text-slate-900">Phương thức thanh toán</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('QR')}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
-                    paymentMethod === 'QR'
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-slate-200 bg-white text-slate-600'
-                  }`}
-                >
-                  Quét QR
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('CASH')}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
-                    paymentMethod === 'CASH'
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-slate-200 bg-white text-slate-600'
-                  }`}
-                >
-                  Tiền mặt
-                </button>
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4">
+              <p className="mb-3 text-sm font-semibold text-slate-900">Chuyển khoản QR</p>
+              <div className="flex flex-col items-center gap-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-soft">
+                  <QRCode value={paymentQrValue} size={160} />
+                </div>
+                <p className="text-center text-xs text-slate-600">
+                  Quét mã QR để chuyển khoản phí đặt lịch 10.000đ, sau đó bấm xác nhận.
+                </p>
               </div>
             </div>
 
@@ -192,12 +177,12 @@ export function PaymentStep({
                 type="button"
                 disabled={paying}
                 onClick={() => {
-                  onPay(paymentMethod);
+                  onPay();
                   setShowBillPopup(false);
                 }}
                 className="btn-primary"
               >
-                Xác nhận thanh toán 10.000đ
+                Xác nhận đã chuyển khoản 10.000đ
               </button>
             </div>
           </div>

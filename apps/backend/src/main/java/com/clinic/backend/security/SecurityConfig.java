@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/customer/patients/lookup").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/customer/patients/*/bookings").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/customer/bookings/*/cancel").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/customer/bookings/*/rating").permitAll()
 
                 // OWNER has access to everything
                 .requestMatchers("/api/**").hasAnyRole("OWNER", "ADMIN", "DOCTOR", "RECEPTIONIST", "CASHIER", "PATIENT")

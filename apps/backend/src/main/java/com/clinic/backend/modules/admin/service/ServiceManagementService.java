@@ -58,7 +58,7 @@ public class ServiceManagementService {
     @Transactional
     public AdminServiceDto createService(CreateServiceRequest request) {
         if (serviceRepository.existsByName(request.getName())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten dich vu da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên dịch vụ đã tồn tại");
         }
         UUID specialtyId = parseOptionalDepartmentId(request.getSpecialtyId());
 
@@ -74,11 +74,11 @@ public class ServiceManagementService {
     @Transactional
     public AdminServiceDto updateService(UUID id, UpdateServiceRequest request) {
         Service service = serviceRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay dich vu"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dịch vụ"));
         if (request.getName() != null && !request.getName().isBlank()) {
             if (!request.getName().equals(service.getName()) &&
                     serviceRepository.existsByName(request.getName())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten dich vu da ton tai");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên dịch vụ đã tồn tại");
             }
             service.setName(request.getName());
         }
@@ -92,7 +92,7 @@ public class ServiceManagementService {
     @Transactional
     public AdminServiceDto toggleActive(UUID id) {
         Service service = serviceRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay dich vu"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dịch vụ"));
         service.setIsActive(!service.getIsActive());
         return toDto(serviceRepository.save(service));
     }
@@ -129,11 +129,11 @@ public class ServiceManagementService {
         try {
             specialtyUuid = UUID.fromString(specialtyId.trim());
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "specialtyId khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "specialtyId không hợp lệ");
         }
 
         if (!departmentRepository.existsById(specialtyUuid)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "specialtyId khong ton tai");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "specialtyId không tồn tại");
         }
 
         return specialtyUuid;

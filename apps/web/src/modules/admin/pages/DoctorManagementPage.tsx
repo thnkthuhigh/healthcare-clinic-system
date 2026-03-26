@@ -118,7 +118,7 @@ export function DoctorManagementPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
       closeModal();
     },
-    onError: (e) => setFormError(e instanceof Error ? e.message : 'Loi tao tai khoan'),
+    onError: (e) => setFormError(e instanceof Error ? e.message : 'Lỗi tạo tài khoản'),
   });
 
   const updateMutation = useMutation({
@@ -128,7 +128,7 @@ export function DoctorManagementPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
       closeModal();
     },
-    onError: (e) => setFormError(e instanceof Error ? e.message : 'Loi cap nhat'),
+    onError: (e) => setFormError(e instanceof Error ? e.message : 'Lỗi cập nhật'),
   });
 
   const lockMutation = useMutation({
@@ -182,12 +182,12 @@ export function DoctorManagementPage() {
 
   function validateCommon() {
     if (!form.displayName.trim()) {
-      return 'Vui long nhap ten hien thi.';
+      return 'Vui lòng nhập tên hiển thị.';
     }
 
     const years = Number(form.experienceYears);
     if (Number.isNaN(years) || years < 0) {
-      return 'So nam kinh nghiem phai >= 0.';
+      return 'Số năm kinh nghiệm phải >= 0.';
     }
 
     return '';
@@ -231,12 +231,12 @@ export function DoctorManagementPage() {
     setFormError('');
 
     if (!form.phone.trim()) {
-      setFormError('Vui long nhap so dien thoai.');
+      setFormError('Vui lòng nhập số điện thoại.');
       return;
     }
 
     if (!form.password || form.password.length < 6) {
-      setFormError('Mat khau phai co it nhat 6 ky tu.');
+      setFormError('Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
 
@@ -260,7 +260,7 @@ export function DoctorManagementPage() {
     }
 
     if (form.newPassword.trim() && form.newPassword.trim().length < 6) {
-      setFormError('Mat khau moi phai co it nhat 6 ky tu.');
+      setFormError('Mật khẩu mới phải có ít nhất 6 ký tự.');
       return;
     }
 
@@ -274,31 +274,31 @@ export function DoctorManagementPage() {
   return (
     <div className="space-y-4 px-1">
       <div className="flex items-center justify-between px-1 py-1">
-        <p className="text-sm text-slate-600">{doctors.length} bac si</p>
+        <p className="text-sm text-slate-600">{doctors.length} bác sĩ</p>
         <button
           onClick={openCreateModal}
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <span className="material-symbols-outlined text-base">person_add</span>
-          Them bac si
+          Thêm bác sĩ
         </button>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         {isLoading ? (
-          <p className="py-12 text-center text-sm text-slate-400">Dang tai...</p>
+          <p className="py-12 text-center text-sm text-slate-400">Đang tải...</p>
         ) : doctors.length === 0 ? (
-          <p className="py-12 text-center text-sm text-slate-400">Chua co bac si nao</p>
+          <p className="py-12 text-center text-sm text-slate-400">Chưa có bác sĩ nào</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Bac si</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Chuyen khoa</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Dich vu</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-600">Bác sĩ</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-600">Chuyên khoa</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-600">Dịch vụ</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-600">SDT</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-600">Trang thai</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-600">Hanh dong</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-600">Trạng thái</th>
+                <th className="px-4 py-3 text-right font-medium text-slate-600">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -320,7 +320,7 @@ export function DoctorManagementPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">{doctor.specialty ?? '-'}</td>
                     <td className="px-4 py-3 text-slate-600">
-                      {doctor.serviceIds?.length ?? 0} dich vu
+                      {doctor.serviceIds?.length ?? 0} dịch vụ
                     </td>
                     <td className="px-4 py-3 text-slate-600">{doctor.phone}</td>
                     <td className="px-4 py-3">
@@ -374,7 +374,7 @@ export function DoctorManagementPage() {
           <div className="w-full max-w-3xl rounded-xl bg-white p-6 shadow-xl">
             <h3 className="mb-4 text-base font-bold text-slate-900">
               {isCreateMode
-                ? 'Them bac si moi'
+                ? 'Thêm bác sĩ mới'
                 : isEditMode
                   ? `Cap nhat: ${modal.doctor.displayName}`
                   : ''}
@@ -388,7 +388,7 @@ export function DoctorManagementPage() {
                   activeTab === 'ACCOUNT' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
                 }`}
               >
-                Tai khoan
+                Tài khoản
               </button>
               <button
                 type="button"
@@ -397,7 +397,7 @@ export function DoctorManagementPage() {
                   activeTab === 'PROFILE' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
                 }`}
               >
-                Ho so
+                Hồ sơ
               </button>
             </div>
 
@@ -406,7 +406,7 @@ export function DoctorManagementPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-700">
-                      So dien thoai {isCreateMode ? '*' : ''}
+                      Số điện thoại {isCreateMode ? '*' : ''}
                     </label>
                     <input
                       value={form.phone}
@@ -421,7 +421,7 @@ export function DoctorManagementPage() {
                   {isCreateMode ? (
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Mat khau *
+                        Mật khẩu *
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -446,7 +446,7 @@ export function DoctorManagementPage() {
                   ) : (
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Mat khau moi (de trong neu khong doi)
+                        Mật khẩu mới (để trống nếu không đổi)
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -471,7 +471,7 @@ export function DoctorManagementPage() {
 
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-700">
-                      Ten bac si *
+                      Tên bác sĩ *
                     </label>
                     <input
                       value={form.displayName}
@@ -483,14 +483,14 @@ export function DoctorManagementPage() {
 
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-700">
-                      Chuyen khoa
+                      Chuyên khoa
                     </label>
                     <select
                       value={form.specialty}
                       onChange={(e) => updateField('specialty', e.target.value)}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                     >
-                      <option value="">-- Khong co --</option>
+                      <option value="">-- Không co --</option>
                       {departments.map((d: DepartmentDto) => (
                         <option key={d.id} value={d.name}>
                           {d.name}
@@ -501,7 +501,7 @@ export function DoctorManagementPage() {
 
                   <div className="md:col-span-2">
                     <label className="mb-1 block text-xs font-medium text-slate-700">
-                      Dich vu phu trach
+                      Dịch vụ phụ trách
                     </label>
                     <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
                       {visibleServices.map((svc: AdminServiceDto) => (
@@ -521,7 +521,7 @@ export function DoctorManagementPage() {
                         </label>
                       ))}
                       {visibleServices.length === 0 && (
-                        <p className="text-xs text-slate-400">Khong co dich vu active.</p>
+                        <p className="text-xs text-slate-400">Không có dịch vụ đang hoạt động.</p>
                       )}
                     </div>
                   </div>
@@ -544,7 +544,7 @@ export function DoctorManagementPage() {
 
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        So dien thoai
+                        Số điện thoại
                       </label>
                       <input
                         value={form.phone}
@@ -555,7 +555,7 @@ export function DoctorManagementPage() {
 
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Ngay sinh
+                        Ngày sinh
                       </label>
                       <input
                         type="date"
@@ -567,7 +567,7 @@ export function DoctorManagementPage() {
 
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        CCCD / Ma dinh danh
+                        CCCD / Mã định danh
                       </label>
                       <input
                         value={form.nationalId}
@@ -579,7 +579,7 @@ export function DoctorManagementPage() {
 
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Tong so nam kinh nghiem
+                        Tổng số năm kinh nghiệm
                       </label>
                       <input
                         type="number"
@@ -592,38 +592,38 @@ export function DoctorManagementPage() {
 
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Chuyen mon / Bang cap / Chung chi
+                        Chuyên môn / Bằng cấp / Chứng chỉ
                       </label>
                       <input
                         value={form.qualifications}
                         onChange={(e) => updateField('qualifications', e.target.value)}
-                        placeholder="VD: Noi khoa, CKI Noi khoa, chung chi sieu am..."
+                        placeholder="VD: Nội khoa, CKI Nội khoa, chứng chỉ siêu âm..."
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       />
                     </div>
 
                     <div className="md:col-span-2">
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Noi tung cong tac (neu co)
+                        Nơi từng công tác (nếu có)
                       </label>
                       <textarea
                         rows={4}
                         value={form.workHistory}
                         onChange={(e) => updateField('workHistory', e.target.value)}
-                        placeholder={`- 2018-2021: Benh vien A\n- 2021-2024: Phong kham B`}
+                        placeholder={`- 2018-2021: Bệnh viện A\n- 2021-2024: Phòng khám B`}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       />
                     </div>
 
                     <div className="md:col-span-2">
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        So yeu ly lich tom tat
+                        Sơ yếu lý lịch tóm tắt
                       </label>
                       <textarea
                         rows={6}
                         value={form.bio}
                         onChange={(e) => updateField('bio', e.target.value)}
-                        placeholder={`Tom tat ca nhan:\n- ...\nDinh huong chuyen mon:\n- ...\nThanh tuu noi bat:\n- ...`}
+                        placeholder={`Tóm tắt cá nhân:\n- ...\nĐịnh hướng chuyên môn:\n- ...\nThành tựu nổi bật:\n- ...`}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       />
                     </div>
@@ -639,7 +639,7 @@ export function DoctorManagementPage() {
                   onClick={closeModal}
                   className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
-                  Huy
+                  Hủy
                 </button>
                 <button
                   type="submit"
@@ -647,10 +647,10 @@ export function DoctorManagementPage() {
                   className="flex-1 rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {createMutation.isPending || updateMutation.isPending
-                    ? 'Dang xu ly...'
+                    ? 'Đang xử lý...'
                     : isCreateMode
-                      ? 'Tao tai khoan'
-                      : 'Luu thay doi'}
+                      ? 'Tạo tài khoản'
+                      : 'Lưu thay đổi'}
                 </button>
               </div>
             </form>

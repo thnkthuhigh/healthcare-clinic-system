@@ -60,7 +60,7 @@ public class AutoDispatchService {
 
     @Transactional(readOnly = true)
     public PatientLookupResponse lookupPatient(String phone) {
-        String normalizedPhone = normalizeRequired(phone, "So dien thoai la bat buoc");
+        String normalizedPhone = normalizeRequired(phone, "Số điện thoại là bắt buộc");
         Patient patient = patientRepository.findByPhone(normalizedPhone).orElse(null);
         if (patient == null) {
             return null;
@@ -86,7 +86,7 @@ public class AutoDispatchService {
         boolean forceOverride = Boolean.TRUE.equals(request.getForceOverride());
         List<CandidateShift> candidates = findCandidateShifts(serviceId, LocalDate.now(CLINIC_ZONE));
         if (candidates.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Khong co bac si phu trach dich vu nay hom nay");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Không có bác sĩ phụ trách dịch vụ này hôm nay");
         }
 
         CandidateShift selected = selectShift(candidates, forceOverride, preferredDoctorId);
@@ -154,7 +154,7 @@ public class AutoDispatchService {
             .getResultList();
 
         if (rows.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dich vu khong ton tai hoac dang tat");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dịch vụ không tồn tại hoặc đang tắt");
         }
     }
 
@@ -162,7 +162,7 @@ public class AutoDispatchService {
     private List<CandidateShift> findCandidateShifts(UUID serviceId, LocalDate date) {
         List<Object[]> rows = em.createNativeQuery(
                 "SELECT " +
-                    "s.id, d.id, d.display_name, COALESCE(r.name, 'Chua gan phong'), CAST(s.type AS text), " +
+                    "s.id, d.id, d.display_name, COALESCE(r.name, 'Chưa gán phòng'), CAST(s.type AS text), " +
                     "(SELECT COUNT(*) FROM slots sl " +
                     " WHERE sl.shift_id = s.id " +
                     "   AND sl.status = 'OPEN' " +
@@ -196,7 +196,7 @@ public class AutoDispatchService {
             candidate.shiftId = (UUID) row[0];
             candidate.doctorId = (UUID) row[1];
             candidate.doctorName = row[2].toString();
-            candidate.roomName = row[3] != null ? row[3].toString() : "Chua gan phong";
+            candidate.roomName = row[3] != null ? row[3].toString() : "Chưa gán phòng";
             candidate.shiftType = row[4].toString();
             candidate.openCommonReserveSlots = ((Number) row[5]).intValue();
             candidate.bookingLoad = ((Number) row[6]).intValue();
@@ -212,11 +212,11 @@ public class AutoDispatchService {
                     continue;
                 }
                 if (!forceOverride && candidate.openCommonReserveSlots <= 0) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Bac si duoc chon da het slot trong ngay");
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Bác sĩ được chọn đã hết slot trong ngày");
                 }
                 return candidate;
             }
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bac si duoc chon khong phu hop voi dich vu/ca hom nay");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bác sĩ được chọn không phù hợp với dịch vụ/ca hôm nay");
         }
 
         if (forceOverride) {
@@ -229,7 +229,7 @@ public class AutoDispatchService {
             }
         }
 
-        throw new ResponseStatusException(HttpStatus.CONFLICT, "Het so kham cho dich vu nay hom nay");
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "Hết số khám cho dịch vụ này hôm nay");
     }
 
     @SuppressWarnings("unchecked")
@@ -254,7 +254,7 @@ public class AutoDispatchService {
         }
 
         if (!allowOverride) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Het so kham cho dich vu nay hom nay");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Hết số khám cho dịch vụ này hôm nay");
         }
 
         int maxSequence = ((Number) em.createNativeQuery(
@@ -281,8 +281,8 @@ public class AutoDispatchService {
     }
 
     private UpsertPatientResult upsertPatient(CreateVisitRequest request) {
-        String phone = normalizeRequired(request.getPatientPhone(), "So dien thoai la bat buoc");
-        String fullName = normalizeRequired(request.getPatientName(), "Ten benh nhan la bat buoc");
+        String phone = normalizeRequired(request.getPatientPhone(), "Số điện thoại là bắt buộc");
+        String fullName = normalizeRequired(request.getPatientName(), "Tên bệnh nhân là bắt buộc");
         LocalDate dob = parseOptionalDate(request.getPatientDob());
         String gender = normalizeGender(request.getPatientGender());
         String nationalId = normalizeOptional(request.getPatientNationalId());
@@ -352,11 +352,11 @@ public class AutoDispatchService {
     }
 
     private UUID parseUuid(String rawValue, String fieldName) {
-        String normalized = normalizeRequired(rawValue, fieldName + " la bat buoc");
+        String normalized = normalizeRequired(rawValue, fieldName + " là bắt buộc");
         try {
             return UUID.fromString(normalized);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không hợp lệ");
         }
     }
 
@@ -368,7 +368,7 @@ public class AutoDispatchService {
         try {
             return UUID.fromString(normalized);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không hợp lệ");
         }
     }
 
@@ -399,7 +399,7 @@ public class AutoDispatchService {
         try {
             return LocalDate.parse(normalized);
         } catch (DateTimeParseException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "patientDob khong dung dinh dang YYYY-MM-DD");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "patientDob không đúng định dạng YYYY-MM-DD");
         }
     }
 
@@ -410,7 +410,7 @@ public class AutoDispatchService {
         }
         String upper = normalized.toUpperCase(Locale.ROOT);
         if (!upper.equals("MALE") && !upper.equals("FEMALE") && !upper.equals("OTHER")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "patientGender khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "patientGender không hợp lệ");
         }
         return upper;
     }

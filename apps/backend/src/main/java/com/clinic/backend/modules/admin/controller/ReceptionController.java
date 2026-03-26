@@ -51,9 +51,10 @@ public class ReceptionController {
     @GetMapping("/search")
     public ResponseEntity<List<ReceptionBookingDto>> searchByPhone(
             @RequestParam String phone,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "false") boolean followUpOnly) {
         if (date == null) date = LocalDate.now(CLINIC_ZONE);
-        return ResponseEntity.ok(receptionService.searchBookingsByPhone(phone, date));
+        return ResponseEntity.ok(receptionService.searchBookingsByPhone(phone, date, followUpOnly));
     }
 
     /**

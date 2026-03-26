@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
+import { formatVndFromCents } from '../../../lib/currency';
 import { adminApi } from '../api';
 import type { AdminDoctorDto, AdminServiceDto, DepartmentDto } from '../types';
 
@@ -93,7 +94,7 @@ export function DepartmentManagementPage() {
       setNewName('');
       setFormError('');
     },
-    onError: (error) => setFormError(error instanceof Error ? error.message : 'Tao khoa that bai'),
+    onError: (error) => setFormError(error instanceof Error ? error.message : 'Tạo khoa thất bại'),
   });
 
   const renameMutation = useMutation({
@@ -104,7 +105,7 @@ export function DepartmentManagementPage() {
       setEditingName('');
       setFormError('');
     },
-    onError: (error) => setFormError(error instanceof Error ? error.message : 'Doi ten that bai'),
+    onError: (error) => setFormError(error instanceof Error ? error.message : 'Đổi tên thất bại'),
   });
 
   const deleteMutation = useMutation({
@@ -113,7 +114,7 @@ export function DepartmentManagementPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-departments'] });
       setConfirmDeleteId(null);
     },
-    onError: (error) => setFormError(error instanceof Error ? error.message : 'Xoa khoa that bai'),
+    onError: (error) => setFormError(error instanceof Error ? error.message : 'Xóa khoa thất bại'),
   });
 
   function submitCreate(event: React.FormEvent) {
@@ -121,7 +122,7 @@ export function DepartmentManagementPage() {
     setFormError('');
     const normalized = newName.trim();
     if (!normalized) {
-      setFormError('Ten khoa la bat buoc.');
+      setFormError('Tên khoa là bắt buộc.');
       return;
     }
     createMutation.mutate(normalized);
@@ -138,7 +139,7 @@ export function DepartmentManagementPage() {
     setFormError('');
     const normalized = editingName.trim();
     if (!normalized) {
-      setFormError('Ten khoa la bat buoc.');
+      setFormError('Tên khoa là bắt buộc.');
       return;
     }
     renameMutation.mutate({ id: deptId, name: normalized });
@@ -149,8 +150,8 @@ export function DepartmentManagementPage() {
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Quan ly khoa</h1>
-            <p className="text-xs text-slate-500">{departments.length} khoa trong he thong</p>
+            <h1 className="text-lg font-bold text-slate-900">Quản lý khoa</h1>
+            <p className="text-xs text-slate-500">{departments.length} khoa trong hệ thống</p>
           </div>
         </div>
 
@@ -158,7 +159,7 @@ export function DepartmentManagementPage() {
           <input
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
-            placeholder="Ten khoa/chuyen khoa"
+            placeholder="Tên khoa/chuyên khoa"
             className="min-w-[260px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
           <button
@@ -166,7 +167,7 @@ export function DepartmentManagementPage() {
             disabled={createMutation.isPending}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {createMutation.isPending ? 'Dang tao...' : 'Them khoa'}
+            {createMutation.isPending ? 'Đang tạo...' : 'Thêm khoa'}
           </button>
         </form>
 
@@ -176,13 +177,13 @@ export function DepartmentManagementPage() {
       <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Danh sach khoa
+            Danh sách khoa
           </div>
 
           {isLoading ? (
-            <p className="py-16 text-center text-sm text-slate-400">Dang tai...</p>
+            <p className="py-16 text-center text-sm text-slate-400">Đang tải...</p>
           ) : departments.length === 0 ? (
-            <p className="py-16 text-center text-sm text-slate-400">Chua co khoa nao</p>
+            <p className="py-16 text-center text-sm text-slate-400">Chưa có khoa nào</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {departments.map((dept) => {
@@ -217,7 +218,7 @@ export function DepartmentManagementPage() {
                           disabled={renameMutation.isPending}
                           className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                         >
-                          Luu
+                          Lưu
                         </button>
                         <button
                           type="button"
@@ -227,7 +228,7 @@ export function DepartmentManagementPage() {
                           }}
                           className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
                         >
-                          Huy
+                          Hủy
                         </button>
                       </form>
                     ) : (
@@ -242,10 +243,10 @@ export function DepartmentManagementPage() {
                           </p>
                           <div className="mt-1 flex flex-wrap gap-2 text-xs">
                             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700">
-                              {usage.doctorCount} bac si
+                              {usage.doctorCount} bác sĩ
                             </span>
                             <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-700">
-                              {usage.serviceCount} dich vu
+                              {usage.serviceCount} dịch vụ
                             </span>
                           </div>
                         </button>
@@ -255,7 +256,7 @@ export function DepartmentManagementPage() {
                             type="button"
                             onClick={() => startEdit(dept)}
                             className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"
-                            title="Doi ten"
+                            title="Đổi tên"
                           >
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
@@ -263,7 +264,7 @@ export function DepartmentManagementPage() {
                             type="button"
                             onClick={() => setConfirmDeleteId(dept.id)}
                             className="rounded-lg border border-red-200 p-1.5 text-red-500 hover:bg-red-50"
-                            title="Xoa"
+                            title="Xóa"
                           >
                             <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
@@ -279,11 +280,11 @@ export function DepartmentManagementPage() {
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Chi tiet khoa
+            Chi tiết khoa
           </div>
 
           {!selectedDepartment ? (
-            <p className="py-16 text-center text-sm text-slate-400">Chon khoa de xem chi tiet</p>
+            <p className="py-16 text-center text-sm text-slate-400">Chọn khoa để xem chi tiết</p>
           ) : (
             <div className="space-y-4 p-4">
               <div>
@@ -291,18 +292,18 @@ export function DepartmentManagementPage() {
                   {selectedDepartment.name}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {selectedUsage.doctorCount} bac si � {selectedUsage.serviceCount} dich vu
+                  {selectedUsage.doctorCount} bác sĩ • {selectedUsage.serviceCount} dịch vụ
                 </p>
               </div>
 
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Bac si thuoc khoa
-                </h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Bác sĩ thuộc khoa
+                  </h3>
                 {selectedUsage.doctors.length === 0 ? (
-                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
-                    Khong co bac si nao
-                  </p>
+                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
+                      Không có bác sĩ nào
+                    </p>
                 ) : (
                   <ul className="space-y-2">
                     {selectedUsage.doctors.map((doctor) => (
@@ -316,20 +317,20 @@ export function DepartmentManagementPage() {
               </section>
 
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Dich vu thuoc khoa
-                </h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Dịch vụ thuộc khoa
+                  </h3>
                 {selectedUsage.services.length === 0 ? (
-                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
-                    Khong co dich vu nao
-                  </p>
+                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
+                      Không có dịch vụ nào
+                    </p>
                 ) : (
                   <ul className="space-y-2">
                     {selectedUsage.services.map((service) => (
                       <li key={service.id} className="rounded-lg border border-slate-200 px-3 py-2">
                         <p className="text-sm font-medium text-slate-800">{service.name}</p>
                         <p className="text-xs text-slate-500">
-                          Gia: {new Intl.NumberFormat('vi-VN').format(service.priceCents)} d
+                          Giá: {formatVndFromCents(service.priceCents)}
                         </p>
                       </li>
                     ))}
@@ -344,16 +345,16 @@ export function DepartmentManagementPage() {
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-base font-bold text-slate-900">Xac nhan xoa khoa</h3>
+            <h3 className="text-base font-bold text-slate-900">Xác nhận xóa khoa</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Ban sap xoa khoa <strong>{deleteTarget.name}</strong>.
+              Bạn sắp xóa khoa <strong>{deleteTarget.name}</strong>.
             </p>
 
             {(deleteUsage.doctorCount > 0 || deleteUsage.serviceCount > 0) && (
               <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Canh bao: khoa nay dang co {deleteUsage.doctorCount} bac si va{' '}
-                {deleteUsage.serviceCount} dich vu lien ket. Nen gan lai truoc khi xoa de tranh sai
-                lech du lieu.
+                Cảnh báo: khoa này đang có {deleteUsage.doctorCount} bác sĩ và{' '}
+                {deleteUsage.serviceCount} dịch vụ liên kết. Nên gán lại trước khi xóa để tránh sai
+                lệch dữ liệu.
               </div>
             )}
 
@@ -363,7 +364,7 @@ export function DepartmentManagementPage() {
                 onClick={() => setConfirmDeleteId(null)}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
               >
-                Huy
+                Hủy
               </button>
               <button
                 type="button"
@@ -371,7 +372,7 @@ export function DepartmentManagementPage() {
                 disabled={deleteMutation.isPending}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {deleteMutation.isPending ? 'Dang xoa...' : 'Van xoa'}
+                {deleteMutation.isPending ? 'Đang xóa...' : 'Vẫn xóa'}
               </button>
             </div>
           </div>

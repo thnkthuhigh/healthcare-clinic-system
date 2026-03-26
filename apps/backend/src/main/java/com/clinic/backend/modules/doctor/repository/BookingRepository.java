@@ -148,4 +148,16 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         List<Booking> findTodayBookedByPatientId(
                         @Param("patientId") UUID patientId,
                         @Param("today") java.time.LocalDate today);
+
+        @Query("""
+                        SELECT b FROM Booking b
+                        JOIN FETCH b.shift s
+                        WHERE b.followUpSourceBooking.id = :sourceBookingId
+                        AND s.date = :date
+                        AND CAST(b.status AS string) <> 'CANCELED'
+                        ORDER BY b.createdAt DESC
+                        """)
+        List<Booking> findFollowUpsBySourceAndDate(
+                        @Param("sourceBookingId") UUID sourceBookingId,
+                        @Param("date") java.time.LocalDate date);
 }

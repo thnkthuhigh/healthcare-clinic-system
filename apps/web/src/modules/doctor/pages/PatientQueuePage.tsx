@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { OpsPageHeader } from '../../../components/ClinicUI';
@@ -7,14 +7,13 @@ import { useAuth } from '../../auth/useAuth';
 import { consultationApi, doctorApi } from '../api';
 import type { BookingStatus, QueueItem, Shift } from '../types';
 
-type FilterStatus = 'ALL' | 'BOOKED' | 'WAITING' | 'IN_CONSULTATION' | 'COMPLETED';
+type FilterStatus = 'ALL' | 'CHECKED_IN' | 'WAITING' | 'IN_CONSULTATION';
 
 const statusFilters: { value: FilterStatus; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },
-  { value: 'BOOKED', label: 'Đã đặt' },
+  { value: 'CHECKED_IN', label: 'Đã check-in' },
   { value: 'WAITING', label: 'Đang chờ' },
   { value: 'IN_CONSULTATION', label: 'Đang khám' },
-  { value: 'COMPLETED', label: 'Hoàn thành' },
 ];
 
 const avatarColors = [
@@ -27,14 +26,6 @@ const avatarColors = [
 
 function getStatusBadge(status: BookingStatus) {
   switch (status) {
-    case 'BOOKED':
-      return {
-        label: 'Đã đặt lịch',
-        bgClass: 'bg-sky-50',
-        textClass: 'text-sky-700',
-        borderClass: 'border-sky-200',
-        pulse: false,
-      };
     case 'IN_CONSULTATION':
       return {
         label: 'Đang khám',
@@ -59,14 +50,6 @@ function getStatusBadge(status: BookingStatus) {
         textClass: 'text-blue-700',
         borderClass: 'border-blue-200',
         pulse: true,
-      };
-    case 'COMPLETED':
-      return {
-        label: 'Hoàn thành',
-        bgClass: 'bg-emerald-50',
-        textClass: 'text-emerald-600',
-        borderClass: '',
-        pulse: false,
       };
     default:
       return {
@@ -102,7 +85,7 @@ function formatQueueNumber(value: number | null) {
 
 function matchesStatusFilter(status: BookingStatus, filter: FilterStatus) {
   if (filter === 'ALL') return true;
-  if (filter === 'BOOKED') return status === 'BOOKED';
+  if (filter === 'CHECKED_IN') return status === 'CHECKED_IN';
   if (filter === 'WAITING') {
     return status === 'WAITING' || status === 'CHECKED_IN' || status === 'RESULTS_READY';
   }
@@ -113,8 +96,31 @@ function canStartConsultation(status: BookingStatus) {
   return status === 'CHECKED_IN' || status === 'WAITING' || status === 'RESULTS_READY';
 }
 
+function isVisibleInDoctorQueue(status: BookingStatus) {
+  return (
+    status === 'CHECKED_IN' ||
+    status === 'WAITING' ||
+    status === 'IN_CONSULTATION' ||
+    status === 'RESULTS_READY'
+  );
+}
+
 function getChannelLabel(channel: QueueItem['channel']) {
   return channel === 'WEB' ? 'Đặt trước' : 'Tại quầy';
+}
+
+function pushDoctorNotification(title: string, body: string) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification(title, { body });
+  } catch {
+    // no-op
+  }
+}
+
+function countResultsReady(items: QueueItem[]) {
+  return items.filter((item) => item.status === 'RESULTS_READY').length;
 }
 
 function toTimestamp(value: string | null | undefined) {
@@ -131,22 +137,29 @@ function isCurrentShift(shift: Shift) {
   return now >= start && now <= end;
 }
 
+function getActionableCount(shift: Shift) {
+  const inFlowCount = shift.waitingCount + shift.checkedInCount + shift.inConsultationCount;
+  const bookedEstimate = Math.max(shift.totalPatients - shift.completedCount - inFlowCount, 0);
+  return inFlowCount + bookedEstimate;
+}
+
 function pickBestShift(shifts: Shift[]) {
   if (shifts.length === 0) return null;
   const openShifts = shifts.filter((shift) => shift.status !== 'CLOSED');
   const candidates = openShifts.length > 0 ? openShifts : shifts;
-  const hasBookedPatients = candidates.some((shift) => shift.totalPatients > 0);
 
   return [...candidates].sort((left, right) => {
-    if (hasBookedPatients && left.totalPatients !== right.totalPatients) {
-      return right.totalPatients - left.totalPatients;
+    const leftActionable = getActionableCount(left);
+    const rightActionable = getActionableCount(right);
+    if (leftActionable !== rightActionable) {
+      return rightActionable - leftActionable;
     }
     const leftActiveScore = isCurrentShift(left) ? 1 : 0;
     const rightActiveScore = isCurrentShift(right) ? 1 : 0;
     if (leftActiveScore !== rightActiveScore) {
       return rightActiveScore - leftActiveScore;
     }
-    if (!hasBookedPatients && left.totalPatients !== right.totalPatients) {
+    if (left.totalPatients !== right.totalPatients) {
       return right.totalPatients - left.totalPatients;
     }
     const leftStart = toTimestamp(left.startTime) ?? 0;
@@ -167,6 +180,18 @@ export function PatientQueuePage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [invitingBookingId, setInvitingBookingId] = useState<string | null>(null);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
+  const previousQueueSnapshotRef = useRef<{
+    total: number;
+    resultsReady: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => undefined);
+    }
+  }, []);
 
   useEffect(() => {
     if (paramShiftId) {
@@ -203,6 +228,29 @@ export function PatientQueuePage() {
     findActiveShift();
   }, [paramShiftId, user]);
 
+  useEffect(() => {
+    if (paramShiftId || !user) return;
+
+    const refreshBestShift = async () => {
+      try {
+        const doctor = await doctorApi.getProfile(user.id);
+        const shifts = await doctorApi.getShifts(doctor.id);
+        const bestShift = pickBestShift(shifts);
+        if (bestShift && bestShift.id !== activeShiftId) {
+          setActiveShiftId(bestShift.id);
+        }
+      } catch {
+        // keep current shift if refresh fails
+      }
+    };
+
+    const interval = setInterval(() => {
+      refreshBestShift();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [activeShiftId, paramShiftId, user]);
+
   const fetchQueue = useCallback(async () => {
     if (!activeShiftId) return;
 
@@ -210,6 +258,30 @@ export function PatientQueuePage() {
       setLoading(true);
       setError(null);
       const data = await doctorApi.getQueue(activeShiftId);
+      const previousSnapshot = previousQueueSnapshotRef.current;
+      const currentSnapshot = {
+        total: data.length,
+        resultsReady: countResultsReady(data),
+      };
+
+      if (previousSnapshot !== null) {
+        const notices: string[] = [];
+        if (currentSnapshot.total > previousSnapshot.total) {
+          const newPatients = currentSnapshot.total - previousSnapshot.total;
+          notices.push(`Có ${newPatients} bệnh nhân mới vừa vào hàng chờ.`);
+        }
+        if (currentSnapshot.resultsReady > previousSnapshot.resultsReady) {
+          const readyCount = currentSnapshot.resultsReady - previousSnapshot.resultsReady;
+          notices.push(`${readyCount} bệnh nhân đã có kết quả xét nghiệm.`);
+        }
+        if (notices.length > 0) {
+          const message = notices.join(' ');
+          setQueueNotice(message);
+          pushDoctorNotification('Cập nhật hàng chờ', message);
+        }
+      }
+
+      previousQueueSnapshotRef.current = currentSnapshot;
       setQueueItems(data);
       setLastUpdated(new Date());
     } catch (fetchError) {
@@ -225,6 +297,11 @@ export function PatientQueuePage() {
   }, [fetchQueue]);
 
   useEffect(() => {
+    previousQueueSnapshotRef.current = null;
+    setQueueNotice(null);
+  }, [activeShiftId]);
+
+  useEffect(() => {
     if (!activeShiftId) return;
 
     const interval = setInterval(() => {
@@ -234,7 +311,9 @@ export function PatientQueuePage() {
     return () => clearInterval(interval);
   }, [activeShiftId, fetchQueue]);
 
-  const filteredItems = queueItems.filter((item) => {
+  const visibleQueueItems = queueItems.filter((item) => isVisibleInDoctorQueue(item.status));
+
+  const filteredItems = visibleQueueItems.filter((item) => {
     const matchesSearch =
       searchQuery === '' ||
       item.patient.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -245,16 +324,15 @@ export function PatientQueuePage() {
   });
 
   const counts = {
-    ALL: queueItems.length,
-    BOOKED: queueItems.filter((item) => item.status === 'BOOKED').length,
-    WAITING: queueItems.filter(
+    ALL: visibleQueueItems.length,
+    CHECKED_IN: visibleQueueItems.filter((item) => item.status === 'CHECKED_IN').length,
+    WAITING: visibleQueueItems.filter(
       (item) =>
         item.status === 'WAITING' ||
         item.status === 'CHECKED_IN' ||
         item.status === 'RESULTS_READY',
     ).length,
-    IN_CONSULTATION: queueItems.filter((item) => item.status === 'IN_CONSULTATION').length,
-    COMPLETED: queueItems.filter((item) => item.status === 'COMPLETED').length,
+    IN_CONSULTATION: visibleQueueItems.filter((item) => item.status === 'IN_CONSULTATION').length,
   };
 
   const getTimeSinceUpdate = () => {
@@ -297,6 +375,17 @@ export function PatientQueuePage() {
           </div>
         )}
 
+        {queueNotice && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            <div className="flex items-center justify-between gap-3">
+              <p>{queueNotice}</p>
+              <button onClick={() => setQueueNotice(null)} className="rounded p-1 hover:bg-blue-100">
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             loading={loading}
@@ -307,8 +396,8 @@ export function PatientQueuePage() {
           />
           <StatCard
             loading={loading}
-            title="Chờ check-in"
-            value={counts.BOOKED}
+            title="Đã check-in"
+            value={counts.CHECKED_IN}
             icon="event_available"
             tone="sky"
           />
@@ -321,9 +410,9 @@ export function PatientQueuePage() {
           />
           <StatCard
             loading={loading}
-            title="Hoàn thành"
-            value={counts.COMPLETED}
-            icon="check_circle"
+            title="Đang khám"
+            value={counts.IN_CONSULTATION}
+            icon="medical_services"
             tone="emerald"
           />
         </section>
@@ -412,9 +501,7 @@ export function PatientQueuePage() {
                 {!loading &&
                   filteredItems.map((item, index) => {
                     const statusBadge = getStatusBadge(item.status);
-                    const isBooked = item.status === 'BOOKED';
                     const isExamining = item.status === 'IN_CONSULTATION';
-                    const isCompleted = item.status === 'COMPLETED';
 
                     return (
                       <tr
@@ -422,23 +509,13 @@ export function PatientQueuePage() {
                         className={`transition-colors ${
                           isExamining
                             ? 'bg-amber-50/50 hover:bg-amber-50'
-                            : isBooked
-                              ? 'bg-sky-50/40 hover:bg-sky-50'
-                              : isCompleted
-                                ? 'bg-slate-50/50 opacity-75 hover:opacity-100'
-                                : 'hover:bg-slate-50'
+                            : 'hover:bg-slate-50'
                         }`}
                       >
                         <td className="px-6 py-4">
                           <span
                             className={`text-lg font-bold ${
-                              isExamining
-                                ? 'text-amber-700'
-                                : isBooked
-                                  ? 'text-sky-700'
-                                  : isCompleted
-                                    ? 'text-slate-400'
-                                    : 'text-slate-500'
+                              isExamining ? 'text-amber-700' : 'text-slate-500'
                             }`}
                           >
                             #{formatQueueNumber(item.queueNumber)}
@@ -448,24 +525,16 @@ export function PatientQueuePage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div
-                              className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${
-                                isCompleted
-                                  ? 'bg-slate-200 text-slate-500'
-                                  : avatarColors[index % avatarColors.length]
-                              }`}
+                              className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${avatarColors[index % avatarColors.length]}`}
                             >
                               {getInitials(item.patient.fullName)}
                             </div>
 
                             <div>
-                              <p
-                                className={`font-bold ${isCompleted ? 'text-slate-700' : 'text-slate-900'}`}
-                              >
+                              <p className="font-bold text-slate-900">
                                 {item.patient.fullName}
                               </p>
-                              <div
-                                className={`flex flex-wrap gap-x-3 gap-y-1 text-xs ${isCompleted ? 'text-slate-400' : 'text-slate-500'}`}
-                              >
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
                                 <span>SĐT: {item.patient.phone}</span>
                                 <span>Slot #{item.slotSequence}</span>
                                 <span>{getChannelLabel(item.channel)}</span>
@@ -476,9 +545,7 @@ export function PatientQueuePage() {
 
                         <td className="px-6 py-4">
                           <div className="space-y-1">
-                            <p
-                              className={`font-medium ${isCompleted ? 'text-slate-500' : 'text-slate-600'}`}
-                            >
+                            <p className="font-medium text-slate-600">
                               Giờ hẹn {formatTime(item.appointmentTime)}
                             </p>
                             <p className="text-xs text-slate-400">
@@ -490,9 +557,7 @@ export function PatientQueuePage() {
                         </td>
 
                         <td className="px-6 py-4">
-                          <span className={isCompleted ? 'text-slate-500' : 'text-slate-600'}>
-                            {item.serviceName || '-'}
-                          </span>
+                          <span className="text-slate-600">{item.serviceName || '-'}</span>
                         </td>
 
                         <td className="px-6 py-4">
@@ -512,11 +577,7 @@ export function PatientQueuePage() {
                         </td>
 
                         <td className="px-6 py-4 text-right">
-                          {isCompleted ? (
-                            <button className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-200 hover:text-primary">
-                              <span className="material-symbols-outlined">history</span>
-                            </button>
-                          ) : isExamining ? (
+                          {isExamining ? (
                             <Link
                               to={`/doctor/consultation/${item.id}`}
                               className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
@@ -526,13 +587,6 @@ export function PatientQueuePage() {
                               </span>
                               Tiếp tục
                             </Link>
-                          ) : isBooked ? (
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-500">
-                              <span className="material-symbols-outlined text-[18px]">
-                                schedule
-                              </span>
-                              Chờ check-in
-                            </span>
                           ) : canStartConsultation(item.status) ? (
                             <button
                               type="button"

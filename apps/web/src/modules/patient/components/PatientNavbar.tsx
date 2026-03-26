@@ -81,7 +81,9 @@ export function PatientNavbar() {
                     <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
                     <div className="absolute right-0 z-20 mt-2 w-64 rounded-[20px] border border-slate-200 bg-white p-2 shadow-card">
                       <div className="rounded-xl bg-slate-50 px-4 py-3">
-                        <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Tài khoản bệnh nhân</p>
+                        <p className="text-xs uppercase tracking-[0.14em] text-slate-400">
+                          Tài khoản bệnh nhân
+                        </p>
                         <p className="mt-1 truncate text-sm font-semibold text-slate-900">{user?.phone}</p>
                       </div>
                       <div className="mt-2 space-y-1">

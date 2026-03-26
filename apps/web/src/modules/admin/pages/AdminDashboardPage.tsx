@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { formatVndFromCents } from '../../../lib/currency';
 import { formatDateUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type { DashboardStats, ShiftOverview } from '../types';
@@ -49,10 +50,7 @@ export function AdminDashboardPage() {
   }, [today]);
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(cents);
+    return formatVndFromCents(cents);
   };
 
   const formatDate = () => {

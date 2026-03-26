@@ -1,30 +1,7 @@
-import { useLocation } from 'react-router-dom';
-
 import { formatDateUtc7 } from '../../../lib/time';
 
-const routeTitles: Record<string, string> = {
-  '/admin/dashboard': 'Tổng quan vận hành',
-  '/admin/reception': 'Điều phối tiếp nhận',
-  '/admin/cashier': 'Thu ngân',
-  '/admin/doctors': 'Quản lý bác sĩ',
-  '/admin/patients': 'Hồ sơ khám bệnh',
-  '/admin/shifts': 'Ca làm việc',
-  '/admin/services': 'Dịch vụ',
-  '/admin/rooms': 'Phòng khám',
-  '/admin/supplies': 'Vật tư',
-  '/admin/assets': 'Tài sản',
-  '/admin/medications': 'Danh mục thuốc',
-  '/admin/templates': 'Mẫu toa thuốc',
-  '/admin/departments': 'Chuyên khoa',
-  '/admin/reports': 'Báo cáo',
-};
-
 export function AdminHeader() {
-  const location = useLocation();
-
-  const currentTitle =
-    Object.entries(routeTitles).find(([path]) => location.pathname.startsWith(path))?.[1] ??
-    'Quản trị hệ thống';
+  const currentTitle = 'Khu vực quản trị';
 
   const today = formatDateUtc7(new Date(), {
     weekday: 'long',

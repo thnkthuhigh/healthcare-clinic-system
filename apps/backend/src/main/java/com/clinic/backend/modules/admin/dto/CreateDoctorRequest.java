@@ -9,15 +9,15 @@ import java.util.List;
 
 public class CreateDoctorRequest {
 
-    @NotBlank(message = "So dien thoai khong duoc de trong")
-    @Pattern(regexp = "^0[0-9]{9}$", message = "So dien thoai phai co 10 chu so, bat dau bang 0")
+    @NotBlank(message = "Số điện thoại không được để trống")
+    @Pattern(regexp = "^0[0-9]{9}$", message = "Số điện thoại phải có 10 chữ số, bắt đầu bằng 0")
     private String phone;
 
-    @NotBlank(message = "Mat khau khong duoc de trong")
-    @Size(min = 6, message = "Mat khau phai co it nhat 6 ky tu")
+    @NotBlank(message = "Mật khẩu không được để trống")
+    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
     private String password;
 
-    @NotBlank(message = "Ten hien thi khong duoc de trong")
+    @NotBlank(message = "Tên hiển thị không được để trống")
     private String displayName;
 
     private String specialty;

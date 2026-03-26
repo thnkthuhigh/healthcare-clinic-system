@@ -48,8 +48,8 @@ public class SupplyService {
                                   Long unitCostCents,
                                   Boolean active) {
         Supply supply = new Supply();
-        supply.setName(normalizeRequired(name, "Ten vat tu la bat buoc"));
-        supply.setUnit(normalizeRequired(unit, "Don vi la bat buoc"));
+        supply.setName(normalizeRequired(name, "Tên vật tư là bắt buộc"));
+        supply.setUnit(normalizeRequired(unit, "Đơn vị là bắt buộc"));
         supply.setStockQty(nonNegative(stockQty, "stockQty", 0));
         supply.setMinQty(nonNegative(minQty, "minQty", 0));
         supply.setUnitCostCents(nonNegativeLong(unitCostCents, "unitCostCents", 0L));
@@ -69,7 +69,7 @@ public class SupplyService {
                     )
                     """)
                 .setParameter("refId", saved.getId())
-                .setParameter("description", "Nhap kho vat tu ban dau: " + saved.getName())
+                .setParameter("description", "Nhập kho vật tư ban đầu: " + saved.getName())
                 .setParameter("qty", saved.getStockQty())
                 .setParameter("unit", saved.getUnit())
                 .setParameter("amount", (long) saved.getStockQty() * saved.getUnitCostCents())
@@ -89,13 +89,13 @@ public class SupplyService {
                                   Long unitCostCents,
                                   Boolean active) {
         Supply supply = supplyRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay vat tu"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy vật tư"));
 
         if (name != null) {
-            supply.setName(normalizeRequired(name, "Ten vat tu khong hop le"));
+            supply.setName(normalizeRequired(name, "Tên vật tư không hợp lệ"));
         }
         if (unit != null) {
-            supply.setUnit(normalizeRequired(unit, "Don vi khong hop le"));
+            supply.setUnit(normalizeRequired(unit, "Đơn vị không hợp lệ"));
         }
         if (stockQty != null) {
             int oldQty = supply.getStockQty();
@@ -131,10 +131,10 @@ public class SupplyService {
     @Transactional
     public SupplyDto restock(UUID id, Integer qty, Long unitCostCents) {
         Supply supply = supplyRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay vat tu"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy vật tư"));
 
         if (qty == null || qty < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "qty phai >= 1");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "qty phải >= 1");
         }
 
         if (unitCostCents != null) {
@@ -165,7 +165,7 @@ public class SupplyService {
     @Transactional
     public SupplyDto toggle(UUID id) {
         Supply supply = supplyRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay vat tu"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy vật tư"));
         supply.setIsActive(!supply.getIsActive());
         return toDto(supplyRepository.save(supply));
     }
@@ -202,7 +202,7 @@ public class SupplyService {
     private int nonNegative(Integer value, String fieldName, int defaultValue) {
         int normalized = value == null ? defaultValue : value;
         if (normalized < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phai >= 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phải >= 0");
         }
         return normalized;
     }
@@ -210,7 +210,7 @@ public class SupplyService {
     private long nonNegativeLong(Long value, String fieldName, long defaultValue) {
         long normalized = value == null ? defaultValue : value;
         if (normalized < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phai >= 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phải >= 0");
         }
         return normalized;
     }

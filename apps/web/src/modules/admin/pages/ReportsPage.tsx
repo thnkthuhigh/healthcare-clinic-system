@@ -1,8 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
-import { addDaysToIsoDate, formatDateTimeUtc7, startOfMonthIsoUtc7, toIsoDateUtc7 } from '../../../lib/time';
+import { formatVndFromCents, vndToCents } from '../../../lib/currency';
+import {
+  addDaysToIsoDate,
+  formatDateTimeUtc7,
+  startOfMonthIsoUtc7,
+  toIsoDateUtc7,
+} from '../../../lib/time';
 import { adminApi } from '../api';
 import type {
   AuditLogDto,
@@ -28,7 +33,7 @@ function weekAgoStr() {
 }
 
 function formatMoney(cents: number) {
-  return `${new Intl.NumberFormat('vi-VN').format(cents)} d`;
+  return formatVndFromCents(cents);
 }
 
 function formatDateTime(value: string | null) {
@@ -36,22 +41,43 @@ function formatDateTime(value: string | null) {
   return formatDateTimeUtc7(value);
 }
 
-function entryTypeLabel(value: string) {
-  if (value === 'INCOME') return 'Thu';
-  if (value === 'EXPENSE') return 'Chi';
-  return value;
-}
-
-function financeFlowLabel(row: FinanceLedgerEntryDto) {
+function financeFlowLabelVi(row: FinanceLedgerEntryDto) {
   const category = row.category?.toUpperCase() ?? '';
-  if (category.endsWith('_PURCHASE')) return 'Nhap';
-  if (category === 'MEDICATION_SALE' || category === 'MANUAL_STOCK_OUT') return 'Xuat';
-  if (category === 'MANUAL_STOCK_IN') return 'Nhap';
+  if (category.endsWith('_PURCHASE')) return 'Nhập';
+  if (category === 'MEDICATION_SALE' || category === 'MANUAL_STOCK_OUT') return 'Xuất';
+  if (category === 'MANUAL_STOCK_IN') return 'Nhập';
   if (category === 'MANUAL_EXPENSE') return 'Chi';
   if (category === 'MANUAL_INCOME') return 'Thu';
   if (row.entryType === 'INCOME') return 'Thu';
   if (row.entryType === 'EXPENSE') return 'Chi';
   return '-';
+}
+
+function resolveLedgerType(
+  row: FinanceLedgerEntryDto,
+): { label: string; className: string } {
+  const category = row.category?.toUpperCase() ?? '';
+
+  if (category === 'MANUAL_STOCK_IN') {
+    return { label: 'Nhập kho', className: 'bg-blue-100 text-blue-700' };
+  }
+  if (category === 'MANUAL_STOCK_OUT') {
+    return { label: 'Xuất kho', className: 'bg-amber-100 text-amber-700' };
+  }
+  if (category === 'MANUAL_INCOME') {
+    return { label: 'Thu', className: 'bg-green-100 text-green-700' };
+  }
+  if (category === 'MANUAL_EXPENSE') {
+    return { label: 'Chi', className: 'bg-red-100 text-red-700' };
+  }
+  if (row.entryType === 'INCOME') {
+    return { label: 'Thu', className: 'bg-green-100 text-green-700' };
+  }
+  if (row.entryType === 'EXPENSE') {
+    return { label: 'Chi', className: 'bg-red-100 text-red-700' };
+  }
+
+  return { label: row.entryType || '-', className: 'bg-slate-100 text-slate-700' };
 }
 
 function parseMeta(metaJson: string | null): Record<string, unknown> | null {
@@ -93,7 +119,6 @@ const AUDIT_ACTIONS = [
 ] as const;
 
 export function ReportsPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<TabId>('summary');
@@ -165,22 +190,22 @@ export function ReportsPage() {
 
   const manualFinanceMutation = useMutation({
     mutationFn: () => {
-      const amountCents = Number.parseInt(manualAmount, 10);
-      if (Number.isNaN(amountCents) || amountCents <= 0) {
-        throw new Error('So tien phai > 0');
+      const amountVnd = Number.parseInt(manualAmount, 10);
+      if (Number.isNaN(amountVnd) || amountVnd <= 0) {
+        throw new Error('Số tiền phải > 0');
       }
 
       const payload: ManualFinanceEntryRequest = {
         entryDate: manualEntryDate,
         flowType: manualFlowType,
         description: manualDescription.trim(),
-        amountCents,
+        amountCents: vndToCents(amountVnd),
         ...(manualQty.trim() ? { qty: Number(manualQty) } : {}),
         ...(manualUnit.trim() ? { unit: manualUnit.trim() } : {}),
       };
 
       if (!payload.description) {
-        throw new Error('Noi dung phieu la bat buoc');
+        throw new Error('Nội dung phiếu là bắt buộc');
       }
 
       return adminApi.createManualFinanceEntry(payload);
@@ -217,8 +242,8 @@ export function ReportsPage() {
   );
 
   const tabs: { id: TabId; label: string; icon: string }[] = [
-    { id: 'summary', label: 'Thong ke', icon: 'bar_chart' },
-    { id: 'finance', label: 'Thu Chi', icon: 'account_balance_wallet' },
+    { id: 'summary', label: 'Thống kê', icon: 'bar_chart' },
+    { id: 'finance', label: 'Thu chi', icon: 'account_balance_wallet' },
     { id: 'audit', label: 'Audit Log', icon: 'history' },
   ];
 
@@ -227,9 +252,9 @@ export function ReportsPage() {
       <div className="flex items-center gap-3">
         <span className="material-symbols-outlined text-2xl text-blue-600">monitoring</span>
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Bao cao admin</h1>
+          <h1 className="text-lg font-bold text-slate-900">Báo cáo quản trị</h1>
           <p className="text-xs text-slate-500">
-            Tong hop thong ke, hoa don, luot kham, thu chi va audit log
+            Tổng hợp thống kê, hóa đơn, lượt khám, thu chi và audit log
           </p>
         </div>
       </div>
@@ -254,14 +279,14 @@ export function ReportsPage() {
       {tab === 'summary' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-500">Tu ngay</label>
+            <label className="text-xs text-slate-500">Từ ngày</label>
             <input
               type="date"
               value={summaryFrom}
               onChange={(e) => setSummaryFrom(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
             />
-            <label className="text-xs text-slate-500">Den ngay</label>
+            <label className="text-xs text-slate-500">Đến ngày</label>
             <input
               type="date"
               value={summaryTo}
@@ -271,49 +296,49 @@ export function ReportsPage() {
           </div>
 
           {loadingSummary && (
-            <div className="py-8 text-center text-sm text-slate-500">Dang tai thong ke...</div>
+            <div className="py-8 text-center text-sm text-slate-500">Đang tải thống kê...</div>
           )}
 
           {summary && !loadingSummary && (
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <SummaryCard
-                  label="Tong luot kham"
+                  label="Tổng lượt khám"
                   value={summary.totalBookings}
                   icon="calendar_today"
                 />
                 <SummaryCard
-                  label="Hoan thanh"
+                  label="Hoàn thành"
                   value={summary.completedBookings}
                   icon="check_circle"
                 />
-                <SummaryCard label="Da huy" value={summary.canceledBookings} icon="cancel" />
-                <SummaryCard label="Vang mat" value={summary.noShowBookings} icon="person_off" />
+                <SummaryCard label="Đã hủy" value={summary.canceledBookings} icon="cancel" />
+                <SummaryCard label="Vắng mặt" value={summary.noShowBookings} icon="person_off" />
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-lg border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">Kenh dat lich</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Kênh đặt lịch</h3>
                   <div className="mt-2 space-y-2 text-sm text-slate-600">
                     <div className="flex justify-between">
                       <span>Web</span>
                       <strong>{summary.webBookings}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span>Vang lai</span>
+                      <span>Vãng lai</span>
                       <strong>{summary.walkInBookings}</strong>
                     </div>
                   </div>
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-white p-4">
-                  <h3 className="text-sm font-semibold text-slate-900">Thanh toan</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Thanh toán</h3>
                   <div className="mt-2 space-y-2 text-sm text-slate-600">
                     <div className="flex justify-between">
-                      <span>Da thanh toan</span>
+                      <span>Đã thanh toán</span>
                       <strong>{summary.paidBookings}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span>Chua thanh toan</span>
+                      <span>Chưa thanh toán</span>
                       <strong>{summary.unpaidBookings}</strong>
                     </div>
                   </div>
@@ -321,28 +346,28 @@ export function ReportsPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <MoneyCard label="Tong doanh thu" amount={summary.totalRevenueCents} tone="green" />
+                <MoneyCard label="Tổng doanh thu" amount={summary.totalRevenueCents} tone="green" />
                 <MoneyCard
-                  label="Doanh thu dich vu"
+                  label="Doanh thu dịch vụ"
                   amount={summary.serviceRevenueCents}
                   tone="blue"
                 />
                 <MoneyCard
-                  label="Doanh thu thuoc"
+                  label="Doanh thu thuốc"
                   amount={summary.prescriptionRevenueCents}
                   tone="purple"
                 />
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
-                So lan override slot trong ky: <strong>{summary.overrideCount}</strong>
+                Số lần override slot trong kỳ: <strong>{summary.overrideCount}</strong>
               </div>
             </>
           )}
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-slate-900">Hoa don ngay</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Hóa đơn ngày</h3>
               <input
                 type="date"
                 value={dailyInvoiceDate}
@@ -354,27 +379,28 @@ export function ReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-2 text-left">Thoi gian</th>
-                    <th className="px-3 py-2 text-left">Benh nhan</th>
-                    <th className="px-3 py-2 text-left">Bac si</th>
-                    <th className="px-3 py-2 text-left">Dich vu</th>
-                    <th className="px-3 py-2 text-right">Tien dich vu</th>
-                    <th className="px-3 py-2 text-right">Tien thuoc</th>
-                    <th className="px-3 py-2 text-right">Tong</th>
+                    <th className="px-3 py-2 text-left">Thời gian</th>
+                    <th className="px-3 py-2 text-left">Bệnh nhân</th>
+                    <th className="px-3 py-2 text-left">Bác sĩ</th>
+                    <th className="px-3 py-2 text-left">Dịch vụ</th>
+                    <th className="px-3 py-2 text-right">Tiền dịch vụ</th>
+                    <th className="px-3 py-2 text-right">Tiền xét nghiệm</th>
+                    <th className="px-3 py-2 text-right">Tiền thuốc</th>
+                    <th className="px-3 py-2 text-right">Tổng</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingDailyInvoices && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-10 text-center text-slate-500">
-                        Dang tai hoa don...
+                      <td colSpan={8} className="px-3 py-10 text-center text-slate-500">
+                        Đang tải hóa đơn...
                       </td>
                     </tr>
                   )}
                   {!loadingDailyInvoices && dailyInvoices.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-10 text-center text-slate-500">
-                        Khong co hoa don nao
+                      <td colSpan={8} className="px-3 py-10 text-center text-slate-500">
+                        Không có hóa đơn nào
                       </td>
                     </tr>
                   )}
@@ -389,7 +415,7 @@ export function ReportsPage() {
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-slate-900">Luot kham theo bac si</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Lượt khám theo bác sĩ</h3>
               <div className="flex flex-wrap items-center gap-2">
                 <input
                   type="date"
@@ -409,25 +435,25 @@ export function ReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-2 text-left">Bac si</th>
-                    <th className="px-3 py-2 text-left">Chuyen mon</th>
-                    <th className="px-3 py-2 text-right">Sang</th>
-                    <th className="px-3 py-2 text-right">Chieu</th>
-                    <th className="px-3 py-2 text-right">Tong</th>
+                    <th className="px-3 py-2 text-left">Bác sĩ</th>
+                    <th className="px-3 py-2 text-left">Chuyên môn</th>
+                    <th className="px-3 py-2 text-right">Sáng</th>
+                    <th className="px-3 py-2 text-right">Chiều</th>
+                    <th className="px-3 py-2 text-right">Tổng</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingDoctorVisits && (
                     <tr>
                       <td colSpan={5} className="px-3 py-10 text-center text-slate-500">
-                        Dang tai luot kham...
+                        Đang tải lượt khám...
                       </td>
                     </tr>
                   )}
                   {!loadingDoctorVisits && doctorVisitRows.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-3 py-10 text-center text-slate-500">
-                        Khong co du lieu luot kham
+                        Không có dữ liệu lượt khám
                       </td>
                     </tr>
                   )}
@@ -438,7 +464,7 @@ export function ReportsPage() {
                   <tfoot>
                     <tr className="border-t border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700">
                       <td colSpan={4} className="px-3 py-2 text-right">
-                        Tong luot
+                        Tổng lượt
                       </td>
                       <td className="px-3 py-2 text-right">{doctorVisitTotal}</td>
                     </tr>
@@ -454,14 +480,14 @@ export function ReportsPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-xs text-slate-500">Tu ngay</label>
+              <label className="text-xs text-slate-500">Từ ngày</label>
               <input
                 type="date"
                 value={financeFrom}
                 onChange={(e) => setFinanceFrom(e.target.value)}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
               />
-              <label className="text-xs text-slate-500">Den ngay</label>
+              <label className="text-xs text-slate-500">Đến ngày</label>
               <input
                 type="date"
                 value={financeTo}
@@ -473,7 +499,7 @@ export function ReportsPage() {
                 onChange={(e) => setFinanceType(e.target.value)}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
               >
-                <option value="">Tat ca loai</option>
+                <option value="">Tất cả loại</option>
                 <option value="INCOME">INCOME</option>
                 <option value="EXPENSE">EXPENSE</option>
               </select>
@@ -482,7 +508,7 @@ export function ReportsPage() {
                 onChange={(e) => setFinanceCategory(e.target.value)}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
               >
-                <option value="">Tat ca danh muc</option>
+                <option value="">Tất cả danh mục</option>
                 {FINANCE_CATEGORIES.map((category) => (
                   <option key={category} value={category}>
                     {category}
@@ -493,16 +519,10 @@ export function ReportsPage() {
 
             <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={() => navigate('/admin/cashier?tab=retail')}
-                className="rounded-lg border border-blue-300 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
-              >
-                Tao hoa don ban le
-              </button>
-              <button
                 onClick={() => setShowManualForm((prev) => !prev)}
                 className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                {showManualForm ? 'Dong phieu thu chi' : 'Tao phieu thu/chi'}
+                {showManualForm ? 'Đóng phiếu thu chi' : 'Tạo phiếu thu/chi'}
               </button>
             </div>
           </div>
@@ -510,11 +530,11 @@ export function ReportsPage() {
           {showManualForm && (
             <div className="rounded-lg border border-slate-200 bg-white p-4">
               <h3 className="text-sm font-semibold text-slate-900">
-                Phieu thu / chi / nhap / xuat
+                Phiếu thu / chi / nhập / xuất
               </h3>
               <div className="mt-3 grid gap-3 md:grid-cols-4">
                 <div>
-                  <label className="mb-1 block text-xs text-slate-600">Loai phieu</label>
+                  <label className="mb-1 block text-xs text-slate-600">Loại phiếu</label>
                   <select
                     value={manualFlowType}
                     onChange={(e) => setManualFlowType(e.target.value as ManualFlowType)}
@@ -522,12 +542,12 @@ export function ReportsPage() {
                   >
                     <option value="CHI">Chi</option>
                     <option value="THU">Thu</option>
-                    <option value="NHAP">Nhap kho</option>
-                    <option value="XUAT">Xuat kho</option>
+                    <option value="NHAP">Nhập kho</option>
+                    <option value="XUAT">Xuất kho</option>
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-slate-600">Ngay</label>
+                  <label className="mb-1 block text-xs text-slate-600">Ngày</label>
                   <input
                     type="date"
                     value={manualEntryDate}
@@ -536,37 +556,37 @@ export function ReportsPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-slate-600">So luong (optional)</label>
+                  <label className="mb-1 block text-xs text-slate-600">Số lượng (tùy chọn)</label>
                   <input
                     value={manualQty}
                     onChange={(e) => setManualQty(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    placeholder="Vi du: 5"
+                    placeholder="Ví dụ: 5"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-slate-600">Don vi (optional)</label>
+                  <label className="mb-1 block text-xs text-slate-600">Đơn vị (tùy chọn)</label>
                   <input
                     value={manualUnit}
                     onChange={(e) => setManualUnit(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    placeholder="hop/chai/thung"
+                    placeholder="hộp/chai/thùng"
                   />
                 </div>
               </div>
 
               <div className="mt-3 grid gap-3 md:grid-cols-[1fr_220px]">
                 <div>
-                  <label className="mb-1 block text-xs text-slate-600">Noi dung</label>
+                  <label className="mb-1 block text-xs text-slate-600">Nội dung</label>
                   <textarea
                     value={manualDescription}
                     onChange={(e) => setManualDescription(e.target.value)}
                     className="h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    placeholder="Chi gi? Thu tu dau? Nhap/xuat mat hang nao?..."
+                    placeholder="Chi gì? Thu từ đâu? Nhập/xuất mặt hàng nào?..."
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-slate-600">So tien (cents)</label>
+                  <label className="mb-1 block text-xs text-slate-600">Số tiền (VND)</label>
                   <input
                     type="number"
                     min={1}
@@ -584,13 +604,13 @@ export function ReportsPage() {
                   disabled={manualFinanceMutation.isPending}
                   className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
                 >
-                  {manualFinanceMutation.isPending ? 'Dang luu...' : 'Luu phieu'}
+                  {manualFinanceMutation.isPending ? 'Đang lưu...' : 'Lưu phiếu'}
                 </button>
                 <button
                   onClick={() => setShowManualForm(false)}
                   className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                 >
-                  Huy
+                  Hủy
                 </button>
               </div>
 
@@ -598,7 +618,7 @@ export function ReportsPage() {
                 <p className="mt-2 text-sm text-red-600">
                   {manualFinanceMutation.error instanceof Error
                     ? manualFinanceMutation.error.message
-                    : 'Tao phieu that bai'}
+                    : 'Tạo phiếu thất bại'}
                 </p>
               )}
             </div>
@@ -606,19 +626,19 @@ export function ReportsPage() {
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <MoneyCard
-              label="Tong thu"
+              label="Tổng thu"
               amount={financeSummary?.totalIncomeCents ?? 0}
               tone="green"
               loading={loadingFinanceSummary}
             />
             <MoneyCard
-              label="Tong chi"
+              label="Tổng chi"
               amount={financeSummary?.totalExpenseCents ?? 0}
               tone="red"
               loading={loadingFinanceSummary}
             />
             <MoneyCard
-              label="Chenh lech"
+              label="Chênh lệch"
               amount={financeSummary?.balanceCents ?? 0}
               tone={(financeSummary?.balanceCents ?? 0) >= 0 ? 'blue' : 'red'}
               loading={loadingFinanceSummary}
@@ -630,29 +650,29 @@ export function ReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-2 text-left">Ngay</th>
-                    <th className="px-3 py-2 text-left">Nhap/Xuat</th>
-                    <th className="px-3 py-2 text-left">Loai</th>
-                    <th className="px-3 py-2 text-left">Danh muc</th>
-                    <th className="px-3 py-2 text-left">Mo ta</th>
-                    <th className="px-3 py-2 text-right">So luong</th>
-                    <th className="px-3 py-2 text-left">Don vi</th>
-                    <th className="px-3 py-2 text-right">So tien</th>
-                    <th className="px-3 py-2 text-left">Nguoi thuc hien</th>
+                    <th className="px-3 py-2 text-left">Ngày</th>
+                    <th className="px-3 py-2 text-left">Nhập/Xuất</th>
+                    <th className="px-3 py-2 text-left">Loại</th>
+                    <th className="px-3 py-2 text-left">Danh mục</th>
+                    <th className="px-3 py-2 text-left">Mô tả</th>
+                    <th className="px-3 py-2 text-right">Số lượng</th>
+                    <th className="px-3 py-2 text-left">Đơn vị</th>
+                    <th className="px-3 py-2 text-right">Số tiền</th>
+                    <th className="px-3 py-2 text-left">Người thực hiện</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingFinanceRows && (
                     <tr>
                       <td colSpan={9} className="px-3 py-10 text-center text-slate-500">
-                        Dang tai du lieu thu chi...
+                        Đang tải dữ liệu thu chi...
                       </td>
                     </tr>
                   )}
                   {!loadingFinanceRows && financeRows.length === 0 && (
                     <tr>
                       <td colSpan={9} className="px-3 py-10 text-center text-slate-500">
-                        Khong co but toan nao trong khoang nay
+                        Không có bút toán nào trong khoảng này
                       </td>
                     </tr>
                   )}
@@ -668,14 +688,14 @@ export function ReportsPage() {
       {tab === 'audit' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-500">Tu ngay</label>
+            <label className="text-xs text-slate-500">Từ ngày</label>
             <input
               type="date"
               value={auditFrom}
               onChange={(e) => setAuditFrom(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
             />
-            <label className="text-xs text-slate-500">Den ngay</label>
+            <label className="text-xs text-slate-500">Đến ngày</label>
             <input
               type="date"
               value={auditTo}
@@ -687,7 +707,7 @@ export function ReportsPage() {
               onChange={(e) => setAuditEntityType(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
             >
-              <option value="">Tat ca entity</option>
+              <option value="">Tất cả entity</option>
               <option value="BOOKING">BOOKING</option>
               <option value="MEDICATION">MEDICATION</option>
               <option value="SUPPLY">SUPPLY</option>
@@ -702,7 +722,7 @@ export function ReportsPage() {
               onChange={(e) => setAuditAction(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
             >
-              <option value="">Tat ca action</option>
+              <option value="">Tất cả action</option>
               {AUDIT_ACTIONS.map((action) => (
                 <option key={action} value={action}>
                   {action}
@@ -716,25 +736,25 @@ export function ReportsPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500">
-                    <th className="px-3 py-2 text-left">Thoi gian</th>
-                    <th className="px-3 py-2 text-left">Nguoi</th>
+                    <th className="px-3 py-2 text-left">Thời gian</th>
+                    <th className="px-3 py-2 text-left">Người</th>
                     <th className="px-3 py-2 text-left">Action</th>
                     <th className="px-3 py-2 text-left">Entity</th>
-                    <th className="px-3 py-2 text-left">Chi tiet</th>
+                    <th className="px-3 py-2 text-left">Chi tiết</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingAudit && (
                     <tr>
                       <td colSpan={5} className="px-3 py-10 text-center text-slate-500">
-                        Dang tai audit log...
+                        Đang tải audit log...
                       </td>
                     </tr>
                   )}
                   {!loadingAudit && auditLogs.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-3 py-10 text-center text-slate-500">
-                        Khong co audit log
+                        Không có audit log
                       </td>
                     </tr>
                   )}
@@ -803,6 +823,9 @@ function DailyInvoiceRow({ row }: { row: DailyInvoiceDto }) {
         {formatMoney(row.serviceAmountCents)}
       </td>
       <td className="px-3 py-2 text-right font-medium text-slate-700">
+        {formatMoney(row.labAmountCents)}
+      </td>
+      <td className="px-3 py-2 text-right font-medium text-slate-700">
         {formatMoney(row.medicationAmountCents)}
       </td>
       <td className="px-3 py-2 text-right font-semibold text-slate-900">
@@ -825,20 +848,15 @@ function DoctorVisitRow({ row }: { row: DoctorVisitStatsDto }) {
 }
 
 function FinanceRow({ row }: { row: FinanceLedgerEntryDto }) {
-  const typeClass =
-    row.entryType === 'INCOME'
-      ? 'bg-green-100 text-green-700'
-      : row.entryType === 'EXPENSE'
-        ? 'bg-red-100 text-red-700'
-        : 'bg-slate-100 text-slate-700';
+  const typeMeta = resolveLedgerType(row);
 
   return (
     <tr className="border-t border-slate-100 hover:bg-slate-50">
       <td className="px-3 py-2 text-slate-600">{row.entryDate}</td>
-      <td className="px-3 py-2 text-slate-700">{financeFlowLabel(row)}</td>
+      <td className="px-3 py-2 text-slate-700">{financeFlowLabelVi(row)}</td>
       <td className="px-3 py-2">
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${typeClass}`}>
-          {entryTypeLabel(row.entryType)}
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${typeMeta.className}`}>
+          {typeMeta.label}
         </span>
       </td>
       <td className="px-3 py-2 text-slate-700">{row.category}</td>

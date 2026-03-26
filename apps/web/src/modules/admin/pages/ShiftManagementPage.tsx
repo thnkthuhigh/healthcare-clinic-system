@@ -12,15 +12,15 @@ import type {
   SyncWeekShiftRequest,
 } from '../types';
 
-const WEEKDAY_LABELS = ['Thu 2', 'Thu 3', 'Thu 4', 'Thu 5', 'Thu 6', 'Thu 7', 'Chu nhat'];
+const WEEKDAY_LABELS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
 
 type ViewMode = 'DAY' | 'WEEK';
 type ShiftType = 'MORNING' | 'AFTERNOON';
 type DayShiftMap = Record<number, { MORNING: boolean; AFTERNOON: boolean }>;
 
 const TYPE_LABEL: Record<string, string> = {
-  MORNING: 'Sang (07:00-12:00)',
-  AFTERNOON: 'Chieu (13:00-18:00)',
+  MORNING: 'Sáng (07:00-12:00)',
+  AFTERNOON: 'Chiều (13:00-18:00)',
 };
 
 function formatDate(iso: string) {
@@ -130,7 +130,7 @@ function SlotGrid({ shiftId, onToggle, toggling }: SlotGridProps) {
   });
 
   if (isLoading) {
-    return <div className="p-2 text-xs text-slate-400">Dang tai slot...</div>;
+    return <div className="p-2 text-xs text-slate-400">Đang tải slot...</div>;
   }
 
   return (
@@ -203,14 +203,14 @@ function ShiftCard({
           <span
             className={`rounded-full px-2 py-0.5 text-xs ${shift.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
           >
-            {shift.status === 'OPEN' ? 'Dang mo' : 'Da khoa'}
+            {shift.status === 'OPEN' ? 'Đang mở' : 'Đã khóa'}
           </span>
         </div>
 
         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
           <div className="rounded bg-slate-50 p-2">
             <p className="text-sm font-bold">{shift.totalSlots}</p>
-            <p>Tong</p>
+            <p>Tổng</p>
           </div>
           <div className="rounded bg-emerald-50 p-2">
             <p className="text-sm font-bold text-emerald-700">{shift.openSlots}</p>
@@ -218,7 +218,7 @@ function ShiftCard({
           </div>
           <div className="rounded bg-sky-50 p-2">
             <p className="text-sm font-bold text-sky-700">{shift.bookedSlots}</p>
-            <p>Da dat</p>
+            <p>Đã đặt</p>
           </div>
         </div>
       </div>
@@ -243,7 +243,7 @@ function ShiftCard({
             disabled={mutating}
             className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-700"
           >
-            Khoa ca
+            Khóa ca
           </button>
         ) : (
           <button
@@ -251,7 +251,7 @@ function ShiftCard({
             disabled={mutating}
             className="rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-700"
           >
-            Mo ca
+            Mở ca
           </button>
         )}
         <button
@@ -259,7 +259,7 @@ function ShiftCard({
           disabled={mutating}
           className="rounded bg-red-50 px-2 py-1 text-xs text-red-600"
         >
-          Xoa
+          Xóa
         </button>
       </div>
     </div>
@@ -278,9 +278,9 @@ function DayShiftMatrix({ weekStartDate, dayShifts, onToggle }: DayShiftMatrixPr
       <table className="w-full text-sm">
         <thead className="border-b border-slate-200 bg-slate-50">
           <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Ngay</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Sang</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Chieu</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Ngày</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Sáng</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-slate-600">Chiều</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -300,7 +300,7 @@ function DayShiftMatrix({ weekStartDate, dayShifts, onToggle }: DayShiftMatrixPr
                     onClick={() => onToggle(day, 'MORNING')}
                     className={`rounded-full px-3 py-1 text-xs ${dayShifts[day]?.MORNING ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}
                   >
-                    {dayShifts[day]?.MORNING ? 'Da chon' : 'Bo trong'}
+                    {dayShifts[day]?.MORNING ? 'Đã chọn' : 'Bỏ trống'}
                   </button>
                 </td>
                 <td className="px-3 py-2">
@@ -309,7 +309,7 @@ function DayShiftMatrix({ weekStartDate, dayShifts, onToggle }: DayShiftMatrixPr
                     onClick={() => onToggle(day, 'AFTERNOON')}
                     className={`rounded-full px-3 py-1 text-xs ${dayShifts[day]?.AFTERNOON ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}
                   >
-                    {dayShifts[day]?.AFTERNOON ? 'Da chon' : 'Bo trong'}
+                    {dayShifts[day]?.AFTERNOON ? 'Đã chọn' : 'Bỏ trống'}
                   </button>
                 </td>
               </tr>
@@ -365,7 +365,7 @@ function WeeklyPatternModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <h2 className="font-semibold text-slate-900">Tao ca truc theo tuan trong thang</h2>
+          <h2 className="font-semibold text-slate-900">Tạo ca trực theo tuần trong tháng</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -373,9 +373,9 @@ function WeeklyPatternModal({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!doctorId) return setError('Vui long chon bac si');
-            if (countSelected(dayShifts) === 0) return setError('Vui long chon it nhat 1 ca');
-            if (repeatWeeks < 1 || repeatWeeks > 52) return setError('So tuan ap dung 1..52');
+            if (!doctorId) return setError('Vui lòng chọn bác sĩ');
+            if (countSelected(dayShifts) === 0) return setError('Vui lòng chọn ít nhất 1 ca');
+            if (repeatWeeks < 1 || repeatWeeks > 52) return setError('Số tuần áp dụng 1..52');
             const dayConfigs = mapToDayConfigs(dayShifts, false);
             const daysOfWeek = dayConfigs.map((cfg) => cfg.dayOfWeek);
             const shiftTypes = Array.from(new Set(dayConfigs.flatMap((cfg) => cfg.shiftTypes)));
@@ -396,13 +396,13 @@ function WeeklyPatternModal({
 
           <div className="grid gap-3 md:grid-cols-4">
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Bac si *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Bác sĩ *</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
-                <option value="">-- Chon bac si --</option>
+                <option value="">-- Chọn bác sĩ --</option>
                 {doctors.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.displayName}
@@ -412,7 +412,7 @@ function WeeklyPatternModal({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Thang *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Tháng *</label>
               <input
                 type="month"
                 value={monthValue}
@@ -422,30 +422,30 @@ function WeeklyPatternModal({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                Tuan trong thang *
+                Tuần trong tháng *
               </label>
               <select
                 value={weekNo}
                 onChange={(e) => setWeekNo(Number(e.target.value))}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
-                <option value={1}>Tuan 1</option>
-                <option value={2}>Tuan 2</option>
-                <option value={3}>Tuan 3</option>
-                <option value={4}>Tuan 4</option>
-                <option value={5}>Tuan 5</option>
+                <option value={1}>Tuần 1</option>
+                <option value={2}>Tuần 2</option>
+                <option value={3}>Tuần 3</option>
+                <option value={4}>Tuần 4</option>
+                <option value={5}>Tuần 5</option>
               </select>
             </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              Tuan duoc ap dung: {formatDate(weekStartDate)} -{' '}
+              Tuần được áp dụng: {formatDate(weekStartDate)} -{' '}
               {formatDate(addDays(weekStartDate, 6))}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                So tuan ap dung lap *
+                Số tuần áp dụng lặp *
               </label>
               <input
                 type="number"
@@ -481,14 +481,14 @@ function WeeklyPatternModal({
               onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
-              {mutation.isPending ? 'Dang tao...' : 'Tao lich lap'}
+              {mutation.isPending ? 'Đang tạo...' : 'Tạo lịch lặp'}
             </button>
           </div>
         </form>
@@ -552,7 +552,7 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
       onSynced();
       onClose();
       alert(
-        `Da cap nhat tuan: tao ${data.created.length}, xoa ${data.deleted.length}, bo qua ${data.skipped.length}.`,
+        `Đã cập nhật tuần: tạo ${data.created.length}, xóa ${data.deleted.length}, bỏ qua ${data.skipped.length}.`,
       );
     },
     onError: (e: Error) => setError(e.message),
@@ -562,7 +562,7 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <h2 className="font-semibold text-slate-900">Doi ca truc tuan nay</h2>
+          <h2 className="font-semibold text-slate-900">Đổi ca trực tuần này</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -570,8 +570,8 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (!doctorId) return setError('Vui long chon bac si');
-            if (!note.trim()) return setError('Vui long nhap ghi chu doi ca/ca bu');
+            if (!doctorId) return setError('Vui lòng chọn bác sĩ');
+            if (!note.trim()) return setError('Vui lòng nhập ghi chú đổi ca/ca bù');
             setError('');
             const payload: SyncWeekShiftRequest = {
               doctorId,
@@ -587,13 +587,13 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
 
           <div className="grid gap-3 md:grid-cols-4">
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Bac si *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Bác sĩ *</label>
               <select
                 value={doctorId}
                 onChange={(e) => setDoctorId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
-                <option value="">-- Chon bac si --</option>
+                <option value="">-- Chọn bác sĩ --</option>
                 {doctors.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.displayName}
@@ -603,7 +603,7 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Thang *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Tháng *</label>
               <input
                 type="month"
                 value={monthValue}
@@ -613,25 +613,25 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                Tuan trong thang *
+                Tuần trong tháng *
               </label>
               <select
                 value={weekNo}
                 onChange={(e) => setWeekNo(Number(e.target.value))}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
-                <option value={1}>Tuan 1</option>
-                <option value={2}>Tuan 2</option>
-                <option value={3}>Tuan 3</option>
-                <option value={4}>Tuan 4</option>
-                <option value={5}>Tuan 5</option>
+                <option value={1}>Tuần 1</option>
+                <option value={2}>Tuần 2</option>
+                <option value={3}>Tuần 3</option>
+                <option value={4}>Tuần 4</option>
+                <option value={5}>Tuần 5</option>
               </select>
             </div>
           </div>
 
           <div className="rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
             Pham vi dieu chinh: {formatDate(weekStartDate)} -{' '}
-            {formatDate(addDays(weekStartDate, 6))}. Tuan sau khong doi.
+            {formatDate(addDays(weekStartDate, 6))}. Tuần sau không đổi.
           </div>
 
           <div>
@@ -642,7 +642,7 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
               rows={3}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="VD: Nghi co phep Thu 2, bu Thu 4 tuan 2"
+              placeholder="VD: Nghỉ có phép Thứ 2, bù Thứ 4 tuần 2"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
@@ -670,14 +670,14 @@ function SyncWeekModal({ doctors, initialWeekStart, onClose, onSynced }: SyncWee
               onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
-              {mutation.isPending ? 'Dang cap nhat...' : 'Luu doi ca'}
+              {mutation.isPending ? 'Đang cập nhật...' : 'Lưu đổi ca'}
             </button>
           </div>
         </form>
@@ -726,12 +726,12 @@ function WeekCalendar({ doctors, weekDates, weekRows }: WeekCalendarProps) {
       <table className="min-w-[980px] w-full text-sm">
         <thead className="border-b border-slate-200 bg-slate-50">
           <tr>
-            <th className="px-3 py-3 text-left font-medium text-slate-600">Thu / Ngay</th>
+            <th className="px-3 py-3 text-left font-medium text-slate-600">Thứ / Ngày</th>
             {doctors.map((d) => (
               <th key={d.id} className="px-3 py-3 text-left font-medium text-slate-600">
                 <div className="whitespace-nowrap">{d.displayName}</div>
                 <div className="text-xs font-normal text-slate-400">
-                  {d.specialty ?? 'Chua gan khoa'}
+                  {d.specialty ?? 'Chưa gán khoa'}
                 </div>
               </th>
             ))}
@@ -850,9 +850,9 @@ export function ShiftManagementPage() {
     <div className="flex h-full flex-col bg-slate-50">
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-6 py-4">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Quan ly Ca lam viec</h1>
+          <h1 className="text-lg font-bold text-slate-900">Quản lý Ca làm việc</h1>
           <p className="mt-0.5 text-xs text-slate-500">
-            Tao lich theo tuan trong thang, doi ca co ghi chu va danh dau ca bu.
+            Tạo lịch theo tuần trong tháng, đổi ca có ghi chú và đánh dấu ca bù.
           </p>
         </div>
         <div className="flex-1" />
@@ -862,13 +862,13 @@ export function ShiftManagementPage() {
             onClick={() => setViewMode('DAY')}
             className={`rounded-md px-3 py-1.5 text-xs font-medium ${viewMode === 'DAY' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}
           >
-            Ngay
+            Ngày
           </button>
           <button
             onClick={() => setViewMode('WEEK')}
             className={`rounded-md px-3 py-1.5 text-xs font-medium ${viewMode === 'WEEK' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}
           >
-            Tuan
+            Tuần
           </button>
         </div>
 
@@ -905,23 +905,23 @@ export function ShiftManagementPage() {
           onClick={() => setShowPattern(true)}
           className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700"
         >
-          Tao lich lap
+          Tạo lịch lặp
         </button>
         <button
           onClick={() => setShowSyncWeek(true)}
           className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
         >
-          Doi ca tuan nay
+          Đổi ca tuần này
         </button>
       </div>
 
       <div className="flex-1 overflow-auto p-6">
         {viewMode === 'DAY' ? (
           isDayLoading ? (
-            <div className="h-40 text-sm text-slate-400">Dang tai...</div>
+            <div className="h-40 text-sm text-slate-400">Đang tải...</div>
           ) : shifts.length === 0 ? (
             <div className="h-40 text-sm text-slate-400">
-              Chua co ca truc ngay {formatDate(selectedDate)}
+              Chưa có ca trực ngày {formatDate(selectedDate)}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -932,10 +932,10 @@ export function ShiftManagementPage() {
                   onLock={() => lockMutation.mutate(shift.id)}
                   onOpen={() => openMutation.mutate(shift.id)}
                   onDelete={() => {
-                    if (shift.bookedSlots > 0) return alert('Ca co booking khong the xoa');
+                    if (shift.bookedSlots > 0) return alert('Ca có booking không thể xóa');
                     if (
                       !window.confirm(
-                        `Xoa ca ${TYPE_LABEL[shift.type]} cua BS. ${shift.doctorName}?`,
+                        `Xóa ca ${TYPE_LABEL[shift.type]} của BS. ${shift.doctorName}?`,
                       )
                     )
                       return;
@@ -952,11 +952,11 @@ export function ShiftManagementPage() {
             </div>
           )
         ) : isWeekLoading ? (
-          <div className="h-40 text-sm text-slate-400">Dang tai lich tuan...</div>
+          <div className="h-40 text-sm text-slate-400">Đang tải lịch tuần...</div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-slate-500">
-              Tuan hien tai: {formatDate(weekStartDate)} - {formatDate(addDays(weekStartDate, 6))}
+              Tuần hiện tại: {formatDate(weekStartDate)} - {formatDate(addDays(weekStartDate, 6))}
             </p>
             <WeekCalendar doctors={doctors} weekDates={weekDates} weekRows={weekRows} />
           </div>

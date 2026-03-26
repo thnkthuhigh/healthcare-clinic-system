@@ -93,6 +93,17 @@ public class ConsultationController {
     }
 
     /**
+     * Schedule follow-up booking from the current consultation
+     * POST /api/doctor/consultation/bookings/{bookingId}/follow-up
+     */
+    @PostMapping("/bookings/{bookingId}/follow-up")
+    public ResponseEntity<FollowUpBookingDto> scheduleFollowUp(
+            @PathVariable UUID bookingId,
+            @Valid @RequestBody ScheduleFollowUpRequest request) {
+        return ResponseEntity.ok(consultationService.scheduleFollowUp(bookingId, request));
+    }
+
+    /**
      * Save medical record
      * POST /api/doctor/consultation/bookings/{bookingId}/medical-record
      */

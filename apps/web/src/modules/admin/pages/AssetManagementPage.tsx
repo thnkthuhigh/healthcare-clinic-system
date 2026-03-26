@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
+import { formatVndFromCents } from '../../../lib/currency';
 import { adminApi } from '../api';
 import type {
   AdminAssetDto,
@@ -13,7 +14,7 @@ import type {
 const ASSET_STATUSES: AssetStatus[] = ['ACTIVE', 'MAINTENANCE', 'RETIRED'];
 
 function priceLabel(cents: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cents * 10);
+  return formatVndFromCents(cents);
 }
 
 interface AssetModalProps {
@@ -69,15 +70,15 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
     const price = parseInt(purchasePriceCents, 10);
 
     if (!normalizedName) {
-      setError('Ten tai san khong duoc de trong');
+      setError('Tên tài sản không được để trống');
       return;
     }
     if (!normalizedCategory) {
-      setError('Category khong duoc de trong');
+      setError('Danh mục không được để trống');
       return;
     }
     if (Number.isNaN(price) || price < 0) {
-      setError('Gia mua khong hop le');
+      setError('Giá mua không hợp lệ');
       return;
     }
 
@@ -114,7 +115,7 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
       <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
           <h2 className="font-semibold text-slate-900">
-            {isEdit ? 'Sua tai san' : 'Them tai san'}
+            {isEdit ? 'Sửa tài sản' : 'Thêm tài sản'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
@@ -126,7 +127,7 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="mb-1 block text-xs font-medium text-slate-600">Ten tai san *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Tên tài sản *</label>
               <input
                 type="text"
                 value={name}
@@ -136,7 +137,7 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Ma tai san</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Mã tài sản</label>
               <input
                 type="text"
                 value={assetCode}
@@ -158,13 +159,13 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Phong</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Phòng</label>
               <select
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
               >
-                <option value="">-- Chua gan phong --</option>
+                <option value="">-- Chưa gán phòng --</option>
                 {rooms.map((room) => (
                   <option key={room.id} value={room.id}>
                     {room.code} - {room.name}
@@ -174,7 +175,7 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Trang thai</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Trạng thái</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as AssetStatus)}
@@ -189,7 +190,7 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Ngay mua</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Ngày mua</label>
               <input
                 type="date"
                 value={purchaseDate}
@@ -200,7 +201,7 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
 
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                Gia mua (cents)
+                Giá mua (cents)
               </label>
               <input
                 type="number"
@@ -228,14 +229,14 @@ function AssetModal({ rooms, initial, onClose, onSaved }: AssetModalProps) {
               onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="submit"
               disabled={isPending}
               className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
             >
-              {isPending ? 'Dang luu...' : isEdit ? 'Luu thay doi' : 'Them tai san'}
+              {isPending ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Thêm tài sản'}
             </button>
           </div>
         </form>
@@ -305,9 +306,9 @@ export function AssetManagementPage() {
       <div className="border-b border-slate-200 bg-white px-6 py-4">
         <div className="flex flex-wrap items-center gap-4">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Quan ly tai san</h1>
+            <h1 className="text-lg font-bold text-slate-900">Quản lý tai san</h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              {stats.active}/{stats.total} dang hoat dong - {stats.maintenance} bao tri -{' '}
+              {stats.active}/{stats.total} đang hoạt động - {stats.maintenance} bảo trì -{' '}
               {stats.retired} ngung su dung
             </p>
           </div>
@@ -317,7 +318,7 @@ export function AssetManagementPage() {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
           >
-            <option value="">Tat ca category</option>
+            <option value="">Tất cả category</option>
             {categories.map((category) => (
               <option key={category} value={category}>
                 {category}
@@ -329,7 +330,7 @@ export function AssetManagementPage() {
             onChange={(e) => setRoomFilter(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
           >
-            <option value="">Tat ca phong</option>
+            <option value="">Tất cả phong</option>
             {rooms.map((room) => (
               <option key={room.id} value={room.id}>
                 {room.code} - {room.name}
@@ -341,7 +342,7 @@ export function AssetManagementPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
           >
-            <option value="">Tat ca trang thai</option>
+            <option value="">Tất cả trang thai</option>
             {ASSET_STATUSES.map((status) => (
               <option key={status} value={status}>
                 {status}
@@ -356,7 +357,7 @@ export function AssetManagementPage() {
             className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
           >
             <span className="material-symbols-outlined text-sm">add</span>
-            Them tai san
+            Thêm tài sản
           </button>
         </div>
       </div>
@@ -365,12 +366,12 @@ export function AssetManagementPage() {
         {isLoading ? (
           <div className="flex h-40 items-center justify-center gap-2 text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
-            Dang tai...
+            Đang tải...
           </div>
         ) : assets.length === 0 ? (
           <div className="flex h-40 flex-col items-center justify-center text-center text-slate-400">
             <span className="material-symbols-outlined mb-2 text-5xl">inventory</span>
-            <p className="text-sm">Chua co tai san nao</p>
+            <p className="text-sm">Chưa có tài sản nào</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -378,28 +379,28 @@ export function AssetManagementPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Ma
+                    Mã
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Ten tai san
+                    Tên tài sản
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Category
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Phong
+                    Phòng
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Ngay mua
+                    Ngày mua
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Gia mua
+                    Giá mua
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Trang thai
+                    Trạng thái
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Thao tac
+                    Thao tác
                   </th>
                 </tr>
               </thead>
@@ -459,7 +460,7 @@ export function AssetManagementPage() {
                           }}
                           className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-200"
                         >
-                          Sua
+                          Sửa
                         </button>
                       </div>
                     </td>

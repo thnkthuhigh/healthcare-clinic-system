@@ -86,7 +86,7 @@ public class ReportService {
         // Revenue: service revenue from paid bookings
         List<Object[]> revenueRows = em.createNativeQuery("""
                 SELECT
-                  COALESCE(SUM(sv.price_cents), 0) AS service_revenue,
+                  COALESCE(SUM(COALESCE(sv.price_cents, 0) + COALESCE(b.lab_fee_cents, 0)), 0) AS service_revenue,
                   COALESCE(SUM(
                     (SELECT COALESCE(SUM(pi.qty * pi.unit_price_cents), 0)
                      FROM prescriptions pr
@@ -212,11 +212,11 @@ public class ReportService {
 
     @Transactional
     public FinanceLedgerDto createManualFinanceEntry(ManualFinanceEntryRequest request) {
-        String flowType = normalizeRequired(request.getFlowType(), "flowType la bat buoc").toUpperCase(Locale.ROOT);
-        String description = normalizeRequired(request.getDescription(), "description la bat buoc");
+        String flowType = normalizeRequired(request.getFlowType(), "flowType là bắt buộc").toUpperCase(Locale.ROOT);
+        String description = normalizeRequired(request.getDescription(), "description là bắt buộc");
         long amountCents = request.getAmountCents() == null ? 0L : request.getAmountCents();
         if (amountCents <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amountCents phai > 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amountCents phải > 0");
         }
 
         LocalDate entryDate = request.getEntryDate() != null ? request.getEntryDate() : LocalDate.now(CLINIC_ZONE);
@@ -239,13 +239,13 @@ public class ReportService {
                 category = "MANUAL_STOCK_IN";
             }
             case "XUAT" -> {
-                entryType = "INCOME";
+                entryType = "EXPENSE";
                 category = "MANUAL_STOCK_OUT";
             }
             default -> throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "flowType phai la THU | CHI | NHAP | XUAT"
-            );
+                "flowType phải là THU | CHI | NHAP | XUAT (Nhập / Xuất kho)"
+                );
         }
 
         UUID entryId = UUID.randomUUID();
@@ -321,13 +321,14 @@ public class ReportService {
                   p.phone,
                   d.display_name,
                   sv.name,
-                  COALESCE(r.name, 'Chua gan phong'),
+                  COALESCE(r.name, 'Chưa gán phòng'),
                   CAST(s.type AS text),
                   CAST(b.channel AS text),
                   CAST(b.status AS text),
                   CAST(b.payment_status AS text),
                   COALESCE(b.completed_at, b.check_in_at, b.created_at) AS invoice_at,
                   COALESCE(sv.price_cents, 0) AS service_amount,
+                  COALESCE(b.lab_fee_cents, 0) AS lab_amount,
                   COALESCE((
                     SELECT SUM(pi.qty * pi.unit_price_cents)::BIGINT
                     FROM prescriptions pr
@@ -365,10 +366,12 @@ public class ReportService {
             dto.setInvoiceAt(toInstant(row[11]));
 
             long serviceAmount = row[12] != null ? ((Number) row[12]).longValue() : 0L;
-            long medicationAmount = row[13] != null ? ((Number) row[13]).longValue() : 0L;
+            long labAmount = row[13] != null ? ((Number) row[13]).longValue() : 0L;
+            long medicationAmount = row[14] != null ? ((Number) row[14]).longValue() : 0L;
             dto.setServiceAmountCents(serviceAmount);
+            dto.setLabAmountCents(labAmount);
             dto.setMedicationAmountCents(medicationAmount);
-            dto.setTotalAmountCents(serviceAmount + medicationAmount);
+            dto.setTotalAmountCents(serviceAmount + labAmount + medicationAmount);
             result.add(dto);
         }
         return result;

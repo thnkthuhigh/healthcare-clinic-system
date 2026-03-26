@@ -79,13 +79,13 @@ public class RoomService {
 
     @Transactional
     public RoomDto createRoom(String code, String name, String serviceId, String status) {
-        String normalizedCode = normalizeRequired(code, "Ma phong la bat buoc").toUpperCase();
-        String normalizedName = normalizeRequired(name, "Ten phong la bat buoc");
+        String normalizedCode = normalizeRequired(code, "Mã phòng là bắt buộc").toUpperCase();
+        String normalizedName = normalizeRequired(name, "Tên phòng là bắt buộc");
         UUID serviceUuid = parseUuid(serviceId, "serviceId");
         String normalizedStatus = normalizeStatus(status);
 
         if (roomRepository.existsByCodeIgnoreCase(normalizedCode)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ma phong da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã phòng đã tồn tại");
         }
 
         String derivedRoomType = deriveRoomTypeFromService(serviceUuid);
@@ -105,19 +105,19 @@ public class RoomService {
     @Transactional
     public RoomDto updateRoom(UUID id, String code, String name, String serviceId, String status) {
         Room room = roomRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay phong"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phòng"));
 
         if (code != null) {
-            String normalizedCode = normalizeRequired(code, "Ma phong khong hop le").toUpperCase();
+            String normalizedCode = normalizeRequired(code, "Mã phòng không hợp lệ").toUpperCase();
             if (!normalizedCode.equalsIgnoreCase(room.getCode())
                 && roomRepository.existsByCodeIgnoreCaseAndIdNot(normalizedCode, id)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ma phong da ton tai");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã phòng đã tồn tại");
             }
             room.setCode(normalizedCode);
         }
 
         if (name != null) {
-            room.setName(normalizeRequired(name, "Ten phong khong hop le"));
+            room.setName(normalizeRequired(name, "Tên phòng không hợp lệ"));
         }
 
         if (serviceId != null) {
@@ -138,7 +138,7 @@ public class RoomService {
     @Transactional
     public RoomDto toggleActive(UUID id) {
         Room room = roomRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay phong"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phòng"));
 
         String current = room.getStatus() == null ? "ACTIVE" : room.getStatus().toUpperCase();
         room.setStatus("ACTIVE".equals(current) ? "INACTIVE" : "ACTIVE");
@@ -161,7 +161,7 @@ public class RoomService {
             .getResultList();
 
         if (rows.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay phong");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phòng");
         }
 
         return toDto(rows.get(0));
@@ -207,11 +207,11 @@ public class RoomService {
     }
 
     private UUID parseUuid(String value, String fieldName) {
-        String normalized = normalizeRequired(value, fieldName + " la bat buoc");
+        String normalized = normalizeRequired(value, fieldName + " là bắt buộc");
         try {
             return UUID.fromString(normalized);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không hợp lệ");
         }
     }
 
@@ -223,7 +223,7 @@ public class RoomService {
         try {
             return UUID.fromString(normalized);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không hợp lệ");
         }
     }
 
@@ -238,7 +238,7 @@ public class RoomService {
             .getResultList();
 
         if (rows.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dich vu khong ton tai");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Dịch vụ không tồn tại");
         }
 
         String departmentName = rows.get(0)[1] != null ? rows.get(0)[1].toString().trim() : "";
@@ -257,7 +257,7 @@ public class RoomService {
 
         String normalized = status.trim().toUpperCase();
         if (!ALLOWED_STATUSES.contains(normalized)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trang thai phong khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái phòng không hợp lệ");
         }
         return normalized;
     }

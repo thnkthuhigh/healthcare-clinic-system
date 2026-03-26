@@ -54,7 +54,7 @@ public class Booking {
     private UUID paidByUserId;
 
     @Column(name = "booking_fee_cents", nullable = false)
-    private Integer bookingFeeCents = 10_000;
+    private Integer bookingFeeCents = 1_000_000;
 
     @Column(name = "booking_fee_paid_at")
     private Instant bookingFeePaidAt;
@@ -62,6 +62,28 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     @Column(name = "booking_fee_payment_method")
     private PaymentMethod bookingFeePaymentMethod;
+
+    @Column(name = "is_follow_up", nullable = false)
+    private Boolean isFollowUp = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "follow_up_source_booking_id")
+    private Booking followUpSourceBooking;
+
+    @Column(name = "follow_up_scheduled_at")
+    private Instant followUpScheduledAt;
+
+    @Column(name = "follow_up_note")
+    private String followUpNote;
+
+    @Column(name = "lab_fee_cents", nullable = false)
+    private Integer labFeeCents = 0;
+
+    @Column(name = "lab_requested_at")
+    private Instant labRequestedAt;
+
+    @Column(name = "lab_fee_note")
+    private String labFeeNote;
     
     @Column(name = "queue_number")
     private Integer queueNumber;
@@ -153,6 +175,27 @@ public class Booking {
 
     public PaymentMethod getBookingFeePaymentMethod() { return bookingFeePaymentMethod; }
     public void setBookingFeePaymentMethod(PaymentMethod bookingFeePaymentMethod) { this.bookingFeePaymentMethod = bookingFeePaymentMethod; }
+
+    public Boolean getIsFollowUp() { return isFollowUp; }
+    public void setIsFollowUp(Boolean isFollowUp) { this.isFollowUp = isFollowUp; }
+
+    public Booking getFollowUpSourceBooking() { return followUpSourceBooking; }
+    public void setFollowUpSourceBooking(Booking followUpSourceBooking) { this.followUpSourceBooking = followUpSourceBooking; }
+
+    public Instant getFollowUpScheduledAt() { return followUpScheduledAt; }
+    public void setFollowUpScheduledAt(Instant followUpScheduledAt) { this.followUpScheduledAt = followUpScheduledAt; }
+
+    public String getFollowUpNote() { return followUpNote; }
+    public void setFollowUpNote(String followUpNote) { this.followUpNote = followUpNote; }
+
+    public Integer getLabFeeCents() { return labFeeCents; }
+    public void setLabFeeCents(Integer labFeeCents) { this.labFeeCents = labFeeCents; }
+
+    public Instant getLabRequestedAt() { return labRequestedAt; }
+    public void setLabRequestedAt(Instant labRequestedAt) { this.labRequestedAt = labRequestedAt; }
+
+    public String getLabFeeNote() { return labFeeNote; }
+    public void setLabFeeNote(String labFeeNote) { this.labFeeNote = labFeeNote; }
     
     public Integer getQueueNumber() { return queueNumber; }
     public void setQueueNumber(Integer queueNumber) { this.queueNumber = queueNumber; }

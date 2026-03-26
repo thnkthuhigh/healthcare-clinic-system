@@ -63,7 +63,7 @@ public class CashierService {
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT b.id, b.queue_number, p.full_name, p.phone,
                        u.full_name AS doctor_name,
-                       sv.name AS service_name, sv.price_cents AS service_price,
+                       sv.name AS service_name, sv.price_cents AS service_price, COALESCE(b.lab_fee_cents, 0) AS lab_fee,
                        b.status, b.channel, b.payment_status, b.completed_at,
                        b.payment_method, b.paid_at, b.paid_by_user_id, COALESCE(cashier.full_name, cashier.phone) AS billed_by_name,
                        pr.id AS prescription_id, pr.status AS prescription_status
@@ -93,18 +93,19 @@ public class CashierService {
             dto.setPatientPhone((String) row[3]);
             dto.setDoctorName((String) row[4]);
             dto.setServiceName((String) row[5]);
-            dto.setServicePriceCents(row[6] != null ? (Integer) row[6] : 0);
-            dto.setStatus((String) row[7]);
-            dto.setChannel((String) row[8]);
-            dto.setPaymentStatus((String) row[9]);
-            dto.setCompletedAt(toInstant(row[10]));
-            dto.setPaymentMethod(row[11] != null ? row[11].toString() : null);
-            dto.setPaidAt(toInstant(row[12]));
-            dto.setBilledByUserId((UUID) row[13]);
-            dto.setBilledByName(row[14] != null ? row[14].toString() : null);
+            dto.setServicePriceCents(row[6] != null ? ((Number) row[6]).intValue() : 0);
+            dto.setLabFeeCents(row[7] != null ? ((Number) row[7]).intValue() : 0);
+            dto.setStatus((String) row[8]);
+            dto.setChannel((String) row[9]);
+            dto.setPaymentStatus((String) row[10]);
+            dto.setCompletedAt(toInstant(row[11]));
+            dto.setPaymentMethod(row[12] != null ? row[12].toString() : null);
+            dto.setPaidAt(toInstant(row[13]));
+            dto.setBilledByUserId((UUID) row[14]);
+            dto.setBilledByName(row[15] != null ? row[15].toString() : null);
 
-            UUID prescriptionId = (UUID) row[15];
-            String prescriptionStatus = (String) row[16];
+            UUID prescriptionId = (UUID) row[16];
+            String prescriptionStatus = (String) row[17];
             dto.setPrescriptionId(prescriptionId);
             dto.setPrescriptionStatus(prescriptionStatus);
 
@@ -129,6 +130,9 @@ public class CashierService {
             }
 
             int total = dto.getServicePriceCents() != null ? dto.getServicePriceCents() : 0;
+            if (dto.getLabFeeCents() != null) {
+                total += dto.getLabFeeCents();
+            }
             if (dto.getPrescriptionTotalCents() != null) {
                 total += dto.getPrescriptionTotalCents();
             }
@@ -142,7 +146,7 @@ public class CashierService {
     @Transactional(readOnly = true)
     public CashierBookingDto getBookingForPayment(UUID bookingId) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-            .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich kham"));
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch khám"));
 
         CashierBookingDto dto = new CashierBookingDto();
         dto.setBookingId(booking.getId());
@@ -152,6 +156,7 @@ public class CashierService {
         dto.setDoctorName(booking.getShift().getDoctor().getUser().getFullName());
         dto.setServiceName(booking.getService() != null ? booking.getService().getName() : null);
         dto.setServicePriceCents(booking.getService() != null ? booking.getService().getPriceCents() : 0);
+        dto.setLabFeeCents(booking.getLabFeeCents() != null ? booking.getLabFeeCents() : 0);
         dto.setStatus(booking.getStatus().name());
         dto.setChannel(booking.getChannel().name());
         dto.setPaymentStatus(booking.getPaymentStatus().name());
@@ -181,6 +186,9 @@ public class CashierService {
         });
 
         int total = dto.getServicePriceCents() != null ? dto.getServicePriceCents() : 0;
+        if (dto.getLabFeeCents() != null) {
+            total += dto.getLabFeeCents();
+        }
         if (dto.getPrescriptionTotalCents() != null) {
             total += dto.getPrescriptionTotalCents();
         }
@@ -192,13 +200,13 @@ public class CashierService {
     @Transactional
     public CashierBookingDto processPayment(UUID bookingId, String paymentMethodRaw) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-            .orElseThrow(() -> new IllegalArgumentException("Khong tim thay lich kham"));
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch khám"));
 
         if (booking.getStatus() != Booking.BookingStatus.COMPLETED) {
-            throw new IllegalStateException("Chi thanh toan duoc lich kham da COMPLETED");
+            throw new IllegalStateException("Chỉ thanh toán được lịch khám đã COMPLETED");
         }
         if (booking.getPaymentStatus() == Booking.PaymentStatus.PAID) {
-            throw new IllegalStateException("Lich kham da duoc thanh toan");
+            throw new IllegalStateException("Lịch khám đã được thanh toán");
         }
 
         Booking.PaymentMethod paymentMethod = resolvePaymentMethod(paymentMethodRaw);
@@ -218,7 +226,7 @@ public class CashierService {
             for (PrescriptionItem item : prescription.getItems()) {
                 int updated = medicationRepository.confirmDeduction(item.getMedication().getId(), item.getQty());
                 if (updated == 0) {
-                    throw new IllegalStateException("Khong du ton kho cho thuoc: " + item.getMedication().getName());
+                    throw new IllegalStateException("Không đủ tồn kho cho thuốc: " + item.getMedication().getName());
                 }
             }
         });
@@ -236,16 +244,16 @@ public class CashierService {
     @Transactional
     public CashierBookingDto removePrescriptionItem(UUID bookingId, UUID itemId) {
         Prescription prescription = prescriptionRepository.findByBookingIdWithItems(bookingId)
-            .orElseThrow(() -> new IllegalArgumentException("Khong tim thay don thuoc"));
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn thuốc"));
 
         if (prescription.getStatus() != Prescription.PrescriptionStatus.HELD) {
-            throw new IllegalStateException("Chi sua duoc don thuoc HELD");
+            throw new IllegalStateException("Chỉ sửa được đơn thuốc HELD");
         }
 
         PrescriptionItem target = prescription.getItems().stream()
             .filter(item -> item.getId().equals(itemId))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Khong tim thay thuoc trong don"));
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thuốc trong đơn"));
 
         medicationRepository.releaseHold(target.getMedication().getId(), target.getQty());
         prescription.removeItem(target);
@@ -267,13 +275,13 @@ public class CashierService {
     @Transactional
     public RetailSaleResponse retailSale(RetailSaleRequest request) {
         if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Danh sach thuoc khong duoc rong");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Danh sách thuốc không được rỗng");
         }
 
         Map<UUID, Integer> qtyByMedication = new LinkedHashMap<>();
         for (RetailSaleRequest.RetailSaleItemRequest item : request.getItems()) {
             if (item.getMedicationId() == null || item.getQty() == null || item.getQty() <= 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Du lieu thuoc ban le khong hop le");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu thuốc bán lẻ không hợp lệ");
             }
             qtyByMedication.merge(item.getMedicationId(), item.getQty(), Integer::sum);
         }
@@ -291,15 +299,15 @@ public class CashierService {
             int qty = entry.getValue();
 
             Medication medication = medicationRepository.findById(medicationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khong tim thay thuoc"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thuốc"));
 
             if (!Boolean.TRUE.equals(medication.getIsActive())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thuoc dang tam ngung ban: " + medication.getName());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thuốc đang tạm ngưng bán: " + medication.getName());
             }
 
             int updated = medicationRepository.deductForRetail(medicationId, qty);
             if (updated == 0) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Khong du ton kho cho thuoc: " + medication.getName());
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Không đủ tồn kho cho thuốc: " + medication.getName());
             }
 
             int lineTotal = medication.getPriceCents() * qty;
@@ -315,7 +323,7 @@ public class CashierService {
                     )
                     """)
                 .setParameter("refId", medicationId)
-                .setParameter("description", "Ban le thuoc: " + medication.getName())
+                .setParameter("description", "Bán lẻ thuốc: " + medication.getName())
                 .setParameter("qty", qty)
                 .setParameter("unit", medication.getUnit())
                 .setParameter("amount", lineTotal)
@@ -410,7 +418,7 @@ public class CashierService {
         try {
             return Booking.PaymentMethod.valueOf(rawMethod.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phuong thuc thanh toan khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phương thức thanh toán không hợp lệ");
         }
     }
 
@@ -427,6 +435,19 @@ public class CashierService {
                   AND ref_id = :bookingId
                   AND entry_type = 'INCOME'
                   AND category = 'CONSULTATION_FEE'
+                """)
+            .setParameter("actorUserId", actorUserId)
+            .setParameter("bookingId", bookingId)
+            .executeUpdate();
+
+        em.createNativeQuery("""
+                UPDATE finance_ledger
+                SET actor_user_id = :actorUserId
+                WHERE actor_user_id IS NULL
+                  AND ref_type = 'BOOKING'
+                  AND ref_id = :bookingId
+                  AND entry_type = 'INCOME'
+                  AND category = 'LAB_FEE'
                 """)
             .setParameter("actorUserId", actorUserId)
             .setParameter("bookingId", bookingId)

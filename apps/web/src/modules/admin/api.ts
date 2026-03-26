@@ -130,9 +130,10 @@ export const adminApi = {
     return fetchApi<ReceptionBooking[]>(`${API_BASE}/reception/bookings${qs ? '?' + qs : ''}`);
   },
 
-  searchBookingsByPhone: (phone: string, date?: string) => {
+  searchBookingsByPhone: (phone: string, date?: string, followUpOnly?: boolean) => {
     const params = new URLSearchParams({ phone });
     if (date) params.set('date', date);
+    if (followUpOnly) params.set('followUpOnly', 'true');
     return fetchApi<ReceptionBooking[]>(`${API_BASE}/reception/search?${params.toString()}`);
   },
 

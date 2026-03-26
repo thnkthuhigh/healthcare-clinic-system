@@ -62,7 +62,7 @@ public class UserManagementService {
     @Transactional
     public AdminDoctorDto createDoctor(CreateDoctorRequest req) {
         if (userRepository.existsByPhone(req.getPhone())) {
-            throw new IllegalArgumentException("So dien thoai da duoc su dung: " + req.getPhone());
+            throw new IllegalArgumentException("Số điện thoại đã được sử dụng: " + req.getPhone());
         }
 
         Integer experienceYears = normalizeExperienceYears(req.getExperienceYears());
@@ -95,7 +95,7 @@ public class UserManagementService {
     @Transactional
     public AdminDoctorDto updateDoctor(UUID doctorId, UpdateDoctorRequest req) {
         Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bac si"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bác sĩ"));
 
         if (req.getDisplayName() != null && !req.getDisplayName().isBlank()) {
             doctor.setDisplayName(req.getDisplayName().trim());
@@ -127,7 +127,7 @@ public class UserManagementService {
         }
         if (req.getNewPassword() != null && !req.getNewPassword().isBlank()) {
             if (req.getNewPassword().length() < 6) {
-                throw new IllegalArgumentException("Mat khau phai co it nhat 6 ky tu");
+                throw new IllegalArgumentException("Mật khẩu phải có ít nhất 6 ký tự");
             }
             doctor.getUser().setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
         }
@@ -144,7 +144,7 @@ public class UserManagementService {
     @Transactional
     public AdminDoctorDto lockDoctor(UUID doctorId) {
         Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bac si"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bác sĩ"));
         doctor.getUser().setStatus(User.AccountStatus.LOCKED);
         userRepository.save(doctor.getUser());
 
@@ -161,7 +161,7 @@ public class UserManagementService {
     @Transactional
     public AdminDoctorDto unlockDoctor(UUID doctorId) {
         Doctor doctor = doctorRepository.findById(doctorId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bac si"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bác sĩ"));
         doctor.getUser().setStatus(User.AccountStatus.ACTIVE);
         userRepository.save(doctor.getUser());
 
@@ -186,11 +186,11 @@ public class UserManagementService {
                 try {
                     UUID serviceId = UUID.fromString(rawId.trim());
                     if (em.find(com.clinic.backend.modules.doctor.entity.Service.class, serviceId) == null) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "serviceId khong ton tai: " + rawId);
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "serviceId không tồn tại: " + rawId);
                     }
                     normalized.add(serviceId);
                 } catch (IllegalArgumentException ex) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "serviceId khong hop le: " + rawId);
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "serviceId không hợp lệ: " + rawId);
                 }
             }
         }
@@ -255,7 +255,7 @@ public class UserManagementService {
             return 0;
         }
         if (value < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "experienceYears phai >= 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "experienceYears phải >= 0");
         }
         return value;
     }
@@ -288,13 +288,13 @@ public class UserManagementService {
     @Transactional
     public void resetPatientPassword(UUID patientId, String newPassword) {
         Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay benh nhan"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bệnh nhân"));
 
         if (patient.getUser() == null) {
-            throw new IllegalStateException("Benh nhan chua co tai khoan dang nhap");
+            throw new IllegalStateException("Bệnh nhân chưa có tài khoản đăng nhập");
         }
         if (newPassword == null || newPassword.length() < 6) {
-            throw new IllegalArgumentException("Mat khau phai co it nhat 6 ky tu");
+            throw new IllegalArgumentException("Mật khẩu phải có ít nhất 6 ký tự");
         }
 
         patient.getUser().setPasswordHash(passwordEncoder.encode(newPassword));

@@ -35,18 +35,6 @@ function isNoisyPublicName(value: string): boolean {
   return /^[a-z]{4,6}$/.test(lowered);
 }
 
-function doctorMatchesService(doctor: DoctorSummary, service: ClinicService): boolean {
-  const specialty = normalizeText(doctor.specialty);
-  const serviceName = normalizeText(service.name);
-  if (!specialty || !serviceName) return false;
-
-  if (serviceName.includes('tai kham')) return true;
-  if (serviceName.includes(specialty) || specialty.includes(serviceName)) return true;
-
-  const serviceTokens = serviceName.split(/\s+/).filter((token) => token.length >= 3);
-  return serviceTokens.some((token) => specialty.includes(token));
-}
-
 function inferServiceForDoctor(
   doctor: DoctorSummary | null,
   services: ClinicService[],
@@ -93,10 +81,18 @@ export function BookingPage() {
   const preselectedDoctorId = searchParams.get('doctorId');
   const preselectedServiceId = searchParams.get('serviceId');
 
-  const { data: doctors = [], isLoading: loadingDoctors } = useQuery({
-    queryKey: ['customer-doctors', preselectedServiceId],
-    queryFn: () => customerApi.getDoctors(preselectedServiceId),
+  const { data: allDoctors = [], isLoading: loadingAllDoctors } = useQuery({
+    queryKey: ['customer-doctors'],
+    queryFn: () => customerApi.getDoctors(),
   });
+
+  const { data: serviceScopedDoctors = [], isLoading: loadingServiceDoctors } = useQuery({
+    queryKey: ['customer-doctors-by-service', preselectedServiceId],
+    queryFn: () => customerApi.getDoctors(preselectedServiceId),
+    enabled: !!preselectedServiceId,
+  });
+
+  const loadingDoctors = loadingAllDoctors || loadingServiceDoctors;
 
   const { data: shifts = [], isLoading: loadingShifts } = useQuery({
     queryKey: ['customer-shifts', selectedDoctor?.id, selectedDate],
@@ -114,11 +110,13 @@ export function BookingPage() {
     : null;
 
   const filteredDoctors = (() => {
-    const visible = doctors.filter((doctor) => !isNoisyPublicName(doctor.displayName));
-    if (!preselectedService) return visible;
+    const visibleAllDoctors = allDoctors.filter((doctor) => !isNoisyPublicName(doctor.displayName));
+    if (!preselectedServiceId) {
+      return visibleAllDoctors;
+    }
 
-    const matched = visible.filter((doctor) => doctorMatchesService(doctor, preselectedService));
-    return matched.length > 0 ? matched : visible;
+    const scopedDoctors = serviceScopedDoctors.filter((doctor) => !isNoisyPublicName(doctor.displayName));
+    return scopedDoctors;
   })();
 
   useEffect(() => {
@@ -153,8 +151,7 @@ export function BookingPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: ({ bookingId, method }: { bookingId: string; method: 'QR' | 'CASH' }) =>
-      customerApi.processPayment(bookingId, method),
+    mutationFn: (bookingId: string) => customerApi.processPayment(bookingId, 'QR'),
     onSuccess: (ticket) => {
       setPaidTicket(ticket);
       setStep(5);
@@ -345,10 +342,7 @@ export function BookingPage() {
                       Đang tạo lịch hẹn...
                     </div>
                   ) : (
-                    <PatientInfoForm
-                      selectedService={selectedService}
-                      onSubmit={handlePatientInfoSubmit}
-                    />
+                    <PatientInfoForm selectedService={selectedService} onSubmit={handlePatientInfoSubmit} />
                   )}
                 </div>
               )}
@@ -361,9 +355,7 @@ export function BookingPage() {
                   service={selectedService}
                   patientName={patientInfo?.fullName ?? ''}
                   patientPhone={patientInfo?.phone ?? ''}
-                  onPay={(method) =>
-                    paymentMutation.mutate({ bookingId: createdTicket.bookingId, method })
-                  }
+                  onPay={() => paymentMutation.mutate(createdTicket.bookingId)}
                   paying={paymentMutation.isPending}
                 />
               )}
@@ -379,9 +371,7 @@ export function BookingPage() {
                         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-soft">
                           <span className="material-symbols-outlined text-3xl">check_circle</span>
                         </div>
-                        <h2 className="mt-4 text-xl font-bold text-slate-950">
-                          Đặt lịch thành công
-                        </h2>
+                        <h2 className="mt-4 text-xl font-bold text-slate-950">Đặt lịch thành công</h2>
                         <p className="mt-2 text-sm leading-6 text-slate-500">
                           Lưu lại phiếu khám để check-in tại quầy tiếp nhận.
                         </p>

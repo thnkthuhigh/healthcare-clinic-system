@@ -18,6 +18,7 @@ public class DailyInvoiceDto {
     private String paymentStatus;
     private Instant invoiceAt;
     private long serviceAmountCents;
+    private long labAmountCents;
     private long medicationAmountCents;
     private long totalAmountCents;
 
@@ -131,6 +132,14 @@ public class DailyInvoiceDto {
 
     public void setMedicationAmountCents(long medicationAmountCents) {
         this.medicationAmountCents = medicationAmountCents;
+    }
+
+    public long getLabAmountCents() {
+        return labAmountCents;
+    }
+
+    public void setLabAmountCents(long labAmountCents) {
+        this.labAmountCents = labAmountCents;
     }
 
     public long getTotalAmountCents() {

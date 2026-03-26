@@ -4,7 +4,7 @@ import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 import { FlatTaskHeader } from '../../../components/ClinicUI';
-import { formatDateUtc7 } from '../../../lib/time';
+import { formatDateUtc7, formatTimeUtc7 } from '../../../lib/time';
 import { customerApi } from '../api';
 import { PatientFooter } from '../components/PatientFooter';
 import { PatientNavbar } from '../components/PatientNavbar';
@@ -92,6 +92,24 @@ function formatDate(dateStr: string) {
   });
 }
 
+function formatTimeValue(value: string | null | undefined) {
+  if (!value) return '--:--';
+  return formatTimeUtc7(value, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function buildActualWindow(booking: PatientBooking) {
+  const checkIn = formatTimeValue(booking.checkInAt);
+  const completed = formatTimeValue(booking.completedAt);
+
+  if (booking.checkInAt && booking.completedAt) return `${checkIn} - ${completed}`;
+  if (booking.completedAt) return `Hoàn thành lúc ${completed}`;
+  if (booking.checkInAt) return `Check-in lúc ${checkIn}`;
+  return booking.timeRange;
+}
+
 function toBookingTicket(booking: PatientBooking, patientName: string, phone: string): BookingTicket {
   return {
     bookingId: booking.bookingId,
@@ -111,7 +129,7 @@ function toBookingTicket(booking: PatientBooking, patientName: string, phone: st
     appointmentTime: booking.appointmentTime,
     currentServingQueueNumber: booking.currentServingQueueNumber,
     estimatedTurnAt: booking.estimatedTurnAt,
-    bookingFeeCents: booking.bookingFeeCents ?? 10000,
+    bookingFeeCents: booking.bookingFeeCents ?? 1_000_000,
     bookingFeePaid: booking.bookingFeePaid ?? false,
     bookingFeePaidAt: booking.bookingFeePaidAt ?? null,
     bookingFeePaymentMethod: booking.bookingFeePaymentMethod ?? null,
@@ -250,7 +268,7 @@ function BookingAppointmentCard({
         </span>
         <span className="flex items-center gap-1">
           <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
-          {booking.timeRange}
+          {buildActualWindow(booking)}
         </span>
         {booking.serviceName && (
           <span className="flex items-center gap-1">
@@ -258,7 +276,7 @@ function BookingAppointmentCard({
             {booking.serviceName}
           </span>
         )}
-        {booking.queueNumber && (
+        {booking.queueNumber && displayStatus !== 'COMPLETED' && displayStatus !== 'CANCELED' && (
           <span className="flex items-center gap-1 font-semibold text-primary">
             <span className="material-symbols-outlined text-base">format_list_numbered</span>
             STT: {booking.queueNumber}

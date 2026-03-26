@@ -4,6 +4,7 @@ import com.clinic.backend.modules.doctor.dto.*;
 import com.clinic.backend.modules.doctor.dto.request.CompleteLabResultRequest;
 import com.clinic.backend.modules.doctor.dto.request.SaveMedicalRecordRequest;
 import com.clinic.backend.modules.doctor.dto.request.SavePrescriptionRequest;
+import com.clinic.backend.modules.doctor.dto.request.ScheduleFollowUpRequest;
 import com.clinic.backend.modules.doctor.entity.*;
 import com.clinic.backend.modules.doctor.repository.*;
 import org.slf4j.Logger;
@@ -14,9 +15,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -26,29 +33,39 @@ public class ConsultationService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter LAB_TS_FORMATTER =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(CLINIC_ZONE);
+    private static final int DEFAULT_LAB_FEE_CENTS = 10_000_000;
 
     private final BookingRepository bookingRepository;
+    private final ShiftRepository shiftRepository;
+    private final SlotRepository slotRepository;
     private final MedicalRecordRepository medicalRecordRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final MedicationRepository medicationRepository;
     private final PrescriptionTemplateRepository prescriptionTemplateRepository;
     private final PatientRepository patientRepository;
+    private final ServiceRepository serviceRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public ConsultationService(
             BookingRepository bookingRepository,
+            ShiftRepository shiftRepository,
+            SlotRepository slotRepository,
             MedicalRecordRepository medicalRecordRepository,
             PrescriptionRepository prescriptionRepository,
             MedicationRepository medicationRepository,
             PrescriptionTemplateRepository prescriptionTemplateRepository,
             PatientRepository patientRepository,
+            ServiceRepository serviceRepository,
             JdbcTemplate jdbcTemplate) {
         this.bookingRepository = bookingRepository;
+        this.shiftRepository = shiftRepository;
+        this.slotRepository = slotRepository;
         this.medicalRecordRepository = medicalRecordRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.medicationRepository = medicationRepository;
         this.prescriptionTemplateRepository = prescriptionTemplateRepository;
         this.patientRepository = patientRepository;
+        this.serviceRepository = serviceRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -58,7 +75,7 @@ public class ConsultationService {
     @Transactional(readOnly = true)
     public BookingDetailDto getBookingDetails(UUID bookingId) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         
         MedicalRecordDto medicalRecord = medicalRecordRepository.findByBookingId(bookingId)
                 .map(this::toMedicalRecordDto)
@@ -76,7 +93,7 @@ public class ConsultationService {
      */
     public QueueItemDto inviteNextPatient(UUID shiftId) {
         Booking booking = bookingRepository.findNextInQueue(shiftId)
-                .orElseThrow(() -> new RuntimeException("No patients waiting in queue"));
+                .orElseThrow(() -> new RuntimeException("Không có bệnh nhân đang chờ khám"));
         
         // Update status to IN_CONSULTATION
         booking.setStatus(Booking.BookingStatus.IN_CONSULTATION);
@@ -91,12 +108,12 @@ public class ConsultationService {
      */
     public QueueItemDto invitePatient(UUID bookingId) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         
         if (booking.getStatus() != Booking.BookingStatus.CHECKED_IN && 
             booking.getStatus() != Booking.BookingStatus.WAITING &&
             booking.getStatus() != Booking.BookingStatus.RESULTS_READY) {
-            throw new RuntimeException("Patient cannot be invited. Current status: " + booking.getStatus());
+            throw new RuntimeException("Không thể gọi bệnh nhân vào khám. Trạng thái hiện tại: " + booking.getStatus());
         }
         
         booking.setStatus(Booking.BookingStatus.IN_CONSULTATION);
@@ -111,7 +128,7 @@ public class ConsultationService {
      */
     public void skipPatient(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         
         // Increment skip count and reduce priority
         booking.setSkipCount(booking.getSkipCount() + 1);
@@ -125,9 +142,22 @@ public class ConsultationService {
      */
     public void sendToLab(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
-        
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
+
+        if (booking.getStatus() != Booking.BookingStatus.IN_CONSULTATION
+                && booking.getStatus() != Booking.BookingStatus.RESULTS_READY
+                && booking.getStatus() != Booking.BookingStatus.PENDING_LAB) {
+            throw new RuntimeException("Lịch khám không ở trong luồng khám bệnh");
+        }
+
         booking.setStatus(Booking.BookingStatus.PENDING_LAB);
+        if (booking.getLabRequestedAt() == null) {
+            booking.setLabRequestedAt(Instant.now());
+        }
+        if (booking.getLabFeeCents() == null || booking.getLabFeeCents() <= 0) {
+            booking.setLabFeeCents(resolveLabFeeCents());
+            booking.setLabFeeNote("Chi phí xét nghiệm theo chỉ định bác sĩ");
+        }
         bookingRepository.save(booking);
     }
 
@@ -136,7 +166,7 @@ public class ConsultationService {
      */
     public void markResultsReady(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         
         // Set high priority for patients with results (Logic B - Priority 1)
         booking.setStatus(Booking.BookingStatus.RESULTS_READY);
@@ -151,7 +181,8 @@ public class ConsultationService {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
 
-        if (booking.getStatus() != Booking.BookingStatus.PENDING_LAB) {
+        if (booking.getStatus() != Booking.BookingStatus.PENDING_LAB
+                && booking.getStatus() != Booking.BookingStatus.RESULTS_READY) {
             throw new RuntimeException("Lịch khám không ở trạng thái chờ xét nghiệm");
         }
 
@@ -175,11 +206,54 @@ public class ConsultationService {
     }
 
     /**
+     * Create a follow-up booking from current consultation.
+     */
+    public FollowUpBookingDto scheduleFollowUp(UUID bookingId, ScheduleFollowUpRequest request) {
+        Booking sourceBooking = bookingRepository.findByIdWithDetails(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám nguồn"));
+
+        if (sourceBooking.getStatus() == Booking.BookingStatus.CANCELED) {
+            throw new RuntimeException("Không thể hẹn tái khám từ lịch đã hủy");
+        }
+
+        LocalDate followUpDate = request.followUpDate();
+        List<Booking> existing = bookingRepository.findFollowUpsBySourceAndDate(sourceBooking.getId(), followUpDate);
+        Booking existingFollowUp = existing.stream()
+                .filter(item -> item.getStatus() != Booking.BookingStatus.CANCELED)
+                .findFirst()
+                .orElse(null);
+        if (existingFollowUp != null) {
+            return toFollowUpDto(existingFollowUp);
+        }
+
+        FollowUpAllocation allocation = allocateFollowUpSlot(sourceBooking, followUpDate);
+
+        Booking followUp = new Booking();
+        followUp.setShift(allocation.shift());
+        followUp.setSlotId(allocation.slot().getId());
+        followUp.setSlot(allocation.slot());
+        followUp.setPatient(sourceBooking.getPatient());
+        followUp.setService(sourceBooking.getService());
+        followUp.setChannel(Booking.BookingChannel.WEB);
+        followUp.setStatus(Booking.BookingStatus.BOOKED);
+        followUp.setPaymentStatus(Booking.PaymentStatus.UNPAID);
+        followUp.setQueueNumber(null);
+        followUp.setPriorityScore(0);
+        followUp.setIsFollowUp(true);
+        followUp.setFollowUpSourceBooking(sourceBooking);
+        followUp.setFollowUpScheduledAt(calculateAppointmentTime(allocation.shift(), allocation.slot().getSequence()));
+        followUp.setFollowUpNote(request.note() != null && !request.note().isBlank() ? request.note().trim() : null);
+
+        Booking saved = bookingRepository.save(followUp);
+        return toFollowUpDto(saved);
+    }
+
+    /**
      * Save medical record
      */
     public MedicalRecordDto saveMedicalRecord(UUID bookingId, SaveMedicalRecordRequest request, UUID doctorId) {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         Patient patient = booking.getPatient();
         
         MedicalRecord record = medicalRecordRepository.findByBookingId(bookingId)
@@ -212,8 +286,11 @@ public class ConsultationService {
      */
     public PrescriptionDto savePrescription(UUID bookingId, SavePrescriptionRequest request) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         
+        List<SavePrescriptionRequest.PrescriptionItemRequest> normalizedItems =
+                normalizePrescriptionItems(request.items());
+
         // Get or create prescription
         Prescription prescription = prescriptionRepository.findByBookingId(bookingId)
                 .orElseGet(() -> {
@@ -227,16 +304,24 @@ public class ConsultationService {
             medicationRepository.releaseHold(item.getMedication().getId(), item.getQty());
         }
         prescription.getItems().clear();
+
+        // Force deletion of old items before inserting the replacement set.
+        // Avoid unique conflict on (prescription_id, medication_id).
+        prescription = prescriptionRepository.saveAndFlush(prescription);
+
+        if (normalizedItems.isEmpty()) {
+            return toPrescriptionDto(prescription);
+        }
         
         // Add new items and hold stock
-        for (SavePrescriptionRequest.PrescriptionItemRequest itemReq : request.items()) {
+        for (SavePrescriptionRequest.PrescriptionItemRequest itemReq : normalizedItems) {
             Medication medication = medicationRepository.findById(itemReq.medicationId())
-                    .orElseThrow(() -> new RuntimeException("Medication not found: " + itemReq.medicationId()));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thuốc: " + itemReq.medicationId()));
             
             // Check and hold stock
             int held = medicationRepository.holdStock(medication.getId(), itemReq.qty());
             if (held == 0) {
-                throw new RuntimeException("Insufficient stock for: " + medication.getName());
+                throw new RuntimeException("Không đủ tồn kho cho thuốc: " + medication.getName());
             }
             
             PrescriptionItem item = new PrescriptionItem();
@@ -253,12 +338,49 @@ public class ConsultationService {
         return toPrescriptionDto(saved);
     }
 
+    private List<SavePrescriptionRequest.PrescriptionItemRequest> normalizePrescriptionItems(
+            List<SavePrescriptionRequest.PrescriptionItemRequest> rawItems) {
+        if (rawItems == null || rawItems.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, SavePrescriptionRequest.PrescriptionItemRequest> merged = new LinkedHashMap<>();
+        for (SavePrescriptionRequest.PrescriptionItemRequest item : rawItems) {
+            if (item == null || item.medicationId() == null || item.qty() == null || item.qty() <= 0) {
+                continue;
+            }
+
+            merged.compute(item.medicationId(), (medicationId, current) -> {
+                if (current == null) {
+                    return item;
+                }
+                return new SavePrescriptionRequest.PrescriptionItemRequest(
+                        medicationId,
+                        current.qty() + item.qty(),
+                        preferNonBlank(item.dosage(), current.dosage()),
+                        preferNonBlank(item.note(), current.note()));
+            });
+        }
+
+        return new ArrayList<>(merged.values());
+    }
+
+    private String preferNonBlank(String preferred, String fallback) {
+        if (preferred != null && !preferred.isBlank()) {
+            return preferred.trim();
+        }
+        if (fallback != null && !fallback.isBlank()) {
+            return fallback.trim();
+        }
+        return null;
+    }
+
     /**
      * Complete consultation
      */
     public void completeConsultation(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch khám"));
         
         booking.setStatus(Booking.BookingStatus.COMPLETED);
         booking.setCompletedAt(Instant.now());
@@ -287,7 +409,7 @@ public class ConsultationService {
     @Transactional(readOnly = true)
     public PatientDto getPatientDetails(UUID patientId) {
         Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bệnh nhân"));
         return toPatientDto(patient);
     }
 
@@ -349,10 +471,10 @@ public class ConsultationService {
     private String mergeLabNotes(String existingNotes, CompleteLabResultRequest request) {
         String timestamp = LAB_TS_FORMATTER.format(Instant.now());
         StringBuilder section = new StringBuilder()
-                .append("[Xet nghiem ").append(timestamp).append("]").append("\n")
-                .append("Ket qua: ").append(request.resultSummary().trim());
+                .append("[Xét nghiệm ").append(timestamp).append("]").append("\n")
+                .append("Kết quả: ").append(request.resultSummary().trim());
         if (request.impression() != null && !request.impression().isBlank()) {
-            section.append("\n").append("Nhan dinh: ").append(request.impression().trim());
+            section.append("\n").append("Nhận định: ").append(request.impression().trim());
         }
 
         if (existingNotes == null || existingNotes.isBlank()) {
@@ -361,7 +483,81 @@ public class ConsultationService {
         return existingNotes + "\n\n" + section;
     }
 
+    private int resolveLabFeeCents() {
+        return serviceRepository.findAllActive().stream()
+                .filter(service -> {
+                    String normalized = normalizeText(service.getName());
+                    return normalized.contains("xet nghiem")
+                            || normalized.contains("can lam sang")
+                            || normalized.contains("lab");
+                })
+                .map(item -> item.getPriceCents())
+                .filter(price -> price != null && price > 0)
+                .min(Integer::compareTo)
+                .orElse(DEFAULT_LAB_FEE_CENTS);
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return "";
+        }
+        String lowered = value.toLowerCase(Locale.ROOT)
+                .replace('đ', 'd');
+        return java.text.Normalizer.normalize(lowered, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+    }
+
+    private FollowUpAllocation allocateFollowUpSlot(Booking sourceBooking, LocalDate followUpDate) {
+        UUID doctorId = sourceBooking.getShift().getDoctor().getId();
+        List<Shift> shifts = new ArrayList<>(shiftRepository.findByDoctorIdAndDate(doctorId, followUpDate));
+        shifts.sort(Comparator.comparing(Shift::getStartTime));
+        shifts = shifts.stream()
+                .filter(shift -> shift.getStatus() == Shift.ShiftStatus.OPEN)
+                .toList();
+
+        if (shifts.isEmpty()) {
+            throw new RuntimeException("Bác sĩ chưa có ca làm việc mở trong ngày tái khám");
+        }
+
+        for (Shift shift : shifts) {
+            List<Slot> commonSlots = slotRepository.findOpenCommonSlotsForUpdate(shift.getId());
+            if (!commonSlots.isEmpty()) {
+                Slot selected = commonSlots.get(0);
+                selected.setStatus(Slot.SlotStatus.LOCKED);
+                slotRepository.save(selected);
+                return new FollowUpAllocation(shift, selected);
+            }
+
+            List<Slot> reserveSlots = slotRepository.findOpenReserveSlotsForUpdate(shift.getId());
+            if (!reserveSlots.isEmpty()) {
+                Slot selected = reserveSlots.get(0);
+                selected.setStatus(Slot.SlotStatus.LOCKED);
+                slotRepository.save(selected);
+                return new FollowUpAllocation(shift, selected);
+            }
+        }
+
+        throw new RuntimeException("Ngày tái khám đã kín lịch, vui lòng chọn ngày khác");
+    }
+
+    private FollowUpBookingDto toFollowUpDto(Booking booking) {
+        Shift shift = booking.getShift();
+        return new FollowUpBookingDto(
+                booking.getId(),
+                booking.getFollowUpSourceBooking() != null ? booking.getFollowUpSourceBooking().getId() : null,
+                shift.getDate(),
+                shift.getType().name(),
+                shift.getTimeRange(),
+                shift.getDoctor().getDisplayName(),
+                booking.getService() != null ? booking.getService().getName() : null,
+                booking.getStatus().name(),
+                booking.getFollowUpNote());
+    }
+
     // ========== Mappers ==========
+
+    private record FollowUpAllocation(Shift shift, Slot slot) {
+    }
 
     private QueueItemDto toQueueItemDto(Booking booking) {
         Patient patient = booking.getPatient();

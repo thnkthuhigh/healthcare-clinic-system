@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { OpsPageHeader } from '../../../components/ClinicUI';
-import { formatDateUtc7, formatTimeUtc7 } from '../../../lib/time';
+import { formatDateUtc7, formatTimeUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { consultationApi } from '../api';
 import type {
+  FollowUpBooking,
   MedicalRecord,
   Medication,
   Patient,
@@ -61,6 +62,10 @@ function formatMoney(cents: number) {
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(cents / 100);
+}
+
+function followUpShiftLabel(type: string) {
+  return type === 'MORNING' ? 'Ca sáng' : type === 'AFTERNOON' ? 'Ca chiều' : type;
 }
 
 function getGenderLabel(gender: string | null) {
@@ -177,6 +182,10 @@ export function ConsultationPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [followUpDate, setFollowUpDate] = useState(() => toIsoDateUtc7());
+  const [followUpNote, setFollowUpNote] = useState('');
+  const [schedulingFollowUp, setSchedulingFollowUp] = useState(false);
+  const [followUpResult, setFollowUpResult] = useState<FollowUpBooking | null>(null);
 
   const {
     register,
@@ -556,14 +565,71 @@ export function ConsultationPage() {
       await consultationApi.saveMedicalRecord(bookingId, payload);
       syncPatientVitals(payload);
 
+      if (prescriptionItems.length > 0) {
+        await consultationApi.savePrescription(bookingId, {
+          items: prescriptionItems.map((item) => ({
+            medicationId: item.medicationId,
+            qty: item.qty,
+            dosage: item.dosage,
+            note: item.note,
+          })),
+        });
+      }
+
       await consultationApi.sendToLab(bookingId);
-      setSuccessMessage('Đã gửi bệnh nhân sang khu xét nghiệm.');
-      setTimeout(() => navigate('/doctor/lab'), 1400);
+      setSuccessMessage('Đã gửi bệnh nhân sang khu xét nghiệm và lưu dữ liệu phiên khám.');
     } catch (sendError) {
       console.error('Failed to send to lab:', sendError);
-      setError('Không thể gửi bệnh nhân đến xét nghiệm.');
+      const resolvedMessage =
+        sendError instanceof Error && sendError.message.trim()
+          ? sendError.message
+          : 'Không thể gửi bệnh nhân đến xét nghiệm.';
+      setError(resolvedMessage);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleScheduleFollowUp = async () => {
+    if (!bookingId) return;
+    if (!followUpDate) {
+      setError('Vui lòng chọn ngày tái khám.');
+      return;
+    }
+
+    try {
+      setSchedulingFollowUp(true);
+      setError(null);
+
+      const formSnapshot = getValues();
+      const payload = buildMedicalRecordPayload(formSnapshot);
+      if (!payload) return;
+
+      await consultationApi.saveMedicalRecord(bookingId, payload);
+      syncPatientVitals(payload);
+
+      const result = await consultationApi.scheduleFollowUp(bookingId, {
+        followUpDate,
+        ...(followUpNote.trim() ? { note: followUpNote.trim() } : {}),
+      });
+
+      setFollowUpResult(result);
+      setSuccessMessage(
+        `Đã hẹn tái khám ngày ${formatDateUtc7(result.date, {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })} - ${followUpShiftLabel(result.shiftType)} (${result.timeRange}).`,
+      );
+    } catch (scheduleError) {
+      console.error('Failed to schedule follow-up:', scheduleError);
+      setError(
+        scheduleError instanceof Error && scheduleError.message
+          ? scheduleError.message
+          : 'Không thể hẹn tái khám lúc này.',
+      );
+    } finally {
+      setSchedulingFollowUp(false);
     }
   };
 
@@ -869,37 +935,6 @@ export function ConsultationPage() {
               className="space-y-8 px-6 py-6 md:px-8"
               onSubmit={(event) => event.preventDefault()}
             >
-              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="ops-section-label">Sinh hiệu</p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-900">Cập nhật cân nặng và chiều cao</h3>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="field-label text-xs">Cân nặng (kg)</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={weightInput}
-                      onChange={(event) => setWeightInput(event.target.value)}
-                      placeholder="Ví dụ: 52.5"
-                      className="input-field"
-                      data-testid="doctor-consultation-weight-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="field-label text-xs">Chiều cao (cm)</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={heightInput}
-                      onChange={(event) => setHeightInput(event.target.value)}
-                      placeholder="Ví dụ: 160"
-                      className="input-field"
-                      data-testid="doctor-consultation-height-input"
-                    />
-                  </div>
-                </div>
-              </section>
-
               <section className="space-y-4">
                 <div>
                   <label className="field-label">
@@ -943,6 +978,62 @@ export function ConsultationPage() {
                     placeholder="Ghi chú hướng xử trí và dặn dò bệnh nhân..."
                   />
                 </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                  <div>
+                    <p className="ops-section-label">Tái khám</p>
+                    <h3 className="mt-1 text-lg font-semibold text-slate-900">Hẹn lịch tái khám</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleScheduleFollowUp}
+                    disabled={schedulingFollowUp}
+                    className="btn-secondary px-4 py-2.5 disabled:opacity-50"
+                  >
+                    {schedulingFollowUp ? 'Đang lưu...' : 'Hẹn tái khám'}
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+                  <div>
+                    <label className="field-label text-xs">Ngày tái khám</label>
+                    <input
+                      type="date"
+                      value={followUpDate}
+                      onChange={(event) => setFollowUpDate(event.target.value)}
+                      className="input-field"
+                      min={toIsoDateUtc7()}
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label text-xs">Ghi chú (tuỳ chọn)</label>
+                    <input
+                      type="text"
+                      value={followUpNote}
+                      onChange={(event) => setFollowUpNote(event.target.value)}
+                      className="input-field"
+                      placeholder="Ví dụ: tái khám sau khi uống thuốc 7 ngày"
+                    />
+                  </div>
+                </div>
+
+                {followUpResult && (
+                  <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    <p className="font-semibold">
+                      Đã tạo lịch tái khám: {formatDateUtc7(followUpResult.date, {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </p>
+                    <p className="mt-1">
+                      {followUpShiftLabel(followUpResult.shiftType)} • {followUpResult.timeRange}
+                      {followUpResult.serviceName ? ` • ${followUpResult.serviceName}` : ''}
+                    </p>
+                  </div>
+                )}
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

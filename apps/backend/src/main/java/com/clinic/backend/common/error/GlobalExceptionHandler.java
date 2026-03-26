@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,16 +31,26 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiError.of("VALIDATION_ERROR", message));
   }
 
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ApiError> handleMissingHeader(MissingRequestHeaderException ex) {
+    if ("Authorization".equalsIgnoreCase(ex.getHeaderName())) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(ApiError.of("UNAUTHORIZED", "Thiếu token xác thực"));
+    }
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(ApiError.of("BAD_REQUEST", "Thiếu header bắt buộc: " + ex.getHeaderName()));
+  }
+
   @ExceptionHandler(NoResourceFoundException.class)
   public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex) {
     String path = ex.getResourcePath();
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(ApiError.of("NOT_FOUND", "API khong ton tai: " + path));
+        .body(ApiError.of("NOT_FOUND", "API không tồn tại: " + path));
   }
 
   @ExceptionHandler(AccessDeniedException.class)
   public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("FORBIDDEN", "Khong co quyen truy cap"));
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("FORBIDDEN", "Không có quyền truy cập"));
   }
 
   @ExceptionHandler(ResponseStatusException.class)
@@ -52,11 +63,13 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
-    String message = "Du lieu xung dot. Vui long thu lai.";
+    String message = "Dữ liệu xung đột. Vui lòng thử lại.";
     if (ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null) {
       String detail = ex.getMostSpecificCause().getMessage();
       if (detail.contains("bookings_slot_id_key")) {
-        message = "Khung gio vua duoc nguoi khac dat. Vui long chon lai ca kham.";
+        message = "Khung giờ vừa được người khác đặt. Vui lòng chọn lại ca khám.";
+      } else if (detail.contains("prescription_items_prescription_id_medication_id_key")) {
+        message = "Toa thuốc bị trùng hoạt chất. Vui lòng chỉ giữ 1 dòng cho mỗi thuốc.";
       }
     }
     return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("CONFLICT", message));
@@ -66,6 +79,6 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiError> handleGeneric(Exception ex) {
     log.error("Unhandled exception", ex);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(ApiError.of("INTERNAL_ERROR", "Unexpected error"));
+        .body(ApiError.of("INTERNAL_ERROR", "Lỗi hệ thống, vui lòng thử lại."));
   }
 }

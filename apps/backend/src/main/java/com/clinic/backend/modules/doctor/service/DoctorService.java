@@ -58,7 +58,7 @@ public class DoctorService {
      */
     public ShiftDto getShiftById(UUID shiftId) {
         Shift shift = shiftRepository.findById(shiftId)
-                .orElseThrow(() -> new RuntimeException("Shift not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ca khám"));
         return toShiftDto(shift);
     }
 
@@ -70,12 +70,10 @@ public class DoctorService {
 
         if (statusFilter == null || statusFilter.equalsIgnoreCase("ALL")) {
             statuses = Arrays.asList(
-                    "BOOKED",
                     "CHECKED_IN",
                     "WAITING",
                     "IN_CONSULTATION",
-                    "RESULTS_READY",
-                    "COMPLETED");
+                    "RESULTS_READY");
         } else {
             statuses = List.of(statusFilter.toUpperCase());
         }

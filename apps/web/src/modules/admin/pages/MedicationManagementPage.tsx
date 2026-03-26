@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { centsToVnd, formatVndFromCents, vndToCents } from '../../../lib/currency';
 import { adminApi } from '../api';
 import type {
   AdminMedicationDto,
@@ -9,7 +10,7 @@ import type {
 } from '../types';
 
 function priceLabel(cents: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cents * 10);
+  return formatVndFromCents(cents);
 }
 
 function StockBar({ real, hold }: { real: number; hold: number }) {
@@ -53,7 +54,7 @@ function MedicationModal({ initial, onClose, onSaved }: MedicationModalProps) {
     unit: initial?.unit ?? '',
     usage: initial?.usage ?? '',
     defaultDose: initial?.defaultDose ?? '',
-    priceCents: String(initial?.priceCents ?? ''),
+    priceCents: initial?.priceCents != null ? String(centsToVnd(initial.priceCents)) : '',
     initialStock: '0',
   });
   const [error, setError] = useState('');
@@ -90,8 +91,9 @@ function MedicationModal({ initial, onClose, onSaved }: MedicationModalProps) {
       setError('Đơn vị không được để trống');
       return;
     }
-    const price = parseInt(form.priceCents, 10);
-    if (isNaN(price) || price < 0) {
+    const priceVnd = parseInt(form.priceCents, 10);
+    const price = vndToCents(priceVnd);
+    if (isNaN(priceVnd) || priceVnd < 0) {
       setError('Giá không hợp lệ');
       return;
     }
@@ -163,14 +165,14 @@ function MedicationModal({ initial, onClose, onSaved }: MedicationModalProps) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Giá (cents) <span className="text-red-500">*</span>
+                Giá (VND) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 min={0}
                 value={form.priceCents}
                 onChange={(e) => setForm({ ...form, priceCents: e.target.value })}
-                placeholder="5000"
+                placeholder="50000"
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600
                   bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm"
               />
@@ -218,7 +220,9 @@ function MedicationModal({ initial, onClose, onSaved }: MedicationModalProps) {
             )}
           </div>
           {form.priceCents && !isNaN(parseInt(form.priceCents, 10)) && (
-            <p className="text-xs text-slate-400">≈ {priceLabel(parseInt(form.priceCents, 10))}</p>
+            <p className="text-xs text-slate-400">
+              ≈ {priceLabel(vndToCents(parseInt(form.priceCents, 10)))}
+            </p>
           )}
           <div className="pt-2 flex gap-2 justify-end">
             <button

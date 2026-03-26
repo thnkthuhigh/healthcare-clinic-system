@@ -40,6 +40,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4000/api/v1/health >/dev/null || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
   web:
     build:
@@ -52,7 +58,8 @@ services:
     volumes:
       - ./apps/web/dist:/usr/share/nginx/html:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   clinic_postgres_data:

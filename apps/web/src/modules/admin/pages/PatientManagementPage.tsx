@@ -49,7 +49,7 @@ export function PatientManagementPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-patients'] });
     },
     onError: (error) =>
-      setResetError(error instanceof Error ? error.message : 'Loi dat lai mat khau'),
+      setResetError(error instanceof Error ? error.message : 'Lỗi đặt lại mật khẩu'),
   });
 
   const historyRecords = patientRecord?.records ?? [];
@@ -90,13 +90,13 @@ export function PatientManagementPage() {
     <div className="flex h-full min-h-0 gap-4">
       <aside className="w-[360px] shrink-0 rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Danh sach benh nhan</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Danh sách bệnh nhân</h2>
           <button
             type="button"
             onClick={() => navigate('/admin/reception')}
             className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-700"
           >
-            Tao ho so moi
+            Tạo hồ sơ mới
           </button>
         </div>
 
@@ -107,20 +107,20 @@ export function PatientManagementPage() {
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Tim SDT, ten, CCCD..."
+            placeholder="Tìm SĐT, tên, CCCD..."
             className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none"
           />
         </div>
 
-        <p className="mb-3 text-xs text-slate-500">{patients.length} benh nhan</p>
+        <p className="mb-3 text-xs text-slate-500">{patients.length} bệnh nhân</p>
 
         <div className="max-h-[calc(100vh-280px)] space-y-2 overflow-y-auto pr-1">
           {loadingPatients && (
-            <p className="py-10 text-center text-sm text-slate-400">Dang tai danh sach...</p>
+            <p className="py-10 text-center text-sm text-slate-400">Đang tải danh sách...</p>
           )}
 
           {!loadingPatients && patients.length === 0 && (
-            <p className="py-10 text-center text-sm text-slate-400">Khong tim thay benh nhan</p>
+            <p className="py-10 text-center text-sm text-slate-400">Không tìm thấy bệnh nhân</p>
           )}
 
           {patients.map((patient) => (
@@ -149,7 +149,7 @@ export function PatientManagementPage() {
           <div className="flex h-full min-h-[420px] items-center justify-center text-center text-slate-400">
             <div>
               <span className="material-symbols-outlined text-5xl">folder_shared</span>
-              <p className="mt-2 text-sm">Chon benh nhan de quan ly ho so kham</p>
+              <p className="mt-2 text-sm">Chọn bệnh nhân để quản lý hồ sơ khám</p>
             </div>
           </div>
         )}
@@ -158,16 +158,16 @@ export function PatientManagementPage() {
           <div className="flex h-full min-h-0 flex-col">
             <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
               <div>
-                <h1 className="text-lg font-bold text-slate-900">Quan ly ho so kham</h1>
+                <h1 className="text-lg font-bold text-slate-900">Quản lý hồ sơ khám</h1>
                 <p className="text-sm text-slate-500">
-                  {selectedPatient?.fullName ?? patientRecord?.fullName ?? 'Benh nhan'}
+                  {selectedPatient?.fullName ?? patientRecord?.fullName ?? 'Bệnh nhân'}
                 </p>
               </div>
               <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
                 {[
-                  { key: 'info', label: 'Thong tin' },
-                  { key: 'history', label: 'Lich su kham' },
-                  { key: 'prescriptions', label: 'Don thuoc cu' },
+                  { key: 'info', label: 'Thông tin' },
+                  { key: 'history', label: 'Lịch sử khám' },
+                  { key: 'prescriptions', label: 'Đơn thuốc cũ' },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -188,7 +188,7 @@ export function PatientManagementPage() {
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               {(loadingRecords || !patientRecord) && (
                 <div className="flex h-full min-h-[260px] items-center justify-center text-sm text-slate-400">
-                  Dang tai du lieu ho so...
+                  Đang tải dữ liệu hồ sơ...
                 </div>
               )}
 
@@ -221,13 +221,13 @@ export function PatientManagementPage() {
       {resetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="mb-1 text-base font-bold text-slate-900">Reset mat khau</h3>
+            <h3 className="mb-1 text-base font-bold text-slate-900">Reset mật khẩu</h3>
             <p className="mb-4 text-sm text-slate-500">{resetModal.fullName}</p>
 
             <form onSubmit={handleResetSubmit} className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-700">
-                  Mat khau moi *
+                  Mật khẩu mới *
                 </label>
                 <div className="relative">
                   <input
@@ -236,7 +236,7 @@ export function PatientManagementPage() {
                     onChange={(event) => setResetPassword(event.target.value)}
                     minLength={6}
                     required
-                    placeholder="Toi thieu 6 ky tu"
+                    placeholder="Tối thiểu 6 ký tự"
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-sm focus:border-blue-500 focus:outline-none"
                   />
                   <button
@@ -262,14 +262,14 @@ export function PatientManagementPage() {
                   }}
                   className="flex-1 rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
-                  Dong
+                  Đóng
                 </button>
                 <button
                   type="submit"
                   disabled={resetMutation.isPending}
                   className="flex-1 rounded-lg bg-amber-500 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
                 >
-                  {resetMutation.isPending ? 'Dang xu ly...' : 'Xac nhan'}
+                  {resetMutation.isPending ? 'Đang xử lý...' : 'Xác nhận'}
                 </button>
               </div>
             </form>
@@ -307,9 +307,9 @@ function PatientInfoTab({
 
         <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
           <InfoRow label="CCCD" value={record.nationalId} />
-          <InfoRow label="Ngay sinh" value={formatDate(record.dateOfBirth)} />
-          <InfoRow label="Gioi tinh" value={genderLabel} />
-          <InfoRow label="BHYT" value="Chua cap nhat" />
+          <InfoRow label="Ngày sinh" value={formatDate(record.dateOfBirth)} />
+          <InfoRow label="Giới tính" value={genderLabel} />
+          <InfoRow label="BHYT" value="Chưa cập nhật" />
           <InfoRow label="Di ung" value={record.allergies} />
           <InfoRow label="Dia chi" value={record.address} />
         </div>
@@ -317,23 +317,23 @@ function PatientInfoTab({
 
       {patient?.hasAccount && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-          <h3 className="text-sm font-semibold text-amber-800">Tai khoan benh nhan</h3>
+          <h3 className="text-sm font-semibold text-amber-800">Tài khoản bệnh nhân</h3>
           <p className="mt-1 text-xs text-amber-700">
-            Benh nhan da co tai khoan. Ban co the reset mat khau trong truong hop can ho tro.
+            Bệnh nhân đã có tài khoản. Bạn có thể reset mật khẩu trong trường hợp cần hỗ trợ.
           </p>
           <button
             type="button"
             onClick={onResetPassword}
             className="mt-3 rounded-lg bg-amber-500 px-3 py-2 text-xs font-medium text-white hover:bg-amber-600"
           >
-            Reset mat khau
+            Reset mật khẩu
           </button>
         </div>
       )}
 
       {!patient?.hasAccount && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-          Benh nhan nay chua co tai khoan dang nhap.
+          Bệnh nhân này chưa có tài khoản đăng nhập.
         </div>
       )}
     </div>
@@ -352,7 +352,7 @@ function VisitHistoryTab({
   if (records.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-400">
-        Chua co lich su kham benh
+        Chưa có lịch sử khám bệnh
       </div>
     );
   }
@@ -371,7 +371,7 @@ function VisitHistoryTab({
             >
               <div>
                 <p className="text-sm font-medium text-slate-900">
-                  {record.diagnosis || 'Chua co chan doan'}
+                  {record.diagnosis || 'Chưa có chẩn đoán'}
                 </p>
                 <p className="text-xs text-slate-500">
                   {formatDateTime(record.visitDate)} · BS. {record.doctorName}
@@ -403,20 +403,20 @@ function VisitHistoryTab({
                   <PanelItem label="Ket luan" value={record.conclusion} />
                 </div>
 
-                <PanelItem label="Ket qua xet nghiem" value={labResultLabel(record)} />
+                <PanelItem label="Kết quả xét nghiệm" value={labResultLabel(record)} />
 
                 {record.notes && <PanelItem label="Ghi chu" value={record.notes} />}
 
                 {record.prescriptionItems && record.prescriptionItems.length > 0 && (
                   <div>
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Don thuoc
+                      Đơn thuốc
                     </p>
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="text-left text-slate-500">
                           <th className="py-1 pr-2">Thuoc</th>
-                          <th className="py-1 pr-2">So luong</th>
+                          <th className="py-1 pr-2">Số lượng</th>
                           <th className="py-1 pr-2">Lieu dung</th>
                           <th className="py-1">Ghi chu</th>
                         </tr>
@@ -452,7 +452,7 @@ function PrescriptionHistoryTab({ records }: { records: VisitRecordDto[] }) {
   if (records.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-400">
-        Chua co don thuoc cu de in lai
+        Chưa có đơn thuốc cũ để in lại
       </div>
     );
   }
@@ -464,7 +464,7 @@ function PrescriptionHistoryTab({ records }: { records: VisitRecordDto[] }) {
           <div className="mb-2 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-900">
-                {record.diagnosis || 'Don thuoc khong co chan doan'}
+                {record.diagnosis || 'Đơn thuốc không có chẩn đoán'}
               </p>
               <p className="text-xs text-slate-500">
                 {formatDateTime(record.visitDate)} · BS. {record.doctorName}
@@ -572,7 +572,7 @@ function labResultLabel(record: VisitRecordDto): string {
     return 'Da co ket qua';
   }
   if (record.bookingStatus === 'PENDING_LAB') {
-    return 'Dang cho ket qua';
+    return 'Đang chờ kết quả';
   }
-  return 'Khong co chi dinh';
+  return 'Không có chỉ định';
 }

@@ -61,9 +61,9 @@ public class AssetService {
                                 String status,
                                 String notes) {
         Asset asset = new Asset();
-        asset.setName(normalizeRequired(name, "Ten tai san la bat buoc"));
+        asset.setName(normalizeRequired(name, "Tên tài sản là bắt buộc"));
         asset.setAssetCode(normalizeUniqueAssetCode(null, assetCode));
-        asset.setCategory(normalizeRequired(category, "Category la bat buoc").toUpperCase());
+        asset.setCategory(normalizeRequired(category, "Danh mục là bắt buộc").toUpperCase());
         asset.setRoomId(parseOptionalRoom(roomId));
         asset.setPurchaseDate(parseOptionalDate(purchaseDate, "purchaseDate"));
         asset.setPurchasePriceCents(nonNegativeLong(purchasePriceCents, "purchasePriceCents", 0L));
@@ -86,16 +86,16 @@ public class AssetService {
                                 String status,
                                 String notes) {
         Asset asset = assetRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay tai san"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tài sản"));
 
         if (name != null) {
-            asset.setName(normalizeRequired(name, "Ten tai san khong hop le"));
+            asset.setName(normalizeRequired(name, "Tên tài sản không hợp lệ"));
         }
         if (assetCode != null) {
             asset.setAssetCode(normalizeUniqueAssetCode(id, assetCode));
         }
         if (category != null) {
-            asset.setCategory(normalizeRequired(category, "Category khong hop le").toUpperCase());
+            asset.setCategory(normalizeRequired(category, "Danh mục không hợp lệ").toUpperCase());
         }
         if (roomId != null) {
             asset.setRoomId(parseOptionalRoom(roomId));
@@ -158,7 +158,7 @@ public class AssetService {
     private UUID parseOptionalRoom(String roomId) {
         UUID roomUuid = parseOptionalUuid(roomId, "roomId");
         if (roomUuid != null && !roomRepository.existsById(roomUuid)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "roomId khong ton tai");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "roomId không tồn tại");
         }
         return roomUuid;
     }
@@ -171,7 +171,7 @@ public class AssetService {
         try {
             return UUID.fromString(normalized);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không hợp lệ");
         }
     }
 
@@ -183,7 +183,7 @@ public class AssetService {
         try {
             return LocalDate.parse(normalized);
         } catch (DateTimeParseException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không hợp lệ");
         }
     }
 
@@ -217,7 +217,7 @@ public class AssetService {
             return "ACTIVE";
         }
         if (!ALLOWED_STATUSES.contains(normalized)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status không hợp lệ");
         }
         return normalized;
     }
@@ -225,7 +225,7 @@ public class AssetService {
     private long nonNegativeLong(Long value, String fieldName, long defaultValue) {
         long normalized = value == null ? defaultValue : value;
         if (normalized < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phai >= 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phải >= 0");
         }
         return normalized;
     }
@@ -240,7 +240,7 @@ public class AssetService {
             ? assetRepository.findByAssetCodeIgnoreCase(normalized).isPresent()
             : assetRepository.findByAssetCodeIgnoreCaseAndIdNot(normalized, currentId).isPresent();
         if (exists) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "assetCode da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "assetCode đã tồn tại");
         }
 
         return normalized;

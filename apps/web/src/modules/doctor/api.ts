@@ -11,6 +11,8 @@ import type {
   Patient,
   SaveMedicalRecordRequest,
   SavePrescriptionRequest,
+  ScheduleFollowUpRequest,
+  FollowUpBooking,
 } from './types';
 
 const API_BASE = 'http://localhost:4000/api/doctor';
@@ -192,6 +194,12 @@ export const consultationApi = {
 
   completeLabResult: (bookingId: string, data: { resultSummary: string; impression?: string }) =>
     fetchApi<QueueItem>(`${API_BASE}/consultation/bookings/${bookingId}/lab-result`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  scheduleFollowUp: (bookingId: string, data: ScheduleFollowUpRequest) =>
+    fetchApi<FollowUpBooking>(`${API_BASE}/consultation/bookings/${bookingId}/follow-up`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),

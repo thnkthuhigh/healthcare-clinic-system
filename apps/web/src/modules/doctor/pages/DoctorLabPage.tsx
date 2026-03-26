@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { OpsPageHeader } from '../../../components/ClinicUI';
@@ -28,6 +28,16 @@ function resolveApiErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function pushDoctorNotification(title: string, body: string) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification(title, { body });
+  } catch {
+    // no-op
+  }
+}
+
 export function DoctorLabPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +53,15 @@ export function DoctorLabPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
+  const previousPendingCountRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => undefined);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -81,6 +100,18 @@ export function DoctorLabPage() {
       )
       .sort((left, right) => left.booking.appointmentTime.localeCompare(right.booking.appointmentTime));
   }, [schedule]);
+
+  useEffect(() => {
+    const currentCount = pendingRows.length;
+    const previousCount = previousPendingCountRef.current;
+    if (previousCount !== null && currentCount > previousCount) {
+      const added = currentCount - previousCount;
+      const message = `Có ${added} bệnh nhân mới được chuyển sang khu xét nghiệm.`;
+      setQueueNotice(message);
+      pushDoctorNotification('Cập nhật xét nghiệm', message);
+    }
+    previousPendingCountRef.current = currentCount;
+  }, [pendingRows.length]);
 
   useEffect(() => {
     if (pendingRows.length === 0) {
@@ -126,6 +157,10 @@ export function DoctorLabPage() {
       setImpression('');
       setSuccessMessage(
         `Đã hoàn tất xét nghiệm cho ${selectedRow.booking.patient.fullName}. Bệnh nhân đã được trả về hàng chờ của bác sĩ.`,
+      );
+      pushDoctorNotification(
+        'Hoàn tất xét nghiệm',
+        `Đã trả bệnh nhân ${selectedRow.booking.patient.fullName} về hàng chờ bác sĩ.`,
       );
       await refreshSchedule();
     } catch (completeError) {
@@ -176,6 +211,21 @@ export function DoctorLabPage() {
                   Mở hàng chờ của ca này
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {queueNotice && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>{queueNotice}</span>
+              <button
+                type="button"
+                onClick={() => setQueueNotice(null)}
+                className="rounded p-1 hover:bg-blue-100"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
             </div>
           </div>
         )}

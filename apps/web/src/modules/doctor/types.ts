@@ -199,3 +199,20 @@ export interface SavePrescriptionRequest {
     note?: string;
   }[];
 }
+
+export interface ScheduleFollowUpRequest {
+  followUpDate: string;
+  note?: string;
+}
+
+export interface FollowUpBooking {
+  bookingId: string;
+  sourceBookingId: string | null;
+  date: string;
+  shiftType: ShiftType;
+  timeRange: string;
+  doctorName: string;
+  serviceName: string | null;
+  status: BookingStatus;
+  note: string | null;
+}

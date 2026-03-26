@@ -1,11 +1,11 @@
 import type {
-  DoctorSummary,
   AvailableShift,
+  BookingTicket,
   ClinicService,
   CreateBookingRequest,
-  BookingTicket,
-  PatientSummary,
+  DoctorSummary,
   PatientBooking,
+  PatientSummary,
   RatingRequest,
 } from './types';
 
@@ -27,14 +27,25 @@ async function fetchApi<T>(url: string, options?: FetchApiOptions): Promise<T> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Lỗi hệ thống' }));
-    throw new Error(error.message || 'Lỗi hệ thống');
+    const rawBody = await response.text();
+    let message = 'Lỗi hệ thống';
+    if (rawBody) {
+      try {
+        const parsed = JSON.parse(rawBody) as { message?: string; error?: string };
+        message = parsed.message || parsed.error || message;
+      } catch {
+        message = rawBody.includes('<html') || rawBody.includes('<!doctype') ? message : rawBody;
+      }
+    }
+    throw new Error(message);
   }
 
-  return response.json();
-}
+  if (response.status === 204) {
+    return undefined as T;
+  }
 
-// ========== Doctors & Shifts ==========
+  return response.json() as Promise<T>;
+}
 
 export const customerApi = {
   getDoctors: (serviceId?: string | null) =>
@@ -46,8 +57,6 @@ export const customerApi = {
     fetchApi<AvailableShift[]>(`${API_BASE}/doctors/${doctorId}/shifts?date=${date}`),
 
   getServices: () => fetchApi<ClinicService[]>(`${API_BASE}/services`),
-
-  // ========== Booking ==========
 
   createBooking: (data: CreateBookingRequest) =>
     fetchApi<BookingTicket>(`${API_BASE}/bookings`, {
@@ -64,8 +73,6 @@ export const customerApi = {
   getBookingTicket: (bookingId: string) =>
     fetchApi<BookingTicket>(`${API_BASE}/bookings/${bookingId}`),
 
-  // ========== Check-in ==========
-
   checkInByQr: (bookingId: string) =>
     fetchApi<BookingTicket>(`${API_BASE}/checkin/qr/${bookingId}`, { method: 'POST' }),
 
@@ -73,8 +80,6 @@ export const customerApi = {
     fetchApi<BookingTicket>(`${API_BASE}/checkin/phone?phone=${encodeURIComponent(phone)}`, {
       method: 'POST',
     }),
-
-  // ========== Health Profile ==========
 
   lookupPatient: (phone: string) =>
     fetchApi<PatientSummary>(`${API_BASE}/patients/lookup?phone=${encodeURIComponent(phone)}`),
@@ -85,7 +90,6 @@ export const customerApi = {
   submitRating: (bookingId: string, data: RatingRequest) =>
     fetchApi<{ message: string }>(`${API_BASE}/bookings/${bookingId}/rating`, {
       method: 'POST',
-      withAuth: true,
       body: JSON.stringify(data),
     }),
 

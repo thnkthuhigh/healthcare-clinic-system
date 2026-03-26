@@ -34,7 +34,7 @@ public class QueueNumberService {
             .getResultList();
 
         if (scopeRows.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay ca kham");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ca khám");
         }
 
         Object[] scope = scopeRows.get(0);
@@ -69,6 +69,6 @@ public class QueueNumberService {
         if (raw instanceof Date sqlDate) {
             return sqlDate.toLocalDate();
         }
-        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Khong doc duoc ngay ca kham");
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Không đọc được ngày ca khám");
     }
 }

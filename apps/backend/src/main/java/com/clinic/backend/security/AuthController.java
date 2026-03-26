@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -38,8 +39,15 @@ public class AuthController {
 
     @Operation(summary = "Get current user", description = "Lấy thông tin người dùng hiện tại từ JWT")
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> me(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
+    public ResponseEntity<Map<String, Object>> me(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || authHeader.isBlank() || !authHeader.startsWith("Bearer ")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu hoặc sai định dạng token");
+        }
+        String token = authHeader.substring("Bearer ".length()).trim();
+        if (token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token không hợp lệ");
+        }
         Map<String, Object> user = authService.me(token);
         return ResponseEntity.ok(user);
     }

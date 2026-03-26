@@ -16,6 +16,7 @@ public class CashierBookingDto {
     private String doctorName;
     private String serviceName;
     private Integer servicePriceCents;
+    private Integer labFeeCents;
     private String status;
     private String channel;
     private String paymentStatus;
@@ -55,6 +56,9 @@ public class CashierBookingDto {
 
     public Integer getServicePriceCents() { return servicePriceCents; }
     public void setServicePriceCents(Integer servicePriceCents) { this.servicePriceCents = servicePriceCents; }
+
+    public Integer getLabFeeCents() { return labFeeCents; }
+    public void setLabFeeCents(Integer labFeeCents) { this.labFeeCents = labFeeCents; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

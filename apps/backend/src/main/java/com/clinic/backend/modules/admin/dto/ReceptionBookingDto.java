@@ -22,6 +22,10 @@ public class ReceptionBookingDto {
     private int priorityScore;
     private String roomName;
     private String slotPool;
+    private boolean followUp;
+    private String followUpSourceBookingId;
+    private Instant followUpScheduledAt;
+    private String followUpNote;
 
     // Getters and Setters
     public String getId() { return id; }
@@ -71,4 +75,18 @@ public class ReceptionBookingDto {
 
     public String getSlotPool() { return slotPool; }
     public void setSlotPool(String slotPool) { this.slotPool = slotPool; }
+
+    public boolean isFollowUp() { return followUp; }
+    public void setFollowUp(boolean followUp) { this.followUp = followUp; }
+
+    public String getFollowUpSourceBookingId() { return followUpSourceBookingId; }
+    public void setFollowUpSourceBookingId(String followUpSourceBookingId) {
+        this.followUpSourceBookingId = followUpSourceBookingId;
+    }
+
+    public Instant getFollowUpScheduledAt() { return followUpScheduledAt; }
+    public void setFollowUpScheduledAt(Instant followUpScheduledAt) { this.followUpScheduledAt = followUpScheduledAt; }
+
+    public String getFollowUpNote() { return followUpNote; }
+    public void setFollowUpNote(String followUpNote) { this.followUpNote = followUpNote; }
 }

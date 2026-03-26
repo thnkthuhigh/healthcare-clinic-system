@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { formatVndFromCents } from '../../../lib/currency';
 import { formatDateTimeUtc7, formatDateUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import type {
@@ -14,28 +15,28 @@ import type {
 } from '../types';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-  BOOKED: { label: 'Da dat', color: 'bg-blue-100 text-blue-700', icon: 'event_available' },
-  CHECKED_IN: { label: 'Da check-in', color: 'bg-green-100 text-green-700', icon: 'how_to_reg' },
-  WAITING: { label: 'Cho kham', color: 'bg-amber-100 text-amber-700', icon: 'hourglass_top' },
+  BOOKED: { label: 'Đã đặt', color: 'bg-blue-100 text-blue-700', icon: 'event_available' },
+  CHECKED_IN: { label: 'Đã check-in', color: 'bg-green-100 text-green-700', icon: 'how_to_reg' },
+  WAITING: { label: 'Chờ khám', color: 'bg-amber-100 text-amber-700', icon: 'hourglass_top' },
   IN_CONSULTATION: {
-    label: 'Dang kham',
+    label: 'Đang khám',
     color: 'bg-purple-100 text-purple-700',
     icon: 'stethoscope',
   },
-  PENDING_LAB: { label: 'Cho XN', color: 'bg-orange-100 text-orange-700', icon: 'science' },
-  RESULTS_READY: { label: 'Co KQ XN', color: 'bg-teal-100 text-teal-700', icon: 'lab_research' },
+  PENDING_LAB: { label: 'Chờ xét nghiệm', color: 'bg-orange-100 text-orange-700', icon: 'science' },
+  RESULTS_READY: { label: 'Có kết quả', color: 'bg-teal-100 text-teal-700', icon: 'lab_research' },
   COMPLETED: {
-    label: 'Hoan thanh',
+    label: 'Hoàn thành',
     color: 'bg-emerald-100 text-emerald-700',
     icon: 'check_circle',
   },
-  NO_SHOW: { label: 'Vang mat', color: 'bg-red-100 text-red-700', icon: 'person_off' },
-  CANCELED: { label: 'Da huy', color: 'bg-slate-100 text-slate-600', icon: 'cancel' },
+  NO_SHOW: { label: 'Vắng mặt', color: 'bg-red-100 text-red-700', icon: 'person_off' },
+  CANCELED: { label: 'Đã hủy', color: 'bg-slate-100 text-slate-600', icon: 'cancel' },
 };
 
 const POOL_LABELS: Record<string, string> = {
-  COMMON: 'Be chung',
-  RESERVE: 'Be du phong',
+  COMMON: 'Bể chung',
+  RESERVE: 'Bể dự phòng',
   OVERRIDE: 'Override',
 };
 
@@ -72,13 +73,14 @@ function toErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
-  return 'Thao tac that bai';
+  return 'Thao tác thất bại';
 }
 
 function shouldOfferOverride(error: ApiError) {
   const msg = error.message.toLowerCase();
   return (
     error.status === 409 ||
+    msg.includes('hết số khám') ||
     msg.includes('het so kham') ||
     msg.includes('slot') ||
     msg.includes('override')
@@ -86,10 +88,7 @@ function shouldOfferOverride(error: ApiError) {
 }
 
 function priceLabel(cents: number) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  }).format(cents * 10);
+  return formatVndFromCents(cents);
 }
 
 function normalizeDateForInput(rawDate: string | null) {
@@ -98,12 +97,12 @@ function normalizeDateForInput(rawDate: string | null) {
 }
 
 function dateTimeLabel(raw: string | null) {
-  if (!raw) return 'Chua cap nhat';
+  if (!raw) return 'Chưa cập nhật';
   return formatDateTimeUtc7(raw);
 }
 
 function bookingDateLabel(raw: string | null) {
-  if (!raw) return 'Chua co ngay';
+  if (!raw) return 'Chưa có ngày';
   return formatDateUtc7(raw, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
@@ -127,9 +126,14 @@ export function ReceptionPage() {
   const [filterStatus, setFilterStatus] = useState('');
 
   const [searchPhone, setSearchPhone] = useState('');
+  const [followUpOnlySearch, setFollowUpOnlySearch] = useState(false);
   const [searchResults, setSearchResults] = useState<ReceptionBooking[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isFollowUpVisit, setIsFollowUpVisit] = useState(false);
+  const [followUpMatches, setFollowUpMatches] = useState<ReceptionBooking[]>([]);
+  const [followUpLookupLoading, setFollowUpLookupLoading] = useState(false);
+  const [followUpLookupNote, setFollowUpLookupNote] = useState('');
 
   const [visitForm, setVisitForm] = useState<VisitFormState>(emptyVisitForm());
   const [lookupNote, setLookupNote] = useState('');
@@ -224,6 +228,9 @@ export function ReceptionPage() {
       setSearchResults([]);
       setSearchPhone('');
       setHasSearched(false);
+      setFollowUpMatches([]);
+      setFollowUpLookupLoading(false);
+      setFollowUpLookupNote('');
     },
   });
 
@@ -245,6 +252,10 @@ export function ReceptionPage() {
       setCreateVisitError('');
       setShowOverrideModal(false);
       setPendingOverridePayload(null);
+      setIsFollowUpVisit(false);
+      setFollowUpMatches([]);
+      setFollowUpLookupLoading(false);
+      setFollowUpLookupNote('');
     },
   });
 
@@ -255,14 +266,61 @@ export function ReceptionPage() {
     setIsSearching(true);
     setHasSearched(true);
     try {
-      const results = await adminApi.searchBookingsByPhone(phone, today);
+      const results = await adminApi.searchBookingsByPhone(phone, today, followUpOnlySearch);
       setSearchResults(results);
     } catch {
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [searchPhone, today]);
+  }, [followUpOnlySearch, searchPhone, today]);
+
+  const clearFollowUpLookup = useCallback(() => {
+    setFollowUpMatches([]);
+    setFollowUpLookupLoading(false);
+    setFollowUpLookupNote('');
+  }, []);
+
+  const handleFollowUpLookup = useCallback(
+    async (rawPhone?: string) => {
+      const phone = (rawPhone ?? visitForm.patientPhone).trim();
+      if (!phone) {
+        clearFollowUpLookup();
+        setFollowUpLookupNote('Nhập số điện thoại để kiểm tra lịch tái khám.');
+        return;
+      }
+
+      setFollowUpLookupLoading(true);
+      setFollowUpLookupNote('');
+      try {
+        const results = await adminApi.searchBookingsByPhone(phone, today, true);
+        const matched = results
+          .filter((booking) => booking.followUp && booking.status === 'BOOKED')
+          .sort((a, b) => {
+            const aTime = toSortTimestamp(a.followUpScheduledAt || a.createdAt);
+            const bTime = toSortTimestamp(b.followUpScheduledAt || b.createdAt);
+            return aTime - bTime;
+          });
+
+        setFollowUpMatches(matched);
+        if (matched.length > 0) {
+          setFollowUpLookupNote(
+            `Tìm thấy ${matched.length} lịch tái khám theo số điện thoại. Chọn lịch phù hợp để check-in khi tới ngày hẹn.`,
+          );
+        } else {
+          setFollowUpLookupNote(
+            'Không có lịch tái khám phù hợp từ hôm nay trở đi. Có thể bỏ chọn "Bệnh nhân tái khám" để tạo phiếu mới.',
+          );
+        }
+      } catch {
+        setFollowUpMatches([]);
+        setFollowUpLookupNote('Không thể kiểm tra lịch tái khám lúc này. Vui lòng thử lại.');
+      } finally {
+        setFollowUpLookupLoading(false);
+      }
+    },
+    [clearFollowUpLookup, today, visitForm.patientPhone],
+  );
 
   const applyPatientCandidate = useCallback(async (candidate: AdminPatientDto) => {
     let insuranceCode = '';
@@ -286,7 +344,7 @@ export function ReceptionPage() {
       patientInsuranceCode: insuranceCode,
     }));
     setLookupState('found');
-    setLookupNote('Da nap ho so benh nhan vao form.');
+    setLookupNote('Đã nạp hồ sơ bệnh nhân vào form.');
     setShowPatientPickerModal(false);
     setPatientCandidates([]);
   }, []);
@@ -330,9 +388,24 @@ export function ReceptionPage() {
         return;
       }
       setLookupState('error');
-      setLookupNote('Khong the tim ho so luc nay. Vui long thu lai.');
+      setLookupNote('Không thể tìm hồ sơ lúc này. Vui lòng thử lại.');
     }
   }, [visitForm.patientPhone]);
+
+  const handleCheckInFollowUpFromCreateVisit = useCallback(
+    async (bookingId: string) => {
+      setCreateVisitError('');
+      try {
+        await checkInMutation.mutateAsync(bookingId);
+        setActiveTab('board');
+        setIsFollowUpVisit(false);
+        clearFollowUpLookup();
+      } catch (error) {
+        setCreateVisitError(toErrorMessage(error));
+      }
+    },
+    [checkInMutation, clearFollowUpLookup],
+  );
 
   const buildCreateVisitPayload = useCallback(
     (forceOverride: boolean): CreateVisitRequest => {
@@ -341,7 +414,7 @@ export function ReceptionPage() {
       const serviceId = visitForm.serviceId;
 
       if (!patientName || !patientPhone || !serviceId) {
-        throw new Error('Vui long nhap day du ho ten, so dien thoai va dich vu.');
+        throw new Error('Vui lòng nhập đầy đủ họ tên, số điện thoại và dịch vụ.');
       }
 
       return {
@@ -395,19 +468,25 @@ export function ReceptionPage() {
     setPatientCandidates([]);
     setShowPatientPickerModal(false);
     setCreateVisitResult(null);
+    setIsFollowUpVisit(false);
+    setFollowUpMatches([]);
+    setFollowUpLookupLoading(false);
+    setFollowUpLookupNote('');
   }, []);
+
+  const hasMatchedFollowUpVisit = isFollowUpVisit && followUpMatches.length > 0;
 
   const printVisitTicket = useCallback(() => {
     if (!createVisitResult) return;
-    const shiftLabel = createVisitResult.shiftType === 'MORNING' ? 'Sang' : 'Chieu';
-    const serviceName = selectedService?.name ?? 'Dich vu da chon';
+    const shiftLabel = createVisitResult.shiftType === 'MORNING' ? 'Sáng' : 'Chiều';
+    const serviceName = selectedService?.name ?? 'Dịch vụ đã chọn';
     const printWindow = window.open('', '_blank', 'width=900,height=700');
     if (!printWindow) return;
 
     const html = `
       <html>
         <head>
-          <title>Phieu kham - ${createVisitResult.queueNumber}</title>
+          <title>Phiếu khám - ${createVisitResult.queueNumber}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
             h1 { font-size: 22px; margin-bottom: 8px; }
@@ -420,16 +499,16 @@ export function ReceptionPage() {
           </style>
         </head>
         <body>
-          <h1>Phieu kham benh</h1>
-          <div class="muted">Thoi gian in: ${formatDateTimeUtc7(new Date())}</div>
+          <h1>Phiếu khám bệnh</h1>
+          <div class="muted">Thời gian in: ${formatDateTimeUtc7(new Date())}</div>
           <div class="box">
             <div class="queue">STT #${createVisitResult.queueNumber}</div>
-            <div class="row"><div class="label">Benh nhan</div><div class="value">${createVisitResult.patientName}</div></div>
-            <div class="row"><div class="label">Dich vu</div><div class="value">${serviceName}</div></div>
-            <div class="row"><div class="label">Bac si</div><div class="value">${createVisitResult.doctorName}</div></div>
-            <div class="row"><div class="label">Phong</div><div class="value">${createVisitResult.roomName || 'Chua gan phong'}</div></div>
+            <div class="row"><div class="label">Bệnh nhân</div><div class="value">${createVisitResult.patientName}</div></div>
+            <div class="row"><div class="label">Dịch vụ</div><div class="value">${serviceName}</div></div>
+            <div class="row"><div class="label">Bác sĩ</div><div class="value">${createVisitResult.doctorName}</div></div>
+            <div class="row"><div class="label">Phòng</div><div class="value">${createVisitResult.roomName || 'Chưa gán phòng'}</div></div>
             <div class="row"><div class="label">Ca</div><div class="value">${shiftLabel}</div></div>
-            <div class="row"><div class="label">Loai slot</div><div class="value">${POOL_LABELS[createVisitResult.poolUsed] ?? createVisitResult.poolUsed}</div></div>
+            <div class="row"><div class="label">Loại slot</div><div class="value">${POOL_LABELS[createVisitResult.poolUsed] ?? createVisitResult.poolUsed}</div></div>
           </div>
           <script>window.onload = function(){ window.print(); };</script>
         </body>
@@ -480,7 +559,7 @@ export function ReceptionPage() {
           [
             { key: 'board' as TabType, label: 'Bang theo doi', icon: 'dashboard' },
             { key: 'checkin' as TabType, label: 'Check-in Web', icon: 'qr_code_scanner' },
-            { key: 'create_visit' as TabType, label: 'Tao phieu kham', icon: 'person_add' },
+            { key: 'create_visit' as TabType, label: 'Tạo phiếu khám', icon: 'person_add' },
           ] as const
         ).map((tab) => (
           <button
@@ -507,10 +586,10 @@ export function ReceptionPage() {
               onChange={(event) => setSelectedShiftId(event.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="">Tat ca ca</option>
+              <option value="">Tất cả ca</option>
               {shifts.map((shift: ShiftOverview) => (
                 <option key={shift.id} value={shift.id}>
-                  {shift.doctorName} - {shift.type === 'MORNING' ? 'Sang' : 'Chieu'} (
+                  {shift.doctorName} - {shift.type === 'MORNING' ? 'Sáng' : 'Chiều'} (
                   {shift.bookedSlots}/{shift.totalSlots})
                 </option>
               ))}
@@ -524,9 +603,9 @@ export function ReceptionPage() {
                 <span className="material-symbols-outlined text-sm">close</span>
               </button>
             )}
-            <span className="text-sm text-slate-500">({filteredBookings.length} lich kham)</span>
+            <span className="text-sm text-slate-500">({filteredBookings.length} lịch khám)</span>
             <span className="text-xs text-slate-400">
-              STT la thu tu dang ky. Thu tu moi co the khac theo uu tien hang cho.
+              STT là thứ tự đăng ký. Thứ tự mời có thể khác theo ưu tiên hàng chờ.
             </span>
           </div>
 
@@ -537,7 +616,7 @@ export function ReceptionPage() {
           ) : filteredBookings.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-300 py-16 text-center">
               <span className="material-symbols-outlined text-5xl text-slate-300">event_busy</span>
-              <p className="mt-2 text-sm text-slate-500">Chua co lich kham nao</p>
+              <p className="mt-2 text-sm text-slate-500">Chưa có lịch khám nào</p>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -545,13 +624,13 @@ export function ReceptionPage() {
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 font-medium text-slate-600">STT</th>
-                    <th className="px-4 py-3 font-medium text-slate-600">Benh nhan</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Bệnh nhân</th>
                     <th className="px-4 py-3 font-medium text-slate-600">SDT</th>
-                    <th className="px-4 py-3 font-medium text-slate-600">Bac si</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Bác sĩ</th>
                     <th className="px-4 py-3 font-medium text-slate-600">Ca</th>
                     <th className="px-4 py-3 font-medium text-slate-600">Kenh</th>
-                    <th className="px-4 py-3 font-medium text-slate-600">Trang thai</th>
-                    <th className="px-4 py-3 font-medium text-slate-600">Hanh dong</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Trạng thái</th>
+                    <th className="px-4 py-3 font-medium text-slate-600">Hành động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -567,7 +646,7 @@ export function ReceptionPage() {
                           <div className="space-y-1">
                             <p>{booking.queueNumber ?? '-'}</p>
                             <p className="text-xs font-medium text-slate-500">
-                              Ngay dat: {bookingDateLabel(booking.createdAt)}
+                              Ngày đặt: {bookingDateLabel(booking.createdAt)}
                             </p>
                           </div>
                         </td>
@@ -584,7 +663,7 @@ export function ReceptionPage() {
                                 : 'bg-indigo-50 text-indigo-700'
                             }`}
                           >
-                            {booking.shiftType === 'MORNING' ? 'Sang' : 'Chieu'}
+                            {booking.shiftType === 'MORNING' ? 'Sáng' : 'Chiều'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -596,7 +675,7 @@ export function ReceptionPage() {
                             <span className="material-symbols-outlined text-sm">
                               {booking.channel === 'WEB' ? 'language' : 'directions_walk'}
                             </span>
-                            {booking.channel === 'WEB' ? 'Web' : 'Vang lai'}
+                            {booking.channel === 'WEB' ? 'Web' : 'Vãng lai'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -622,7 +701,7 @@ export function ReceptionPage() {
                             )}
                             <button
                               onClick={() => setSelectedBookingDetail(booking)}
-                              title="Xem chi tiet phieu kham"
+                              title="Xem chi tiết phiếu khám"
                               className="rounded-md bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200"
                             >
                               <span className="material-symbols-outlined text-base">
@@ -635,7 +714,7 @@ export function ReceptionPage() {
                               <button
                                 onClick={() => {
                                   if (
-                                    window.confirm(`Danh dau ${booking.patientName} la vang mat?`)
+                                    window.confirm(`Đánh dấu ${booking.patientName} là vắng mặt?`)
                                   ) {
                                     noShowMutation.mutate(booking.id);
                                   }
@@ -643,7 +722,7 @@ export function ReceptionPage() {
                                 disabled={noShowMutation.isPending}
                                 className="rounded-md bg-red-50 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
                               >
-                                No-show
+                                Vắng mặt
                               </button>
                             )}
                           </div>
@@ -662,10 +741,10 @@ export function ReceptionPage() {
         <div className="rounded-lg border border-slate-200 bg-white p-6">
           <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
             <span className="material-symbols-outlined text-blue-600">qr_code_scanner</span>
-            Check-in khach dat web
+            Check-in khách đặt web
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Nhap so dien thoai de tim lich BOOKED, sau do bam Check-in.
+            Nhập số điện thoại để tìm lịch BOOKED, sau đó bấm Check-in.
           </p>
 
           <div className="mt-4 flex gap-3">
@@ -674,7 +753,7 @@ export function ReceptionPage() {
               value={searchPhone}
               onChange={(event) => setSearchPhone(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && void handleSearch()}
-              placeholder="Nhap so dien thoai"
+              placeholder="Nhập số điện thoại"
               className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <button
@@ -687,14 +766,24 @@ export function ReceptionPage() {
               ) : (
                 <span className="material-symbols-outlined text-lg">search</span>
               )}
-              Tim kiem
+              Tìm kiếm
             </button>
           </div>
+
+          <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={followUpOnlySearch}
+              onChange={(event) => setFollowUpOnlySearch(event.target.checked)}
+              className="h-4 w-4 accent-blue-600"
+            />
+            Chỉ hiển thị lịch tái khám
+          </label>
 
           {searchResults.length > 0 && (
             <div className="mt-4 space-y-3">
               <p className="text-sm font-medium text-slate-700">
-                Tim thay {searchResults.length} lich kham:
+                Tìm thấy {searchResults.length} lịch khám:
               </p>
               {searchResults.map((booking) => (
                 <div
@@ -705,9 +794,21 @@ export function ReceptionPage() {
                     <p className="font-medium text-slate-900">{booking.patientName}</p>
                     <p className="text-sm text-slate-500">
                       BS. {booking.doctorName} -{' '}
-                      {booking.shiftType === 'MORNING' ? 'Ca sang' : 'Ca chieu'}
+                      {booking.shiftType === 'MORNING' ? 'Ca sáng' : 'Ca chiều'}
                       {booking.serviceName ? ` - ${booking.serviceName}` : ''}
                     </p>
+                    {booking.followUp && (
+                      <div className="space-y-1">
+                        <p className="inline-flex w-fit items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                          Tái khám
+                        </p>
+                        {booking.followUpScheduledAt && (
+                          <p className="text-xs text-slate-500">
+                            Lịch hẹn: {formatDateTimeUtc7(booking.followUpScheduledAt)}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => checkInMutation.mutate(booking.id)}
@@ -715,7 +816,7 @@ export function ReceptionPage() {
                     className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 font-medium text-white hover:bg-green-700 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-lg">how_to_reg</span>
-                    Check-in
+                    {booking.followUp ? 'Check-in tái khám' : 'Check-in'}
                   </button>
                 </div>
               ))}
@@ -726,8 +827,20 @@ export function ReceptionPage() {
             <div className="mt-4 rounded-lg border border-dashed border-slate-300 py-8 text-center">
               <span className="material-symbols-outlined text-4xl text-slate-300">search_off</span>
               <p className="mt-2 text-sm text-slate-500">
-                Khong tim thay lich kham BOOKED cho so nay.
+                {followUpOnlySearch
+                  ? 'Không có lịch tái khám đang chờ check-in cho số này.'
+                  : 'Không tìm thấy lịch khám đang chờ check-in cho số này.'}
               </p>
+              {!followUpOnlySearch && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('create_visit')}
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline"
+                >
+                  <span className="material-symbols-outlined text-base">add_circle</span>
+                  Tạo phiếu khám thủ công
+                </button>
+              )}
             </div>
           )}
 
@@ -747,10 +860,10 @@ export function ReceptionPage() {
           <div className="rounded-lg border border-slate-200 bg-white p-6">
             <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
               <span className="material-symbols-outlined text-amber-600">person_add</span>
-              Tao phieu kham (Auto Dispatch)
+              Tạo phiếu khám (Auto Dispatch)
             </h3>
             <p className="mt-1 text-sm text-slate-500">
-              Le tan nhap thong tin benh nhan + chon dich vu. He thong tu dong chon bac si, phong va
+              Lễ tân nhập thông tin bệnh nhân + chọn dịch vụ. Hệ thống tự động chọn bác sĩ, phòng và
               slot.
             </p>
 
@@ -758,7 +871,7 @@ export function ReceptionPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    So dien thoai <span className="text-red-500">*</span>
+                    Số điện thoại <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
@@ -772,19 +885,42 @@ export function ReceptionPage() {
                       setLookupNote('');
                       setPatientCandidates([]);
                       setShowPatientPickerModal(false);
+                      clearFollowUpLookup();
                     }}
-                    onBlur={() => void handlePhoneLookup()}
+                    onBlur={() => {
+                      void handlePhoneLookup();
+                      if (isFollowUpVisit) {
+                        void handleFollowUpLookup(visitForm.patientPhone);
+                      }
+                    }}
                     placeholder="0901234567"
                     className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   {lookupState === 'error' && (
                     <p className="mt-1 text-xs text-red-600">{lookupNote}</p>
                   )}
+                  <label className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={isFollowUpVisit}
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        setIsFollowUpVisit(checked);
+                        if (checked) {
+                          void handleFollowUpLookup(visitForm.patientPhone);
+                        } else {
+                          clearFollowUpLookup();
+                        }
+                      }}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                    Bệnh nhân tái khám (ưu tiên check-in lịch hẹn cũ)
+                  </label>
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Ho ten benh nhan <span className="text-red-500">*</span>
+                    Họ tên bệnh nhân <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -792,13 +928,13 @@ export function ReceptionPage() {
                     onChange={(event) =>
                       setVisitForm((prev) => ({ ...prev, patientName: event.target.value }))
                     }
-                    placeholder="Nguyen Van A"
+                    placeholder="Nguyễn Văn A"
                     className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Ngay sinh</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Ngày sinh</label>
                   <input
                     type="date"
                     value={visitForm.patientDob}
@@ -810,7 +946,7 @@ export function ReceptionPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Gioi tinh</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Giới tính</label>
                   <select
                     value={visitForm.patientGender}
                     onChange={(event) =>
@@ -821,10 +957,10 @@ export function ReceptionPage() {
                     }
                     className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="">Khong chon</option>
+                    <option value="">Không chọn</option>
                     <option value="MALE">Nam</option>
-                    <option value="FEMALE">Nu</option>
-                    <option value="OTHER">Khac</option>
+                    <option value="FEMALE">Nữ</option>
+                    <option value="OTHER">Khác</option>
                   </select>
                 </div>
 
@@ -842,7 +978,7 @@ export function ReceptionPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Ma BHYT</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Mã BHYT</label>
                   <input
                     type="text"
                     value={visitForm.patientInsuranceCode}
@@ -859,7 +995,7 @@ export function ReceptionPage() {
 
                 <div className="sm:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Dich vu kham <span className="text-red-500">*</span>
+                    Dịch vụ khám <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={visitForm.serviceId}
@@ -869,7 +1005,7 @@ export function ReceptionPage() {
                     }}
                     className="w-full rounded-lg border border-slate-300 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="">-- Chon dich vu --</option>
+                    <option value="">-- Chọn dịch vụ --</option>
                     {activeServices.map((service) => (
                       <option key={service.id} value={service.id}>
                         {service.name}
@@ -879,44 +1015,105 @@ export function ReceptionPage() {
                   {selectedService && (
                     <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
                       <div className="font-medium">{selectedService.name}</div>
-                      <div>Gia: {priceLabel(selectedService.priceCents)}</div>
+                      <div>Giá: {priceLabel(selectedService.priceCents)}</div>
                     </div>
                   )}
                   {visitForm.serviceId && (
                     <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                       <label className="mb-1 block text-xs font-medium text-slate-700">
-                        Bac si phu trach (co the chon lai)
+                        Bác sĩ phụ trách (có thể chọn lại)
                       </label>
                       <select
                         value={selectedDoctorId}
                         onChange={(event) => setSelectedDoctorId(event.target.value)}
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
-                        <option value="">He thong tu dong chon bac si phu hop</option>
+                        <option value="">Hệ thống tự động chọn bác sĩ phù hợp</option>
                         {dispatchOptions.map((option: DispatchOptionDto) => (
                           <option key={option.shiftId} value={option.doctorId}>
                             {option.doctorName} -{' '}
-                            {option.shiftType === 'MORNING' ? 'Sang' : 'Chieu'} - {option.roomName}{' '}
+                            {option.shiftType === 'MORNING' ? 'Sáng' : 'Chiều'} - {option.roomName}{' '}
                             (con {option.openSlots} slot)
                           </option>
                         ))}
                       </select>
                       {suggestedDispatch && (
                         <p className="mt-1 text-xs text-slate-500">
-                          Goi y he thong: {suggestedDispatch.doctorName} (
-                          {suggestedDispatch.shiftType === 'MORNING' ? 'Sang' : 'Chieu'} -{' '}
+                          Gợi ý hệ thống: {suggestedDispatch.doctorName} (
+                          {suggestedDispatch.shiftType === 'MORNING' ? 'Sáng' : 'Chiều'} -{' '}
                           {suggestedDispatch.roomName})
                         </p>
                       )}
                       {dispatchOptionsLoading && (
                         <p className="mt-1 text-xs text-slate-500">
-                          Dang tai danh sach bac si phu hop...
+                          Đang tải danh sách bác sĩ phù hợp...
                         </p>
                       )}
                     </div>
                   )}
                 </div>
               </div>
+
+              {isFollowUpVisit && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-blue-900">
+                      Lịch tái khám theo số điện thoại
+                    </p>
+                    {followUpLookupLoading && (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    )}
+                  </div>
+                  {followUpLookupNote && (
+                    <p className="mt-1 text-xs text-blue-700">{followUpLookupNote}</p>
+                  )}
+
+                  {followUpMatches.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {followUpMatches.map((booking) => {
+                        const followUpDate = booking.followUpScheduledAt?.slice(0, 10) ?? '';
+                        const canCheckIn = !followUpDate || followUpDate <= today;
+
+                        return (
+                          <div
+                            key={booking.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-white p-3"
+                          >
+                            <div className="text-sm text-slate-700">
+                              <p className="font-semibold text-slate-900">{booking.patientName}</p>
+                              <p>
+                                BS. {booking.doctorName} -{' '}
+                                {booking.shiftType === 'MORNING' ? 'Ca sáng' : 'Ca chiều'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Lịch hẹn:{' '}
+                                {booking.followUpScheduledAt
+                                  ? formatDateTimeUtc7(booking.followUpScheduledAt)
+                                  : booking.createdAt
+                                    ? formatDateTimeUtc7(booking.createdAt)
+                                    : 'Chưa cập nhật'}
+                              </p>
+                              {!canCheckIn && (
+                                <p className="mt-1 text-xs font-medium text-amber-700">
+                                  Chưa tới ngày hẹn, vui lòng quay lại đúng lịch tái khám.
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleCheckInFollowUpFromCreateVisit(booking.id)}
+                              disabled={checkInMutation.isPending || !canCheckIn}
+                              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                            >
+                              {canCheckIn ? 'Check-in tái khám' : 'Chưa tới ngày'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -925,7 +1122,8 @@ export function ReceptionPage() {
                     createVisitMutation.isPending ||
                     !visitForm.patientName.trim() ||
                     !visitForm.patientPhone.trim() ||
-                    !visitForm.serviceId
+                    !visitForm.serviceId ||
+                    hasMatchedFollowUpVisit
                   }
                   className="flex items-center gap-2 rounded-lg bg-amber-600 px-6 py-3 font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -934,8 +1132,13 @@ export function ReceptionPage() {
                   ) : (
                     <span className="material-symbols-outlined">add_circle</span>
                   )}
-                  Tao phieu kham
+                  Tạo phiếu khám
                 </button>
+                {hasMatchedFollowUpVisit && (
+                  <p className="text-xs font-medium text-amber-700">
+                    Đã có lịch tái khám phù hợp. Vui lòng check-in lịch hẹn thay vì tạo phiếu mới.
+                  </p>
+                )}
 
                 <button
                   onClick={() => {
@@ -946,10 +1149,12 @@ export function ReceptionPage() {
                     setPatientCandidates([]);
                     setShowPatientPickerModal(false);
                     setCreateVisitError('');
+                    setIsFollowUpVisit(false);
+                    clearFollowUpLookup();
                   }}
                   className="rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
-                  Xoa form
+                  Xóa form
                 </button>
               </div>
             </div>
@@ -964,8 +1169,8 @@ export function ReceptionPage() {
 
           <div className="space-y-4">
             <div className="rounded-lg border border-slate-200 bg-white p-6">
-              <h4 className="text-sm font-bold text-slate-900">Dich vu dang hoat dong</h4>
-              <p className="mt-1 text-xs text-slate-500">{activeServices.length} dich vu</p>
+              <h4 className="text-sm font-bold text-slate-900">Dịch vụ đang hoạt động</h4>
+              <p className="mt-1 text-xs text-slate-500">{activeServices.length} dịch vụ</p>
               <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
                 {activeServices.map((service) => (
                   <button
@@ -988,14 +1193,14 @@ export function ReceptionPage() {
                 ))}
                 {activeServices.length === 0 && (
                   <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
-                    Chua co dich vu active.
+                    Chưa có dịch vụ đang hoạt động.
                   </p>
                 )}
               </div>
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-white p-6">
-              <h4 className="text-sm font-bold text-slate-900">Tong quan ca hom nay</h4>
+              <h4 className="text-sm font-bold text-slate-900">Tổng quan ca hôm nay</h4>
               <div className="mt-3 space-y-2">
                 {shifts.map((shift: ShiftOverview) => (
                   <div
@@ -1003,11 +1208,11 @@ export function ReceptionPage() {
                     className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs"
                   >
                     <div className="font-medium text-slate-900">
-                      BS. {shift.doctorName} ({shift.type === 'MORNING' ? 'Sang' : 'Chieu'})
+                      BS. {shift.doctorName} ({shift.type === 'MORNING' ? 'Sáng' : 'Chiều'})
                     </div>
                     <div className="mt-1 flex flex-wrap gap-3 text-slate-600">
                       <span>
-                        Dat: {shift.bookedSlots}/{shift.totalSlots}
+                        Đặt: {shift.bookedSlots}/{shift.totalSlots}
                       </span>
                       <span className="text-blue-600">Common: {shift.commonAvailable}</span>
                       <span className="text-amber-600">Reserve: {shift.reserveAvailable}</span>
@@ -1025,7 +1230,7 @@ export function ReceptionPage() {
                 ))}
                 {shifts.length === 0 && (
                   <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
-                    Chua co ca nao hom nay.
+                    Chưa có ca nào hôm nay.
                   </p>
                 )}
               </div>
@@ -1037,10 +1242,10 @@ export function ReceptionPage() {
       {showPatientPickerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl">
-            <h4 className="text-lg font-bold text-slate-900">Chon ho so benh nhan</h4>
+            <h4 className="text-lg font-bold text-slate-900">Chọn hồ sơ bệnh nhân</h4>
             <p className="mt-2 text-sm text-slate-600">
-              Tim thay {patientCandidates.length} ho so voi so dien thoai {visitForm.patientPhone}.
-              Vui long chon ho so de dien tu dong thong tin.
+              Tìm thấy {patientCandidates.length} hồ sơ với số điện thoại {visitForm.patientPhone}.
+              Vui lòng chọn hồ sơ để điền tự động thông tin.
             </p>
 
             <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
@@ -1052,8 +1257,8 @@ export function ReceptionPage() {
                 >
                   <div className="font-medium text-slate-900">{patient.fullName}</div>
                   <div className="mt-1 text-xs text-slate-600">
-                    SDT: {patient.phone} | CCCD: {patient.nationalId ?? 'Chua cap nhat'} | Ngay
-                    sinh: {patient.dateOfBirth ?? 'Chua cap nhat'}
+                    SĐT: {patient.phone} | CCCD: {patient.nationalId ?? 'Chưa cập nhật'} | Ngày
+                    sinh: {patient.dateOfBirth ?? 'Chưa cập nhật'}
                   </div>
                 </button>
               ))}
@@ -1068,7 +1273,7 @@ export function ReceptionPage() {
                 }}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                Dong
+                Đóng
               </button>
             </div>
           </div>
@@ -1078,22 +1283,22 @@ export function ReceptionPage() {
       {createVisitResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
-            <h4 className="text-lg font-bold text-slate-900">Chi tiet phieu kham</h4>
+            <h4 className="text-lg font-bold text-slate-900">Chi tiết phiếu khám</h4>
             <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
               <p>
                 STT: <strong>#{createVisitResult.queueNumber}</strong>
               </p>
               <p>
-                Benh nhan: <strong>{createVisitResult.patientName}</strong>
+                Bệnh nhân: <strong>{createVisitResult.patientName}</strong>
               </p>
               <p>
-                Bac si: <strong>{createVisitResult.doctorName}</strong>
+                Bác sĩ: <strong>{createVisitResult.doctorName}</strong>
               </p>
               <p>
-                Phong: <strong>{createVisitResult.roomName || 'Chua gan phong'}</strong>
+                Phòng: <strong>{createVisitResult.roomName || 'Chưa gán phòng'}</strong>
               </p>
               <p>
-                Ca: <strong>{createVisitResult.shiftType === 'MORNING' ? 'Sang' : 'Chieu'}</strong>
+                Ca: <strong>{createVisitResult.shiftType === 'MORNING' ? 'Sáng' : 'Chiều'}</strong>
               </p>
             </div>
 
@@ -1102,7 +1307,7 @@ export function ReceptionPage() {
                 onClick={printVisitTicket}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                In phieu
+                In phiếu
               </button>
               <button
                 onClick={() => {
@@ -1110,7 +1315,7 @@ export function ReceptionPage() {
                 }}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                Dong
+                Đóng
               </button>
             </div>
           </div>
@@ -1120,29 +1325,29 @@ export function ReceptionPage() {
       {selectedBookingDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
-            <h4 className="text-lg font-bold text-slate-900">Chi tiet lich kham</h4>
+            <h4 className="text-lg font-bold text-slate-900">Chi tiết lịch khám</h4>
             <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
               <p>
                 STT: <strong>{selectedBookingDetail.queueNumber ?? '-'}</strong>
               </p>
               <p>
-                Benh nhan: <strong>{selectedBookingDetail.patientName}</strong>
+                Bệnh nhân: <strong>{selectedBookingDetail.patientName}</strong>
               </p>
               <p>
                 SDT: <strong>{selectedBookingDetail.patientPhone}</strong>
               </p>
               <p>
-                Bac si: <strong>{selectedBookingDetail.doctorName}</strong>
+                Bác sĩ: <strong>{selectedBookingDetail.doctorName}</strong>
               </p>
               <p>
                 Ca:{' '}
-                <strong>{selectedBookingDetail.shiftType === 'MORNING' ? 'Sang' : 'Chieu'}</strong>
+                <strong>{selectedBookingDetail.shiftType === 'MORNING' ? 'Sáng' : 'Chiều'}</strong>
               </p>
               <p>
-                Phong: <strong>{selectedBookingDetail.roomName || 'Chua gan phong'}</strong>
+                Phòng: <strong>{selectedBookingDetail.roomName || 'Chưa gán phòng'}</strong>
               </p>
               <p>
-                Dich vu: <strong>{selectedBookingDetail.serviceName ?? 'Chua cap nhat'}</strong>
+                Dịch vụ: <strong>{selectedBookingDetail.serviceName ?? 'Chưa cập nhật'}</strong>
               </p>
               <p>
                 Pool slot:{' '}
@@ -1150,28 +1355,28 @@ export function ReceptionPage() {
                   {selectedBookingDetail.slotPool
                     ? (POOL_LABELS[selectedBookingDetail.slotPool] ??
                       selectedBookingDetail.slotPool)
-                    : 'Chua cap nhat'}
+                    : 'Chưa cập nhật'}
                 </strong>
               </p>
               <p>
-                Kenh:{' '}
-                <strong>{selectedBookingDetail.channel === 'WEB' ? 'Web' : 'Vang lai'}</strong>
+                Kênh:{' '}
+                <strong>{selectedBookingDetail.channel === 'WEB' ? 'Web' : 'Vãng lai'}</strong>
               </p>
               <p>
-                Trang thai:{' '}
+                Trạng thái:{' '}
                 <strong>
                   {STATUS_LABELS[selectedBookingDetail.status]?.label ??
                     selectedBookingDetail.status}
                 </strong>
               </p>
               <p>
-                Thanh toan: <strong>{selectedBookingDetail.paymentStatus}</strong>
+                Thanh toán: <strong>{selectedBookingDetail.paymentStatus}</strong>
               </p>
               <p>
-                Tao luc: <strong>{dateTimeLabel(selectedBookingDetail.createdAt)}</strong>
+                Tạo lúc: <strong>{dateTimeLabel(selectedBookingDetail.createdAt)}</strong>
               </p>
               <p>
-                Check-in luc: <strong>{dateTimeLabel(selectedBookingDetail.checkInAt)}</strong>
+                Check-in lúc: <strong>{dateTimeLabel(selectedBookingDetail.checkInAt)}</strong>
               </p>
             </div>
             <div className="mt-5 flex justify-end gap-2">
@@ -1182,7 +1387,7 @@ export function ReceptionPage() {
                   const html = `
                     <html>
                       <head>
-                        <title>Phieu kham - ${selectedBookingDetail.queueNumber ?? '-'}</title>
+                        <title>Phiếu khám - ${selectedBookingDetail.queueNumber ?? '-'}</title>
                         <style>
                           body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
                           h1 { font-size: 22px; margin-bottom: 8px; }
@@ -1195,15 +1400,15 @@ export function ReceptionPage() {
                         </style>
                       </head>
                       <body>
-                        <h1>Phieu kham benh</h1>
-                        <div class="muted">Thoi gian in: ${formatDateTimeUtc7(new Date())}</div>
+                        <h1>Phiếu khám bệnh</h1>
+                        <div class="muted">Thời gian in: ${formatDateTimeUtc7(new Date())}</div>
                         <div class="box">
                           <div class="queue">STT #${selectedBookingDetail.queueNumber ?? '-'}</div>
-                          <div class="row"><div class="label">Benh nhan</div><div class="value">${selectedBookingDetail.patientName}</div></div>
-                          <div class="row"><div class="label">Dich vu</div><div class="value">${selectedBookingDetail.serviceName ?? 'Chua cap nhat'}</div></div>
-                          <div class="row"><div class="label">Bac si</div><div class="value">${selectedBookingDetail.doctorName}</div></div>
-                          <div class="row"><div class="label">Phong</div><div class="value">${selectedBookingDetail.roomName || 'Chua gan phong'}</div></div>
-                          <div class="row"><div class="label">Ca</div><div class="value">${selectedBookingDetail.shiftType === 'MORNING' ? 'Sang' : 'Chieu'}</div></div>
+                          <div class="row"><div class="label">Bệnh nhân</div><div class="value">${selectedBookingDetail.patientName}</div></div>
+                          <div class="row"><div class="label">Dịch vụ</div><div class="value">${selectedBookingDetail.serviceName ?? 'Chưa cập nhật'}</div></div>
+                          <div class="row"><div class="label">Bác sĩ</div><div class="value">${selectedBookingDetail.doctorName}</div></div>
+                          <div class="row"><div class="label">Phòng</div><div class="value">${selectedBookingDetail.roomName || 'Chưa gán phòng'}</div></div>
+                          <div class="row"><div class="label">Ca</div><div class="value">${selectedBookingDetail.shiftType === 'MORNING' ? 'Sáng' : 'Chiều'}</div></div>
                         </div>
                         <script>window.onload = function(){ window.print(); };</script>
                       </body>
@@ -1214,13 +1419,13 @@ export function ReceptionPage() {
                 }}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                In phieu
+                In phiếu
               </button>
               <button
                 onClick={() => setSelectedBookingDetail(null)}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
-                Dong
+                Đóng
               </button>
             </div>
           </div>
@@ -1230,10 +1435,10 @@ export function ReceptionPage() {
       {showOverrideModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <h4 className="text-lg font-bold text-slate-900">Het so kham thuong</h4>
+            <h4 className="text-lg font-bold text-slate-900">Hết số khám thường</h4>
             <p className="mt-2 text-sm text-slate-600">
-              Dich vu nay da het slot COMMON/RESERVE trong ngay. Ban co muon tao phieu theo che do
-              override khong?
+              Dịch vụ này đã hết slot COMMON/RESERVE trong ngày. Bạn có muốn tạo phiếu theo chế độ
+              override không?
             </p>
 
             <div className="mt-5 flex justify-end gap-2">
@@ -1244,14 +1449,14 @@ export function ReceptionPage() {
                 }}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                Bo qua
+                Bỏ qua
               </button>
               <button
                 onClick={() => void submitCreateVisit(true)}
                 disabled={createVisitMutation.isPending}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {createVisitMutation.isPending ? 'Dang xu ly...' : 'Override'}
+                {createVisitMutation.isPending ? 'Đang xử lý...' : 'Override'}
               </button>
             </div>
           </div>

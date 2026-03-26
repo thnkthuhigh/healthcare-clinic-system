@@ -22,15 +22,26 @@ public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
     @Query(value = """
             SELECT DISTINCT d.*
             FROM doctors d
-            LEFT JOIN doctor_services ds ON ds.doctor_id = d.id
-            LEFT JOIN services s ON s.id = :serviceId
+            JOIN doctor_services ds ON ds.doctor_id = d.id
+            JOIN services s ON s.id = ds.service_id
             LEFT JOIN departments dep ON dep.id = s.specialty_id
             WHERE ds.service_id = :serviceId
-               OR (
-                    s.specialty_id IS NOT NULL
-                    AND lower(trim(coalesce(d.specialty, ''))) = lower(trim(coalesce(dep.name, '')))
-               )
+              AND (
+                s.specialty_id IS NULL
+                OR lower(trim(coalesce(d.specialty, ''))) = lower(trim(coalesce(dep.name, '')))
+              )
             ORDER BY d.display_name
             """, nativeQuery = true)
-    List<Doctor> findAvailableForService(@Param("serviceId") UUID serviceId);
+    List<Doctor> findByServiceMapping(@Param("serviceId") UUID serviceId);
+
+    @Query(value = """
+            SELECT DISTINCT d.*
+            FROM doctors d
+            JOIN services s ON s.id = :serviceId
+            JOIN departments dep ON dep.id = s.specialty_id
+            WHERE s.specialty_id IS NOT NULL
+              AND lower(trim(coalesce(d.specialty, ''))) = lower(trim(coalesce(dep.name, '')))
+            ORDER BY d.display_name
+            """, nativeQuery = true)
+    List<Doctor> findByServiceSpecialty(@Param("serviceId") UUID serviceId);
 }

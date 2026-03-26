@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { useSearchParams } from 'react-router-dom';
 
+import { centsToVnd, formatVndFromCents } from '../../../lib/currency';
 import { formatDateTimeUtc7, toIsoDateUtc7 } from '../../../lib/time';
 import { adminApi } from '../api';
 import { PrintableInvoice } from '../components';
@@ -36,7 +37,7 @@ interface InvoicePreviewState {
   billedByName?: string | null;
   qrValue?: string | null;
   lines: Array<{
-    category?: 'SERVICE' | 'MEDICATION' | null;
+    category?: 'SERVICE' | 'LAB' | 'MEDICATION' | null;
     name: string;
     unit?: string | null;
     qty: number;
@@ -52,7 +53,7 @@ interface PaymentSheetState {
 }
 
 function formatMoney(cents: number): string {
-  return `${new Intl.NumberFormat('vi-VN').format(cents)} đ`;
+  return formatVndFromCents(cents);
 }
 
 function formatTime(raw: string | null): string {
@@ -83,7 +84,7 @@ function buildPaymentQrValue({
   totalCents: number;
   patientPhone?: string | null;
 }) {
-  const normalizedAmount = Math.max(0, Math.trunc(totalCents));
+  const normalizedAmount = Math.max(0, Math.trunc(centsToVnd(totalCents)));
   const normalizedPhone = patientPhone ?? '';
   return `HC_PAY|INV:${invoiceCode}|AMOUNT:${normalizedAmount}|CUR:VND|PATIENT:${normalizedPhone}`;
 }
@@ -241,6 +242,17 @@ export function CashierPage() {
       });
     }
 
+    if ((booking.labFeeCents ?? 0) > 0) {
+      lines.push({
+        category: 'LAB',
+        name: 'Xét nghiệm cận lâm sàng',
+        qty: 1,
+        unit: null,
+        unitPriceCents: booking.labFeeCents,
+        totalCents: booking.labFeeCents,
+      });
+    }
+
     for (const item of booking.prescriptionItems ?? []) {
       lines.push({
         category: 'MEDICATION',
@@ -254,11 +266,6 @@ export function CashierPage() {
 
     const invoiceCode = `BK-${booking.bookingId.slice(0, 8).toUpperCase()}`;
     const paymentMethod = booking.paymentMethod ?? null;
-    const qrValue = buildPaymentQrValue({
-      invoiceCode,
-      totalCents: booking.totalBillCents,
-      patientPhone: booking.patientPhone,
-    });
 
     setInvoicePreview({
       invoiceCode,
@@ -272,7 +279,7 @@ export function CashierPage() {
       paidAt: booking.paidAt ?? null,
       paymentMethod,
       billedByName: booking.billedByName ?? cashierFallbackLabel,
-      qrValue: paymentMethod === 'QR' ? qrValue : null,
+      qrValue: null,
       lines,
       totalCents: booking.totalBillCents,
     });
@@ -454,7 +461,7 @@ export function CashierPage() {
                     ? `Cho TT (${unpaidCount})`
                     : item === 'PAID'
                       ? `Da TT (${paidCount})`
-                      : 'Tat ca'}
+                      : 'Tất cả'}
                 </button>
               ))}
             </div>
@@ -506,7 +513,7 @@ export function CashierPage() {
                   <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
                     <span>BS: {booking.doctorName}</span>
                     {booking.serviceName && <span>| {booking.serviceName}</span>}
-                    <span>| {booking.channel === 'WEB' ? 'Web' : 'Vang lai'}</span>
+                    <span>| {booking.channel === 'WEB' ? 'Web' : 'Vãng lai'}</span>
                   </div>
                 </button>
               ))}
@@ -539,7 +546,7 @@ export function CashierPage() {
                     <p className="text-sm text-slate-500">{selectedBooking.patientPhone}</p>
                     <p className="mt-1 text-xs text-slate-400">BS: {selectedBooking.doctorName}</p>
                     <p className="text-xs text-slate-400">
-                      Hoan thanh: {formatTime(selectedBooking.completedAt)}
+                      Hoàn thành: {formatTime(selectedBooking.completedAt)}
                     </p>
                     {selectedBooking.paidAt && (
                       <p className="text-xs text-slate-400">
@@ -575,6 +582,12 @@ export function CashierPage() {
                       <span className="text-sm text-slate-700">{selectedBooking.serviceName}</span>
                       <strong>{formatMoney(selectedBooking.servicePriceCents)}</strong>
                     </div>
+                    {selectedBooking.labFeeCents > 0 && (
+                      <div className="mt-2 flex justify-between border-t border-slate-200 pt-2">
+                        <span className="text-sm text-slate-700">Xét nghiệm cận lâm sàng</span>
+                        <strong>{formatMoney(selectedBooking.labFeeCents)}</strong>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -611,7 +624,7 @@ export function CashierPage() {
                               {selectedBooking.paymentStatus === 'UNPAID' && (
                                 <td className="py-2 text-right">
                                   <button
-                                    title="Xoa thuoc"
+                                    title="Xóa thuốc"
                                     onClick={() =>
                                       removeItemMutation.mutate({
                                         bookingId: selectedBooking.bookingId,
@@ -669,11 +682,13 @@ export function CashierPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <h3 className="text-base font-semibold text-slate-900">Bán lẻ thuốc</h3>
-            <p className="mt-1 text-sm text-slate-500">Nhap thong tin khach va thuoc can ban</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Nhập thông tin khách và thuốc cần bán
+            </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Ten khach</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Tên khách</label>
                 <input
                   value={retailCustomerName}
                   onChange={(e) => setRetailCustomerName(e.target.value)}
@@ -683,7 +698,7 @@ export function CashierPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">
-                  So dien thoai
+                  Số điện thoại
                 </label>
                 <input
                   value={retailCustomerPhone}
@@ -704,7 +719,7 @@ export function CashierPage() {
                   <option value="">-- Chọn thuốc --</option>
                   {activeMedications.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name} ({formatMoney(item.priceCents)}) - ton {item.availableStock}
+                      {item.name} ({formatMoney(item.priceCents)}) - tồn {item.availableStock}
                     </option>
                   ))}
                 </select>
@@ -719,13 +734,13 @@ export function CashierPage() {
                   onClick={addRetailItem}
                   className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
                 >
-                  Them
+                  Thêm
                 </button>
               </div>
 
               {selectedRetailMedication && (
                 <p className="mt-2 text-xs text-slate-500">
-                  {selectedRetailMedication.name} - don vi {selectedRetailMedication.unit} - gia{' '}
+                  {selectedRetailMedication.name} - đơn vị {selectedRetailMedication.unit} - giá{' '}
                   {formatMoney(selectedRetailMedication.priceCents)}
                 </p>
               )}
@@ -737,8 +752,8 @@ export function CashierPage() {
                   <tr className="bg-slate-50 text-xs text-slate-500">
                     <th className="px-3 py-2 text-left">Thuốc</th>
                     <th className="px-3 py-2 text-center">SL</th>
-                    <th className="px-3 py-2 text-right">Don gia</th>
-                    <th className="px-3 py-2 text-right">Thanh tien</th>
+                    <th className="px-3 py-2 text-right">Đơn giá</th>
+                    <th className="px-3 py-2 text-right">Thành tiền</th>
                     <th className="w-10 px-3 py-2"></th>
                   </tr>
                 </thead>
@@ -746,7 +761,7 @@ export function CashierPage() {
                   {retailItems.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-3 py-8 text-center text-slate-500">
-                        Chua co thuoc nao
+                        Chưa có thuốc nào
                       </td>
                     </tr>
                   )}
@@ -808,7 +823,7 @@ export function CashierPage() {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h3 className="text-base font-semibold text-slate-900">Ket qua ban le</h3>
+            <h3 className="text-base font-semibold text-slate-900">Kết quả bán lẻ</h3>
             {!retailResult ? (
               <p className="mt-3 text-sm text-slate-500">
                 Chưa có hóa đơn bán lẻ nào trong phiên hiện tại.
@@ -890,6 +905,14 @@ export function CashierPage() {
                       <span className="text-slate-600">Dịch vụ khám: {paymentSheet.booking.serviceName}</span>
                       <span className="font-medium text-slate-900">
                         {formatMoney(paymentSheet.booking.servicePriceCents)}
+                      </span>
+                    </div>
+                  )}
+                  {paymentSheet.booking.labFeeCents > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Xét nghiệm cận lâm sàng</span>
+                      <span className="font-medium text-slate-900">
+                        {formatMoney(paymentSheet.booking.labFeeCents)}
                       </span>
                     </div>
                   )}
@@ -1021,7 +1044,6 @@ export function CashierPage() {
                 paidAt={invoicePreview.paidAt}
                 paymentMethod={invoicePreview.paymentMethod}
                 billedByName={invoicePreview.billedByName}
-                qrValue={invoicePreview.qrValue}
                 lines={invoicePreview.lines}
                 totalCents={invoicePreview.totalCents}
               />

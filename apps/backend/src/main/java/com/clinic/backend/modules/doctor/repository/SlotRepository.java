@@ -49,4 +49,23 @@ public interface SlotRepository extends JpaRepository<Slot, UUID> {
         ORDER BY s.sequence ASC
         """)
     List<Slot> findOpenCommonSlotsForUpdate(@Param("shiftId") UUID shiftId);
+
+    /**
+     * Fetch and lock the first available RESERVE slot for booking/follow-up fallback.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT s
+        FROM Slot s
+        WHERE s.shift.id = :shiftId
+          AND s.pool = 'RESERVE'
+          AND s.status = 'OPEN'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM Booking b
+            WHERE b.slotId = s.id
+          )
+        ORDER BY s.sequence ASC
+        """)
+    List<Slot> findOpenReserveSlotsForUpdate(@Param("shiftId") UUID shiftId);
 }

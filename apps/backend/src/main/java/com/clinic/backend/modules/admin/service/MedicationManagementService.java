@@ -51,7 +51,7 @@ public class MedicationManagementService {
     public AdminMedicationDto createMedication(CreateMedicationRequest request) {
         if (medicationRepository.findAll().stream()
             .anyMatch(m -> m.getName().equalsIgnoreCase(request.getName()))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten thuoc da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên thuốc đã tồn tại");
         }
 
         Medication med = new Medication();
@@ -78,7 +78,7 @@ public class MedicationManagementService {
                     )
                     """)
                 .setParameter("refId", saved.getId())
-                .setParameter("description", "Nhap kho thuoc ban dau: " + saved.getName())
+                .setParameter("description", "Nhập kho thuốc ban đầu: " + saved.getName())
                 .setParameter("qty", saved.getStockReal())
                 .setParameter("unit", saved.getUnit())
                 .setParameter("amount", (long) saved.getStockReal() * saved.getPriceCents())
@@ -92,13 +92,13 @@ public class MedicationManagementService {
     @Transactional
     public AdminMedicationDto updateMedication(UUID id, UpdateMedicationRequest request) {
         Medication med = medicationRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay thuoc"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc"));
 
         if (request.getName() != null && !request.getName().isBlank()) {
             boolean duplicate = medicationRepository.findAll().stream()
                 .anyMatch(m -> !m.getId().equals(id) && m.getName().equalsIgnoreCase(request.getName()));
             if (duplicate) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten thuoc da ton tai");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên thuốc đã tồn tại");
             }
             med.setName(request.getName().trim());
         }
@@ -114,7 +114,7 @@ public class MedicationManagementService {
     @Transactional
     public AdminMedicationDto toggleActive(UUID id) {
         Medication med = medicationRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay thuoc"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc"));
         med.setIsActive(!med.getIsActive());
         return toDto(medicationRepository.save(med));
     }
@@ -122,7 +122,7 @@ public class MedicationManagementService {
     @Transactional
     public AdminMedicationDto restock(UUID id, RestockRequest request) {
         Medication med = medicationRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay thuoc"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc"));
 
         int oldQty = med.getStockReal();
         int newQty = oldQty + request.getQty();

@@ -31,8 +31,7 @@ export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps
 
   const roleBadge = user?.role === 'OWNER' ? 'Owner' : user?.role === 'ADMIN' ? 'Admin' : 'Bác sĩ';
 
-  const allNavItems =
-    user?.role === 'OWNER' ? [...mainNavItems, ownerNavItem] : [...mainNavItems];
+  const allNavItems = user?.role === 'OWNER' ? [...mainNavItems, ownerNavItem] : [...mainNavItems];
 
   const handleSignOut = () => {
     logout();

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
+import { centsToVnd, formatVndFromCents, vndToCents } from '../../../lib/currency';
 import { adminApi } from '../api';
 import type {
   AdminServiceDto,
@@ -10,7 +11,7 @@ import type {
 } from '../types';
 
 function priceLabel(cents: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cents * 10);
+  return formatVndFromCents(cents);
 }
 
 interface ServiceModalProps {
@@ -23,7 +24,9 @@ interface ServiceModalProps {
 function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalProps) {
   const isEdit = !!initial;
   const [name, setName] = useState(initial?.name ?? '');
-  const [priceCents, setPriceCents] = useState(String(initial?.priceCents ?? ''));
+  const [priceVnd, setPriceVnd] = useState(
+    initial?.priceCents != null ? String(centsToVnd(initial.priceCents)) : '',
+  );
   const [specialtyId, setSpecialtyId] = useState(initial?.specialtyId ?? '');
   const [error, setError] = useState('');
 
@@ -53,21 +56,22 @@ function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalPr
     setError('');
 
     const normalizedName = name.trim();
-    const price = parseInt(priceCents, 10);
+    const priceVndValue = parseInt(priceVnd, 10);
+    const priceCents = vndToCents(priceVndValue);
 
     if (!normalizedName) {
-      setError('Ten dich vu khong duoc de trong');
+      setError('Tên dịch vụ không được để trống');
       return;
     }
-    if (Number.isNaN(price) || price < 0) {
-      setError('Gia khong hop le');
+    if (Number.isNaN(priceVndValue) || priceVndValue < 0) {
+      setError('Giá không hợp lệ');
       return;
     }
 
     if (isEdit) {
       const data: UpdateServiceRequest = {};
       if (normalizedName !== initial!.name) data.name = normalizedName;
-      if (price !== initial!.priceCents) data.priceCents = price;
+      if (priceCents !== initial!.priceCents) data.priceCents = priceCents;
       if ((specialtyId || '') !== (initial!.specialtyId ?? '')) {
         data.specialtyId = specialtyId || '';
       }
@@ -77,7 +81,7 @@ function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalPr
 
     createMutation.mutate({
       name: normalizedName,
-      priceCents: price,
+      priceCents,
       ...(specialtyId ? { specialtyId } : {}),
     });
   };
@@ -87,7 +91,7 @@ function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalPr
       <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
           <h2 className="font-semibold text-slate-900">
-            {isEdit ? 'Sua dich vu' : 'Them dich vu'}
+            {isEdit ? 'Sửa dịch vụ' : 'Thêm dịch vụ'}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
@@ -98,35 +102,35 @@ function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalPr
           {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Ten dich vu *</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Tên dịch vụ *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Kham tong quat"
+              placeholder="Khám tổng quát"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Gia (cents) *</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Giá (VND) *</label>
             <input
               type="number"
               min={0}
-              value={priceCents}
-              onChange={(e) => setPriceCents(e.target.value)}
+              value={priceVnd}
+              onChange={(e) => setPriceVnd(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Khoa chuyen mon</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Khoa chuyên môn</label>
             <select
               value={specialtyId}
               onChange={(e) => setSpecialtyId(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
             >
-              <option value="">-- Chua gan khoa --</option>
+              <option value="">-- Chưa gán khoa --</option>
               {departments.map((department) => (
                 <option key={department.id} value={department.id}>
                   {department.name}
@@ -135,9 +139,9 @@ function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalPr
             </select>
           </div>
 
-          {priceCents && !Number.isNaN(parseInt(priceCents, 10)) && (
+          {priceVnd && !Number.isNaN(parseInt(priceVnd, 10)) && (
             <p className="text-xs text-slate-500">
-              Gia hien thi: {priceLabel(parseInt(priceCents, 10))}
+              Giá hiển thị: {priceLabel(vndToCents(parseInt(priceVnd, 10)))}
             </p>
           )}
 
@@ -147,14 +151,14 @@ function ServiceModal({ departments, initial, onClose, onSaved }: ServiceModalPr
               onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
             >
-              Huy
+              Hủy
             </button>
             <button
               type="submit"
               disabled={isPending}
               className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
             >
-              {isPending ? 'Dang luu...' : isEdit ? 'Luu thay doi' : 'Them dich vu'}
+              {isPending ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Thêm dịch vụ'}
             </button>
           </div>
         </form>
@@ -201,9 +205,9 @@ export function ServiceManagementPage() {
       <div className="border-b border-slate-200 bg-white px-6 py-4">
         <div className="flex flex-wrap items-center gap-4">
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Quan ly dich vu</h1>
+            <h1 className="text-lg font-bold text-slate-900">Quản lý dịch vụ</h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              {stats.active}/{stats.total} dang hoat dong - {stats.mappedSpecialty} da gan khoa
+              {stats.active}/{stats.total} đang hoạt động - {stats.mappedSpecialty} đã gán khoa
             </p>
           </div>
           <div className="flex-1" />
@@ -215,7 +219,7 @@ export function ServiceManagementPage() {
             className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
           >
             <span className="material-symbols-outlined text-sm">add</span>
-            Them dich vu
+            Thêm dịch vụ
           </button>
         </div>
       </div>
@@ -224,12 +228,12 @@ export function ServiceManagementPage() {
         {isLoading ? (
           <div className="flex h-40 items-center justify-center gap-2 text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
-            Dang tai...
+            Đang tải...
           </div>
         ) : services.length === 0 ? (
           <div className="flex h-40 flex-col items-center justify-center text-center text-slate-400">
             <span className="material-symbols-outlined mb-2 text-5xl">medical_services</span>
-            <p className="text-sm">Chua co dich vu nao</p>
+            <p className="text-sm">Chưa có dịch vụ nào</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -237,7 +241,7 @@ export function ServiceManagementPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Ten dich vu
+                    Tên dịch vụ
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Khoa
@@ -246,10 +250,10 @@ export function ServiceManagementPage() {
                     Gia
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Trang thai
+                    Trạng thái
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Thao tac
+                    Thao tác
                   </th>
                 </tr>
               </thead>
@@ -261,7 +265,7 @@ export function ServiceManagementPage() {
                   >
                     <td className="px-4 py-3 font-medium text-slate-900">{service.name}</td>
                     <td className="px-4 py-3 text-slate-600">
-                      {service.specialtyName ?? 'Chua gan'}
+                      {service.specialtyName ?? 'Chưa gán'}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-slate-900">
                       {priceLabel(service.priceCents)}
@@ -288,7 +292,7 @@ export function ServiceManagementPage() {
                           }}
                           className="rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-200"
                         >
-                          Sua
+                          Sửa
                         </button>
                       </div>
                     </td>

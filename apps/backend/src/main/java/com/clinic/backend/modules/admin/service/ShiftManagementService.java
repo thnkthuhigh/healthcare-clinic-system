@@ -92,13 +92,13 @@ public class ShiftManagementService {
     public AdminShiftDto createShift(CreateShiftRequest request) {
         UUID doctorId = parseDoctorId(request.getDoctorId());
         Doctor doctor = doctorRepository.findById(doctorId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay bac si"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bác sĩ"));
 
         LocalDate date = parseDate(request.getDate(), "date");
         Shift.ShiftType type = parseShiftType(request.getType(), "type");
 
         if (shiftRepository.existsByDoctorIdAndDateAndType(doctorId, date, type)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ca truc nay da ton tai");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ca trực này đã tồn tại");
         }
 
         Shift shift = createShiftWithDefaultSlots(doctor, date, type, false, null);
@@ -109,7 +109,7 @@ public class ShiftManagementService {
     public BulkShiftResponse bulkCreateShifts(BulkShiftRequest request) {
         UUID doctorId = parseDoctorId(request.getDoctorId());
         Doctor doctor = doctorRepository.findById(doctorId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay bac si"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bác sĩ"));
 
         LocalDate weekStartDate = parseDate(request.getWeekStartDate(), "weekStartDate");
         List<DayShiftRule> dayRules = parseBulkDayShiftRules(request);
@@ -148,7 +148,7 @@ public class ShiftManagementService {
     public SyncWeekShiftResponse syncWeekShifts(SyncWeekShiftRequest request) {
         UUID doctorId = parseDoctorId(request.getDoctorId());
         Doctor doctor = doctorRepository.findById(doctorId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay bac si"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bác sĩ"));
 
         LocalDate weekStartDate = parseDate(request.getWeekStartDate(), "weekStartDate");
         String note = normalizeRequired(request.getNote(), "note");
@@ -204,7 +204,7 @@ public class ShiftManagementService {
     @Transactional
     public AdminShiftDto setShiftStatus(UUID shiftId, Shift.ShiftStatus newStatus) {
         Shift shift = shiftRepository.findByIdWithDoctor(shiftId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay ca truc"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ca trực"));
         shift.setStatus(newStatus);
         shiftRepository.save(shift);
         return buildSimpleDto(shift);
@@ -213,7 +213,7 @@ public class ShiftManagementService {
     @Transactional
     public void deleteShift(UUID shiftId) {
         if (!shiftRepository.existsById(shiftId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay ca truc");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ca trực");
         }
         Number count = (Number) em.createNativeQuery(
             "SELECT COUNT(*) FROM bookings WHERE shift_id = :shiftId " +
@@ -222,7 +222,7 @@ public class ShiftManagementService {
             .getSingleResult();
         if (count.longValue() > 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Ca co lich hen dang hoat dong, khong the xoa");
+                "Ca có lịch hẹn đang hoạt động, không thể xóa");
         }
         shiftRepository.deleteById(shiftId);
     }
@@ -231,7 +231,7 @@ public class ShiftManagementService {
     @SuppressWarnings("unchecked")
     public List<AdminSlotDto> getSlots(UUID shiftId) {
         if (!shiftRepository.existsById(shiftId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay ca truc");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ca trực");
         }
         List<Object[]> rows = em.createNativeQuery(
             "SELECT id, sequence, pool, status FROM slots " +
@@ -258,7 +258,7 @@ public class ShiftManagementService {
             .setParameter("slotId", slotId)
             .executeUpdate();
         if (updated == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Khong tim thay slot");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy slot");
         }
         Object[] row = (Object[]) em.createNativeQuery(
             "SELECT id, sequence, pool, status FROM slots WHERE id = :slotId")
@@ -370,7 +370,7 @@ public class ShiftManagementService {
         try {
             return UUID.fromString(rawDoctorId);
         } catch (Exception ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId không hợp lệ");
         }
     }
 
@@ -378,7 +378,7 @@ public class ShiftManagementService {
         try {
             return LocalDate.parse(rawDate);
         } catch (Exception ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong dung dinh dang YYYY-MM-DD");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không đúng định dạng YYYY-MM-DD");
         }
     }
 
@@ -386,14 +386,14 @@ public class ShiftManagementService {
         try {
             return Shift.ShiftType.valueOf(rawType.toUpperCase());
         } catch (Exception ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phai la MORNING hoac AFTERNOON");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " phải là MORNING hoặc AFTERNOON");
         }
     }
 
     private int parseRepeatWeeks(Integer rawRepeatWeeks) {
         int repeatWeeks = rawRepeatWeeks != null ? rawRepeatWeeks : 1;
         if (repeatWeeks < 1 || repeatWeeks > 52) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "repeatWeeks phai trong khoang 1..52");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "repeatWeeks phải trong khoảng 1..52");
         }
         return repeatWeeks;
     }
@@ -409,7 +409,7 @@ public class ShiftManagementService {
                 rules.add(new DayShiftRule(entry.getKey(), entry.getValue()));
             }
             if (rules.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dayConfigs khong co buoi nao duoc chon");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dayConfigs không có buổi nào được chọn");
             }
             return rules;
         }
@@ -434,7 +434,7 @@ public class ShiftManagementService {
         for (BulkShiftRequest.DayShiftConfig cfg : rawConfigs) {
             Integer day = cfg.getDayOfWeek();
             if (day == null || day < 1 || day > 7) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dayConfigs.dayOfWeek phai nam trong khoang 1..7");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dayConfigs.dayOfWeek phải nằm trong khoảng 1..7");
             }
             Set<Shift.ShiftType> shiftTypes = parseShiftTypes(cfg.getShiftTypes(), "dayConfigs.shiftTypes");
             if (!allowEmptyConfigs && shiftTypes.isEmpty()) {
@@ -449,12 +449,12 @@ public class ShiftManagementService {
 
     private Set<Integer> parseDaysOfWeek(List<Integer> rawDaysOfWeek) {
         if (rawDaysOfWeek == null || rawDaysOfWeek.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "daysOfWeek khong duoc rong");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "daysOfWeek không được rỗng");
         }
         Set<Integer> result = new LinkedHashSet<>();
         for (Integer day : rawDaysOfWeek) {
             if (day == null || day < 1 || day > 7) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "daysOfWeek phai nam trong khoang 1..7");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "daysOfWeek phải nằm trong khoảng 1..7");
             }
             result.add(day);
         }
@@ -486,7 +486,7 @@ public class ShiftManagementService {
     private String normalizeRequired(String value, String fieldName) {
         String normalized = normalizeNullable(value);
         if (normalized == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " khong duoc rong");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " không được rỗng");
         }
         return normalized;
     }
