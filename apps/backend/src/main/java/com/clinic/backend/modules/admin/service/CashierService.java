@@ -61,11 +61,12 @@ public class CashierService {
         Instant dayEnd = date.plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant();
 
         List<Object[]> rows = em.createNativeQuery("""
-                SELECT b.id, b.queue_number, p.full_name, p.phone,
+                  SELECT b.id, b.queue_number, p.full_name, p.phone,
                        u.full_name AS doctor_name,
                        sv.name AS service_name, sv.price_cents AS service_price, COALESCE(b.lab_fee_cents, 0) AS lab_fee,
                        b.status, b.channel, b.payment_status, b.completed_at,
                        b.payment_method, b.paid_at, b.paid_by_user_id, COALESCE(cashier.full_name, cashier.phone) AS billed_by_name,
+                      b.booking_fee_cents, b.booking_fee_paid_at, b.booking_fee_payment_method,
                        pr.id AS prescription_id, pr.status AS prescription_status
                 FROM bookings b
                 JOIN patients p ON p.id = b.patient_id
@@ -75,10 +76,13 @@ public class CashierService {
                 LEFT JOIN users cashier ON cashier.id = b.paid_by_user_id
                 LEFT JOIN services sv ON sv.id = b.service_id
                 LEFT JOIN prescriptions pr ON pr.booking_id = b.id
-                WHERE b.status = 'COMPLETED'
-                AND COALESCE(b.completed_at, b.created_at) >= :dayStart
-                AND COALESCE(b.completed_at, b.created_at) < :dayEnd
-                ORDER BY b.completed_at DESC
+                WHERE (
+                    b.status = 'COMPLETED'
+                    OR (b.channel = 'WEB' AND b.booking_fee_paid_at IS NOT NULL)
+                )
+                AND COALESCE(b.completed_at, b.booking_fee_paid_at, b.created_at) >= :dayStart
+                AND COALESCE(b.completed_at, b.booking_fee_paid_at, b.created_at) < :dayEnd
+                ORDER BY COALESCE(b.completed_at, b.booking_fee_paid_at, b.created_at) DESC
                 """)
             .setParameter("dayStart", dayStart)
             .setParameter("dayEnd", dayEnd)
@@ -104,8 +108,12 @@ public class CashierService {
             dto.setBilledByUserId((UUID) row[14]);
             dto.setBilledByName(row[15] != null ? row[15].toString() : null);
 
-            UUID prescriptionId = (UUID) row[16];
-            String prescriptionStatus = (String) row[17];
+            dto.setBookingFeeCents(row[16] != null ? ((Number) row[16]).intValue() : null);
+            dto.setBookingFeePaidAt(toInstant(row[17]));
+            dto.setBookingFeePaymentMethod(row[18] != null ? row[18].toString() : null);
+
+            UUID prescriptionId = (UUID) row[19];
+            String prescriptionStatus = (String) row[20];
             dto.setPrescriptionId(prescriptionId);
             dto.setPrescriptionStatus(prescriptionStatus);
 
@@ -165,6 +173,11 @@ public class CashierService {
         dto.setPaidAt(booking.getPaidAt());
         dto.setBilledByUserId(booking.getPaidByUserId());
         dto.setBilledByName(getUserFullNameById(booking.getPaidByUserId()));
+        dto.setBookingFeeCents(booking.getBookingFeeCents());
+        dto.setBookingFeePaidAt(booking.getBookingFeePaidAt());
+        dto.setBookingFeePaymentMethod(
+            booking.getBookingFeePaymentMethod() != null ? booking.getBookingFeePaymentMethod().name() : null
+        );
 
         prescriptionRepository.findByBookingIdWithItems(bookingId).ifPresent(prescription -> {
             dto.setPrescriptionId(prescription.getId());

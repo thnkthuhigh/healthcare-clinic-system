@@ -98,8 +98,25 @@ export function DoctorLabPage() {
           .filter((booking) => booking.status === 'PENDING_LAB')
           .map((booking) => ({ shift, booking })),
       )
-      .sort((left, right) => left.booking.appointmentTime.localeCompare(right.booking.appointmentTime));
+      .sort((left, right) => {
+        const byAppointment = left.booking.appointmentTime.localeCompare(right.booking.appointmentTime);
+        if (byAppointment !== 0) return byAppointment;
+
+        const leftQueue = left.booking.queueNumber ?? Number.MAX_SAFE_INTEGER;
+        const rightQueue = right.booking.queueNumber ?? Number.MAX_SAFE_INTEGER;
+        if (leftQueue !== rightQueue) {
+          return leftQueue - rightQueue;
+        }
+
+        return left.booking.slotSequence - right.booking.slotSequence;
+      });
   }, [schedule]);
+
+  const selectedQueueOrder = useMemo(() => {
+    if (!selectedBookingId) return null;
+    const idx = pendingRows.findIndex((row) => row.booking.id === selectedBookingId);
+    return idx >= 0 ? idx + 1 : null;
+  }, [pendingRows, selectedBookingId]);
 
   useEffect(() => {
     const currentCount = pendingRows.length;
@@ -259,7 +276,7 @@ export function DoctorLabPage() {
               </div>
             ) : (
               <div className="mt-4 space-y-2">
-                {pendingRows.map((row) => {
+                {pendingRows.map((row, index) => {
                   const active = row.booking.id === selectedBookingId;
                   return (
                     <button
@@ -272,7 +289,14 @@ export function DoctorLabPage() {
                           : 'border-slate-200 bg-white hover:border-primary/35'
                       }`}
                     >
-                      <p className="text-sm font-semibold text-slate-900">{row.booking.patient.fullName}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900">
+                          #{index + 1} • {row.booking.patient.fullName}
+                        </p>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                          STT xét nghiệm {index + 1}
+                        </span>
+                      </div>
                       <p className="mt-1 text-xs text-slate-500">
                         {row.booking.patient.phone} • {shiftTypeLabel(row.shift.type)}
                       </p>
@@ -297,6 +321,11 @@ export function DoctorLabPage() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="ops-section-label">Thông tin ca xét nghiệm</p>
                   <h3 className="mt-2 text-lg font-bold text-slate-900">{selectedRow.booking.patient.fullName}</h3>
+                  {selectedQueueOrder && (
+                    <p className="mt-1 text-sm font-semibold text-primary">
+                      Thứ tự xử lý xét nghiệm: #{selectedQueueOrder}
+                    </p>
+                  )}
                   <p className="mt-1 text-sm text-slate-500">
                     {selectedRow.booking.patient.phone} •{' '}
                     {selectedRow.booking.serviceName ?? 'Khám tổng quát'}

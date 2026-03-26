@@ -75,6 +75,10 @@ function getPaymentMethodLabel(method: PaymentMethod | null | undefined): string
   return '-';
 }
 
+function isWebBookingFeePaid(booking: CashierBooking): boolean {
+  return booking.channel === 'WEB' && Boolean(booking.bookingFeePaidAt);
+}
+
 function buildPaymentQrValue({
   invoiceCode,
   totalCents,
@@ -496,15 +500,29 @@ export function CashierPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      {(() => {
+                        const isPrepaid = isWebBookingFeePaid(booking);
+                        const badgeClass =
                           booking.paymentStatus === 'PAID'
                             ? 'bg-green-100 text-green-700'
-                            : 'bg-amber-100 text-amber-700'
-                        }`}
-                      >
-                        {booking.paymentStatus === 'PAID' ? 'Da TT' : 'Cho TT'}
-                      </span>
+                            : isPrepaid
+                              ? 'bg-sky-100 text-sky-700'
+                              : 'bg-amber-100 text-amber-700';
+                        const badgeText =
+                          booking.paymentStatus === 'PAID'
+                            ? 'Da TT'
+                            : isPrepaid
+                              ? 'Da coc'
+                              : 'Cho TT';
+
+                        return (
+                          <span
+                            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${badgeClass}`}
+                          >
+                            {badgeText}
+                          </span>
+                        );
+                      })()}
                       <p className="mt-1 text-xs font-semibold text-slate-700">
                         {formatMoney(booking.totalBillCents)}
                       </p>
@@ -573,6 +591,24 @@ export function CashierPage() {
                 {selectedBooking.paymentStatus === 'PAID' && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                     Phương thức thanh toán: {getPaymentMethodLabel(selectedBooking.paymentMethod)}
+                  </div>
+                )}
+
+                {isWebBookingFeePaid(selectedBooking) && (
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700">
+                    Đã thu phí đặt lịch: {formatMoney(selectedBooking.bookingFeeCents ?? 0)}
+                    {selectedBooking.bookingFeePaidAt
+                      ? ` lúc ${formatTime(selectedBooking.bookingFeePaidAt)}`
+                      : ''}
+                    {selectedBooking.bookingFeePaymentMethod
+                      ? ` (${getPaymentMethodLabel(selectedBooking.bookingFeePaymentMethod)})`
+                      : ''}
+                  </div>
+                )}
+
+                {selectedBooking.status !== 'COMPLETED' && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    Ca khám chưa hoàn tất, Thu ngân chỉ theo dõi trạng thái cọc. Sẽ thu phần còn lại sau khi bác sĩ kết thúc khám.
                   </div>
                 )}
 
@@ -656,7 +692,7 @@ export function CashierPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {selectedBooking.paymentStatus === 'UNPAID' && (
+                  {selectedBooking.paymentStatus === 'UNPAID' && selectedBooking.status === 'COMPLETED' && (
                     <button
                       onClick={() => openPaymentSheet(selectedBooking)}
                       className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"

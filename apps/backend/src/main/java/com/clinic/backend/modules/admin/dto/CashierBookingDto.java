@@ -25,6 +25,9 @@ public class CashierBookingDto {
     private Instant paidAt;
     private UUID billedByUserId;
     private String billedByName;
+    private Integer bookingFeeCents;
+    private Instant bookingFeePaidAt;
+    private String bookingFeePaymentMethod;
 
     // Prescription info
     private UUID prescriptionId;
@@ -83,6 +86,17 @@ public class CashierBookingDto {
 
     public String getBilledByName() { return billedByName; }
     public void setBilledByName(String billedByName) { this.billedByName = billedByName; }
+
+    public Integer getBookingFeeCents() { return bookingFeeCents; }
+    public void setBookingFeeCents(Integer bookingFeeCents) { this.bookingFeeCents = bookingFeeCents; }
+
+    public Instant getBookingFeePaidAt() { return bookingFeePaidAt; }
+    public void setBookingFeePaidAt(Instant bookingFeePaidAt) { this.bookingFeePaidAt = bookingFeePaidAt; }
+
+    public String getBookingFeePaymentMethod() { return bookingFeePaymentMethod; }
+    public void setBookingFeePaymentMethod(String bookingFeePaymentMethod) {
+        this.bookingFeePaymentMethod = bookingFeePaymentMethod;
+    }
 
     public UUID getPrescriptionId() { return prescriptionId; }
     public void setPrescriptionId(UUID prescriptionId) { this.prescriptionId = prescriptionId; }

@@ -262,6 +262,9 @@ export interface CashierBooking {
   paidAt: string | null;
   billedByUserId: string | null;
   billedByName: string | null;
+  bookingFeeCents: number | null;
+  bookingFeePaidAt: string | null;
+  bookingFeePaymentMethod: 'QR' | 'CASH' | null;
   prescriptionId: string | null;
   prescriptionStatus: 'HELD' | 'PAID' | 'CANCELED' | 'EXPIRED' | null;
   prescriptionItems: CashierPrescriptionItem[] | null;

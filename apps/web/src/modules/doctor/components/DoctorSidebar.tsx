@@ -6,6 +6,7 @@ interface SidebarProps {
   doctorName: string;
   specialty?: string;
   avatarUrl?: string;
+  isVisible?: boolean;
 }
 
 const mainNavItems = [
@@ -24,7 +25,7 @@ function navIdFromPath(path: string) {
   return slug || 'dashboard';
 }
 
-export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps) {
+export function DoctorSidebar({ doctorName, specialty, avatarUrl, isVisible = true }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -37,6 +38,10 @@ export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps
     logout();
     navigate('/login', { replace: true });
   };
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <aside className="ops-sidebar" data-testid="doctor-sidebar">
