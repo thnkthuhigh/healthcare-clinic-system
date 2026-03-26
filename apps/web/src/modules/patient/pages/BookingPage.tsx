@@ -115,7 +115,9 @@ export function BookingPage() {
       return visibleAllDoctors;
     }
 
-    const scopedDoctors = serviceScopedDoctors.filter((doctor) => !isNoisyPublicName(doctor.displayName));
+    const scopedDoctors = serviceScopedDoctors.filter(
+      (doctor) => !isNoisyPublicName(doctor.displayName),
+    );
     return scopedDoctors;
   })();
 
@@ -342,7 +344,10 @@ export function BookingPage() {
                       Đang tạo lịch hẹn...
                     </div>
                   ) : (
-                    <PatientInfoForm selectedService={selectedService} onSubmit={handlePatientInfoSubmit} />
+                    <PatientInfoForm
+                      selectedService={selectedService}
+                      onSubmit={handlePatientInfoSubmit}
+                    />
                   )}
                 </div>
               )}
@@ -371,7 +376,9 @@ export function BookingPage() {
                         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-soft">
                           <span className="material-symbols-outlined text-3xl">check_circle</span>
                         </div>
-                        <h2 className="mt-4 text-xl font-bold text-slate-950">Đặt lịch thành công</h2>
+                        <h2 className="mt-4 text-xl font-bold text-slate-950">
+                          Đặt lịch thành công
+                        </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-500">
                           Lưu lại phiếu khám để check-in tại quầy tiếp nhận.
                         </p>

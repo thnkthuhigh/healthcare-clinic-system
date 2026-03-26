@@ -124,7 +124,10 @@ test.describe.serial('Patient Core Flows', () => {
     await expect(page.getByTestId('patient-health-records-bookings')).toBeVisible();
   });
 
-  test('supports booking deep-link with doctorId and serviceId preselect', async ({ page, request }) => {
+  test('supports booking deep-link with doctorId and serviceId preselect', async ({
+    page,
+    request,
+  }) => {
     const services = await requestJson<Array<{ id: string }>>(request, {
       url: 'http://localhost:4000/api/customer/services',
     });
@@ -147,4 +150,3 @@ test.describe.serial('Patient Core Flows', () => {
     await expect(page.getByTestId('patient-booking-service')).toHaveValue(serviceId);
   });
 });
-

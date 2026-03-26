@@ -25,7 +25,10 @@ export function DoctorDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const totalAppointments = shifts.reduce((sum, shift) => sum + shift.totalPatients, 0);
-  const totalWaiting = shifts.reduce((sum, shift) => sum + shift.waitingCount + shift.checkedInCount, 0);
+  const totalWaiting = shifts.reduce(
+    (sum, shift) => sum + shift.waitingCount + shift.checkedInCount,
+    0,
+  );
   const totalCompleted = shifts.reduce((sum, shift) => sum + shift.completedCount, 0);
 
   useEffect(() => {
@@ -97,7 +100,8 @@ export function DoctorDashboardPage() {
             <p className="text-sm font-medium text-slate-500">Đã hoàn thành</p>
             <p className="mt-3 text-3xl font-bold text-slate-950">{totalCompleted}</p>
             <p className="mt-2 text-xs text-slate-500">
-              {totalAppointments > 0 ? Math.round((totalCompleted / totalAppointments) * 100) : 0}% tiến độ hôm nay.
+              {totalAppointments > 0 ? Math.round((totalCompleted / totalAppointments) * 100) : 0}%
+              tiến độ hôm nay.
             </p>
           </div>
         </section>
@@ -113,7 +117,10 @@ export function DoctorDashboardPage() {
           <div className="mt-6 space-y-4">
             {loading ? (
               Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="rounded-[24px] border border-slate-200 p-5 animate-pulse">
+                <div
+                  key={index}
+                  className="rounded-[24px] border border-slate-200 p-5 animate-pulse"
+                >
                   <div className="h-5 w-40 rounded bg-slate-200" />
                   <div className="mt-3 h-3 w-24 rounded bg-slate-200" />
                   <div className="mt-4 h-2 w-full rounded bg-slate-200" />
@@ -121,16 +128,22 @@ export function DoctorDashboardPage() {
               ))
             ) : shifts.length === 0 ? (
               <div className="py-12 text-center">
-                <span className="material-symbols-outlined text-5xl text-slate-300">event_busy</span>
+                <span className="material-symbols-outlined text-5xl text-slate-300">
+                  event_busy
+                </span>
                 <p className="mt-3 text-slate-500">Không có ca làm việc nào trong ngày này.</p>
               </div>
             ) : (
               shifts.map((shift) => {
                 const status = getShiftStatus(shift);
-                const progress = shift.totalPatients > 0 ? (shift.completedCount / shift.totalPatients) * 100 : 0;
+                const progress =
+                  shift.totalPatients > 0 ? (shift.completedCount / shift.totalPatients) * 100 : 0;
 
                 return (
-                  <div key={shift.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-5">
+                  <div
+                    key={shift.id}
+                    className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-5"
+                  >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="flex items-center gap-3">
@@ -139,7 +152,12 @@ export function DoctorDashboardPage() {
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold text-slate-950">
-                              Ca {shift.type === 'MORNING' ? 'sáng' : shift.type === 'AFTERNOON' ? 'chiều' : 'tối'}
+                              Ca{' '}
+                              {shift.type === 'MORNING'
+                                ? 'sáng'
+                                : shift.type === 'AFTERNOON'
+                                  ? 'chiều'
+                                  : 'tối'}
                             </h3>
                             <p className="text-sm text-slate-500">{shift.timeRange}</p>
                           </div>
@@ -160,7 +178,9 @@ export function DoctorDashboardPage() {
                         <span className="text-slate-600">
                           Tiến độ: {shift.completedCount}/{shift.totalPatients} bệnh nhân
                         </span>
-                        <span className="font-semibold text-slate-950">{Math.round(progress)}%</span>
+                        <span className="font-semibold text-slate-950">
+                          {Math.round(progress)}%
+                        </span>
                       </div>
                       <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
                         <div
@@ -172,15 +192,21 @@ export function DoctorDashboardPage() {
 
                     <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
                       <span className="inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-amber-500">schedule</span>
+                        <span className="material-symbols-outlined text-[18px] text-amber-500">
+                          schedule
+                        </span>
                         {shift.waitingCount} đang chờ
                       </span>
                       <span className="inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-blue-500">login</span>
+                        <span className="material-symbols-outlined text-[18px] text-blue-500">
+                          login
+                        </span>
                         {shift.checkedInCount} đã check-in
                       </span>
                       <span className="inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-emerald-500">stethoscope</span>
+                        <span className="material-symbols-outlined text-[18px] text-emerald-500">
+                          stethoscope
+                        </span>
                         {shift.inConsultationCount} đang khám
                       </span>
                     </div>

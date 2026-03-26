@@ -18,7 +18,9 @@ test.describe('Owner Account Management', () => {
     await expect(page.getByTestId('owner-accounts-page')).toBeVisible();
   });
 
-  test('owner can create, lock, reset password, and delete temporary accounts', async ({ page }) => {
+  test('owner can create, lock, reset password, and delete temporary accounts', async ({
+    page,
+  }) => {
     for (const roleData of ROLES) {
       const phone = uniquePhone(roleData.seed);
       const password = 'OwnerTemp@123';
@@ -84,9 +86,12 @@ test.describe('Owner Account Management', () => {
 
     const ownerId = rowTestId!.replace('owner-account-row-', '');
 
-    await expect(page.locator(`[data-testid="owner-account-toggle-lock-${ownerId}"]`)).toHaveCount(0);
-    await expect(page.locator(`[data-testid="owner-account-open-reset-${ownerId}"]`)).toHaveCount(0);
+    await expect(page.locator(`[data-testid="owner-account-toggle-lock-${ownerId}"]`)).toHaveCount(
+      0,
+    );
+    await expect(page.locator(`[data-testid="owner-account-open-reset-${ownerId}"]`)).toHaveCount(
+      0,
+    );
     await expect(page.locator(`[data-testid="owner-account-delete-${ownerId}"]`)).toHaveCount(0);
   });
 });
-

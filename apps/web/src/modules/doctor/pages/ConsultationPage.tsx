@@ -1039,7 +1039,8 @@ export function ConsultationPage() {
                 {followUpResult && (
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                     <p className="font-semibold">
-                      Đã tạo lịch tái khám: {formatDateUtc7(followUpResult.date, {
+                      Đã tạo lịch tái khám:{' '}
+                      {formatDateUtc7(followUpResult.date, {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',

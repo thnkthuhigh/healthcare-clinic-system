@@ -35,7 +35,9 @@ export function PublicHero({
               {actions && <div className="mt-8 flex flex-wrap gap-3">{actions}</div>}
             </div>
             {insights && (
-              <aside className="clinic-card-muted animate-clinic-enter-delayed p-5">{insights}</aside>
+              <aside className="clinic-card-muted animate-clinic-enter-delayed p-5">
+                {insights}
+              </aside>
             )}
           </div>
         </div>
@@ -103,7 +105,9 @@ export function TaskPageHeader({
               <p className="clinic-subtitle">{description}</p>
               {actions && <div className="mt-6 flex flex-wrap gap-3">{actions}</div>}
             </div>
-            {summary && <aside className="clinic-card animate-clinic-enter-delayed p-5">{summary}</aside>}
+            {summary && (
+              <aside className="clinic-card animate-clinic-enter-delayed p-5">{summary}</aside>
+            )}
           </div>
         </div>
       </div>
@@ -131,8 +135,12 @@ export function FlatTaskHeader({
           <span className="material-symbols-outlined text-sm">{icon}</span>
           <span>{eyebrow}</span>
         </div>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">{description}</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+          {title}
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+          {description}
+        </p>
         {actions && <div className="mt-5 flex flex-wrap gap-3">{actions}</div>}
       </div>
       {aside && <aside className="w-full max-w-sm lg:self-start">{aside}</aside>}
@@ -161,7 +169,9 @@ export function SectionHeading({
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
       )}
       <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h2>
-      {description && <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">{description}</p>}
+      {description && (
+        <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">{description}</p>
+      )}
     </div>
   );
 }
@@ -173,12 +183,7 @@ interface OpsPageHeaderProps {
   actions?: ReactNode;
 }
 
-export function OpsPageHeader({
-  eyebrow,
-  title,
-  description,
-  actions,
-}: OpsPageHeaderProps) {
+export function OpsPageHeader({ eyebrow, title, description, actions }: OpsPageHeaderProps) {
   return (
     <div className="ops-page-header">
       <div>
@@ -252,13 +257,7 @@ interface PageHeroProps extends SharedHeaderProps {
   aside?: ReactNode;
 }
 
-export function PageHero({
-  icon,
-  eyebrow,
-  title,
-  description,
-  aside,
-}: PageHeroProps) {
+export function PageHero({ icon, eyebrow, title, description, aside }: PageHeroProps) {
   return (
     <InfoPageHeader
       icon={icon}

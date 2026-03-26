@@ -116,4 +116,3 @@ test.describe.serial('Golden Path Cross Roles', () => {
     await expect(page.locator('[data-testid^="patient-appointments-card-"]').first()).toBeVisible();
   });
 });
-

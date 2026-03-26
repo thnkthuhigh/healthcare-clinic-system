@@ -41,8 +41,8 @@ export function QuickActions() {
           </p>
           <h2 className="mt-2 text-2xl font-bold text-slate-950">Các thao tác thường dùng</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-            Mỗi tác vụ được thiết kế theo đúng ngữ cảnh sử dụng thực tế để giảm bớt thao tác thừa
-            và giúp bệnh nhân dễ theo dõi thông tin hơn.
+            Mỗi tác vụ được thiết kế theo đúng ngữ cảnh sử dụng thực tế để giảm bớt thao tác thừa và
+            giúp bệnh nhân dễ theo dõi thông tin hơn.
           </p>
         </div>
       </div>
@@ -57,7 +57,10 @@ export function QuickActions() {
               <h3 className="mt-4 text-lg font-semibold text-slate-900">{action.title}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">{action.description}</p>
             </div>
-            <Link to={action.to} className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+            <Link
+              to={action.to}
+              className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary"
+            >
               <span>{action.btnLabel}</span>
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </Link>

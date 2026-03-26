@@ -170,7 +170,11 @@ export function PaymentStep({
             </div>
 
             <div className="mt-5 flex justify-end gap-2.5">
-              <button type="button" onClick={() => setShowBillPopup(false)} className="btn-secondary">
+              <button
+                type="button"
+                onClick={() => setShowBillPopup(false)}
+                className="btn-secondary"
+              >
                 Hủy
               </button>
               <button

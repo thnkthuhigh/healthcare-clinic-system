@@ -608,7 +608,8 @@ export function CashierPage() {
 
                 {selectedBooking.status !== 'COMPLETED' && (
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    Ca khám chưa hoàn tất, Thu ngân chỉ theo dõi trạng thái cọc. Sẽ thu phần còn lại sau khi bác sĩ kết thúc khám.
+                    Ca khám chưa hoàn tất, Thu ngân chỉ theo dõi trạng thái cọc. Sẽ thu phần còn lại
+                    sau khi bác sĩ kết thúc khám.
                   </div>
                 )}
 
@@ -692,14 +693,15 @@ export function CashierPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {selectedBooking.paymentStatus === 'UNPAID' && selectedBooking.status === 'COMPLETED' && (
-                    <button
-                      onClick={() => openPaymentSheet(selectedBooking)}
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      Thanh toán
-                    </button>
-                  )}
+                  {selectedBooking.paymentStatus === 'UNPAID' &&
+                    selectedBooking.status === 'COMPLETED' && (
+                      <button
+                        onClick={() => openPaymentSheet(selectedBooking)}
+                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        Thanh toán
+                      </button>
+                    )}
 
                   <button
                     onClick={() => openInvoiceFromBooking(selectedBooking)}
@@ -718,9 +720,7 @@ export function CashierPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_1fr]">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <h3 className="text-base font-semibold text-slate-900">Bán lẻ thuốc</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Nhập thông tin khách và thuốc cần bán
-            </p>
+            <p className="mt-1 text-sm text-slate-500">Nhập thông tin khách và thuốc cần bán</p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
@@ -938,7 +938,9 @@ export function CashierPage() {
                 <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 text-sm">
                   {paymentSheet.booking.serviceName && (
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Dịch vụ khám: {paymentSheet.booking.serviceName}</span>
+                      <span className="text-slate-600">
+                        Dịch vụ khám: {paymentSheet.booking.serviceName}
+                      </span>
                       <span className="font-medium text-slate-900">
                         {formatMoney(paymentSheet.booking.servicePriceCents)}
                       </span>
@@ -978,7 +980,9 @@ export function CashierPage() {
                 <p className="text-sm font-semibold text-slate-900">Phương thức thanh toán</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setPaymentSheet((prev) => (prev ? { ...prev, method: 'QR' } : prev))}
+                    onClick={() =>
+                      setPaymentSheet((prev) => (prev ? { ...prev, method: 'QR' } : prev))
+                    }
                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
                       paymentSheet.method === 'QR'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'

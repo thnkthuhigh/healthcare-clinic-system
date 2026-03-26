@@ -121,7 +121,10 @@ export function AboutPage() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {CARE_MODEL.map((item) => (
-                <div key={item.title} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft">
+                <div
+                  key={item.title}
+                  className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft"
+                >
                   <div className="clinic-icon-badge">
                     <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
                   </div>
@@ -139,7 +142,10 @@ export function AboutPage() {
               </p>
               <div className="mt-5 space-y-3">
                 {EXPERIENCE_ZONES.map((item) => (
-                  <div key={item.title} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                  <div
+                    key={item.title}
+                    className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                  >
                     <div className="flex items-start gap-3">
                       <div className="clinic-icon-badge">
                         <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
@@ -172,7 +178,9 @@ export function AboutPage() {
                   <p>{CLINIC_CONTACT.email}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Giờ tiếp nhận</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">
+                    Giờ tiếp nhận
+                  </p>
                   <p className="mt-2">{CLINIC_CONTACT.hours}</p>
                 </div>
               </div>

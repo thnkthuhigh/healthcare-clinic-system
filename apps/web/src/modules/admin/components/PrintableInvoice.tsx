@@ -177,7 +177,9 @@ export function PrintableInvoice({
                 <td className="px-3 py-2 text-center">{line.unit ?? '-'}</td>
                 <td className="px-3 py-2 text-center">{line.qty}</td>
                 <td className="px-3 py-2 text-right">{formatMoney(line.unitPriceCents)}</td>
-                <td className="px-3 py-2 text-right font-semibold">{formatMoney(line.totalCents)}</td>
+                <td className="px-3 py-2 text-right font-semibold">
+                  {formatMoney(line.totalCents)}
+                </td>
               </tr>
             ))}
           </tbody>

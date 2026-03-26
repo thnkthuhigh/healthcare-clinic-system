@@ -82,7 +82,9 @@ export function DoctorLabPage() {
         setSchedule(data);
       } catch (fetchError) {
         console.error('Failed to load lab queue:', fetchError);
-        setError(resolveApiErrorMessage(fetchError, 'Không thể tải danh sách bệnh nhân chờ xét nghiệm.'));
+        setError(
+          resolveApiErrorMessage(fetchError, 'Không thể tải danh sách bệnh nhân chờ xét nghiệm.'),
+        );
       } finally {
         setLoading(false);
       }
@@ -99,7 +101,9 @@ export function DoctorLabPage() {
           .map((booking) => ({ shift, booking })),
       )
       .sort((left, right) => {
-        const byAppointment = left.booking.appointmentTime.localeCompare(right.booking.appointmentTime);
+        const byAppointment = left.booking.appointmentTime.localeCompare(
+          right.booking.appointmentTime,
+        );
         if (byAppointment !== 0) return byAppointment;
 
         const leftQueue = left.booking.queueNumber ?? Number.MAX_SAFE_INTEGER;
@@ -182,7 +186,9 @@ export function DoctorLabPage() {
       await refreshSchedule();
     } catch (completeError) {
       console.error('Failed to complete lab result:', completeError);
-      setError(resolveApiErrorMessage(completeError, 'Không thể hoàn tất xét nghiệm. Vui lòng thử lại.'));
+      setError(
+        resolveApiErrorMessage(completeError, 'Không thể hoàn tất xét nghiệm. Vui lòng thử lại.'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -250,7 +256,11 @@ export function DoctorLabPage() {
         {error && (
           <div className="surface-alert flex items-start justify-between gap-3">
             <p>{error}</p>
-            <button type="button" onClick={() => setError(null)} className="rounded-lg p-1 hover:bg-red-100">
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="rounded-lg p-1 hover:bg-red-100"
+            >
               <span className="material-symbols-outlined text-base text-red-500">close</span>
             </button>
           </div>
@@ -272,7 +282,9 @@ export function DoctorLabPage() {
             ) : pendingRows.length === 0 ? (
               <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
                 <span className="material-symbols-outlined text-4xl text-slate-300">science</span>
-                <p className="mt-2 text-sm text-slate-500">Không có bệnh nhân đang chờ xét nghiệm.</p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Không có bệnh nhân đang chờ xét nghiệm.
+                </p>
               </div>
             ) : (
               <div className="mt-4 space-y-2">
@@ -300,7 +312,9 @@ export function DoctorLabPage() {
                       <p className="mt-1 text-xs text-slate-500">
                         {row.booking.patient.phone} • {shiftTypeLabel(row.shift.type)}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">Giờ hẹn {formatTime(row.booking.appointmentTime)}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Giờ hẹn {formatTime(row.booking.appointmentTime)}
+                      </p>
                     </button>
                   );
                 })}
@@ -320,7 +334,9 @@ export function DoctorLabPage() {
               <div className="space-y-5">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="ops-section-label">Thông tin ca xét nghiệm</p>
-                  <h3 className="mt-2 text-lg font-bold text-slate-900">{selectedRow.booking.patient.fullName}</h3>
+                  <h3 className="mt-2 text-lg font-bold text-slate-900">
+                    {selectedRow.booking.patient.fullName}
+                  </h3>
                   {selectedQueueOrder && (
                     <p className="mt-1 text-sm font-semibold text-primary">
                       Thứ tự xử lý xét nghiệm: #{selectedQueueOrder}

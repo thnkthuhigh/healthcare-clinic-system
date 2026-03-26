@@ -95,7 +95,9 @@ export function QRTicket({ ticket }: QRTicketProps) {
               <p className="mt-1 text-xs text-slate-500">ID đặt lịch: {ticket.bookingId}</p>
             </div>
             <div className="rounded-[22px] border border-slate-200 bg-white px-5 py-4 text-center shadow-soft">
-              <p className="text-xs uppercase tracking-[0.14em] text-slate-400">{displayQueueLabel}</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-400">
+                {displayQueueLabel}
+              </p>
               <p className="mt-2 text-4xl font-bold tracking-tight text-slate-950">
                 #{String(displayQueueNumber).padStart(3, '0')}
               </p>
@@ -154,8 +156,8 @@ export function QRTicket({ ticket }: QRTicketProps) {
             : 'Số hiện tại là số thứ tự đã được cấp cho bệnh nhân trong ca khám này.'}
         </p>
         <p className="mt-2">
-          Xuất trình mã QR hoặc đọc số điện thoại <strong>{ticket.patientPhone}</strong> cho nhân viên
-          lễ tân.
+          Xuất trình mã QR hoặc đọc số điện thoại <strong>{ticket.patientPhone}</strong> cho nhân
+          viên lễ tân.
         </p>
       </div>
 

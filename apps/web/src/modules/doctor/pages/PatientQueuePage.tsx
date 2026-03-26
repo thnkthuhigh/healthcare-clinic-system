@@ -379,7 +379,10 @@ export function PatientQueuePage() {
           <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
             <div className="flex items-center justify-between gap-3">
               <p>{queueNotice}</p>
-              <button onClick={() => setQueueNotice(null)} className="rounded p-1 hover:bg-blue-100">
+              <button
+                onClick={() => setQueueNotice(null)}
+                className="rounded p-1 hover:bg-blue-100"
+              >
                 <span className="material-symbols-outlined text-base">close</span>
               </button>
             </div>
@@ -507,9 +510,7 @@ export function PatientQueuePage() {
                       <tr
                         key={item.id}
                         className={`transition-colors ${
-                          isExamining
-                            ? 'bg-amber-50/50 hover:bg-amber-50'
-                            : 'hover:bg-slate-50'
+                          isExamining ? 'bg-amber-50/50 hover:bg-amber-50' : 'hover:bg-slate-50'
                         }`}
                       >
                         <td className="px-6 py-4">
@@ -531,9 +532,7 @@ export function PatientQueuePage() {
                             </div>
 
                             <div>
-                              <p className="font-bold text-slate-900">
-                                {item.patient.fullName}
-                              </p>
+                              <p className="font-bold text-slate-900">{item.patient.fullName}</p>
                               <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
                                 <span>SĐT: {item.patient.phone}</span>
                                 <span>Slot #{item.slotSequence}</span>

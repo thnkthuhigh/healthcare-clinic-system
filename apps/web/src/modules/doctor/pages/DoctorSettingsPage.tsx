@@ -64,7 +64,10 @@ export function DoctorSettingsPage() {
           </div>
           <div className="divide-y divide-slate-100">
             {infoRows.map((row) => (
-              <div key={row.label} className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                key={row.label}
+                className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div className="flex items-center gap-3 text-slate-500">
                   <span className="material-symbols-outlined text-[18px]">{row.icon}</span>
                   <span className="text-sm">{row.label}</span>

@@ -18,7 +18,11 @@ interface PatientInfoFormProps {
   initialValues?: Partial<PatientInfoFormValues>;
 }
 
-export function PatientInfoForm({ selectedService, onSubmit, initialValues }: PatientInfoFormProps) {
+export function PatientInfoForm({
+  selectedService,
+  onSubmit,
+  initialValues,
+}: PatientInfoFormProps) {
   const {
     register,
     handleSubmit,
@@ -61,7 +65,9 @@ export function PatientInfoForm({ selectedService, onSubmit, initialValues }: Pa
             className="input-field"
             data-testid="patient-booking-full-name"
           />
-          {errors.fullName && <p className="mt-1 text-xs text-red-500">{errors.fullName.message}</p>}
+          {errors.fullName && (
+            <p className="mt-1 text-xs text-red-500">{errors.fullName.message}</p>
+          )}
         </div>
 
         <div>
@@ -106,7 +112,11 @@ export function PatientInfoForm({ selectedService, onSubmit, initialValues }: Pa
 
         <div>
           <label className="field-label">Giới tính</label>
-          <select {...register('gender')} className="input-field" data-testid="patient-booking-gender">
+          <select
+            {...register('gender')}
+            className="input-field"
+            data-testid="patient-booking-gender"
+          >
             <option value="">Chưa chọn</option>
             <option value="Male">Nam</option>
             <option value="Female">Nữ</option>
@@ -146,7 +156,11 @@ export function PatientInfoForm({ selectedService, onSubmit, initialValues }: Pa
         />
       </div>
 
-      <button type="submit" className="btn-primary w-full" data-testid="patient-booking-submit-info">
+      <button
+        type="submit"
+        className="btn-primary w-full"
+        data-testid="patient-booking-submit-info"
+      >
         <span className="material-symbols-outlined text-base">arrow_forward</span>
         <span>Tiếp tục xác nhận lịch hẹn</span>
       </button>

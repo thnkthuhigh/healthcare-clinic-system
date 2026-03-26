@@ -54,9 +54,7 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
         const parsed = JSON.parse(rawBody) as { message?: string; error?: string };
         parsedMessage = parsed.message || parsed.error || '';
       } catch {
-        parsedMessage = rawBody.includes('<html') || rawBody.includes('<!doctype')
-          ? ''
-          : rawBody;
+        parsedMessage = rawBody.includes('<html') || rawBody.includes('<!doctype') ? '' : rawBody;
       }
     }
 

@@ -122,10 +122,14 @@ export function ForgotPasswordPage() {
                       index + 1
                     )}
                   </div>
-                  <span className="mt-1.5 whitespace-nowrap text-[11px] text-slate-500">{item.label}</span>
+                  <span className="mt-1.5 whitespace-nowrap text-[11px] text-slate-500">
+                    {item.label}
+                  </span>
                 </div>
                 {index < STEPS.length - 1 && (
-                  <div className={`mx-2 mb-4 h-px flex-1 ${isDone ? 'bg-primary' : 'bg-slate-200'}`} />
+                  <div
+                    className={`mx-2 mb-4 h-px flex-1 ${isDone ? 'bg-primary' : 'bg-slate-200'}`}
+                  />
                 )}
               </div>
             );
@@ -143,9 +147,14 @@ export function ForgotPasswordPage() {
       )}
 
       {step === 'phone' && (
-        <form onSubmit={handlePhoneSubmit} className="space-y-5" data-testid="auth-forgot-phone-form">
+        <form
+          onSubmit={handlePhoneSubmit}
+          className="space-y-5"
+          data-testid="auth-forgot-phone-form"
+        >
           <p className="text-sm leading-6 text-slate-600">
-            Nhập số điện thoại đã đăng ký. Hệ thống sẽ gửi mã OTP để xác minh yêu cầu khôi phục mật khẩu.
+            Nhập số điện thoại đã đăng ký. Hệ thống sẽ gửi mã OTP để xác minh yêu cầu khôi phục mật
+            khẩu.
           </p>
           <div>
             <label className="field-label">Số điện thoại</label>
@@ -312,7 +321,9 @@ export function ForgotPasswordPage() {
             <span className="material-symbols-outlined text-3xl">check_circle</span>
           </div>
           <p className="text-lg font-semibold text-slate-900">Đã cập nhật mật khẩu</p>
-          <p className="text-sm text-slate-600">Hệ thống sẽ chuyển bạn về màn đăng nhập sau ít giây.</p>
+          <p className="text-sm text-slate-600">
+            Hệ thống sẽ chuyển bạn về màn đăng nhập sau ít giây.
+          </p>
         </div>
       )}
 
@@ -323,7 +334,10 @@ export function ForgotPasswordPage() {
             Đăng nhập
           </Link>
         </p>
-        <Link to="/" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+        >
           <span className="material-symbols-outlined text-base">arrow_back</span>
           <span>Về trang công khai</span>
         </Link>

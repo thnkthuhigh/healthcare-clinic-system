@@ -136,7 +136,10 @@ export function LoginPage() {
             Quên mật khẩu
           </Link>
         </p>
-        <Link to="/" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+        >
           <span className="material-symbols-outlined text-base">arrow_back</span>
           <span>Về trang công khai</span>
         </Link>

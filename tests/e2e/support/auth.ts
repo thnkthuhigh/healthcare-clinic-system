@@ -31,7 +31,9 @@ export async function apiLogin(request: APIRequestContext, credentials: LoginCre
   });
 
   if (!response.ok()) {
-    throw new Error(`Login failed for ${credentials.phone}: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `Login failed for ${credentials.phone}: ${response.status()} ${await response.text()}`,
+    );
   }
 
   return (await response.json()) as LoginResponse;
@@ -50,7 +52,9 @@ export async function registerPatient(
   });
 
   if (!response.ok()) {
-    throw new Error(`Register failed for ${payload.phone}: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `Register failed for ${payload.phone}: ${response.status()} ${await response.text()}`,
+    );
   }
 }
 

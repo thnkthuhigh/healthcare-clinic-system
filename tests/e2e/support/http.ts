@@ -33,7 +33,9 @@ export async function requestJson<T>(request: APIRequestContext, options: JsonRe
   });
 
   if (!response.ok()) {
-    throw new Error(`${options.method ?? 'GET'} ${options.url} failed: ${response.status()} ${await safeBody(response)}`);
+    throw new Error(
+      `${options.method ?? 'GET'} ${options.url} failed: ${response.status()} ${await safeBody(response)}`,
+    );
   }
 
   if (response.status() === 204) {
