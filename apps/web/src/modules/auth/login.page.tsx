@@ -156,8 +156,9 @@ function getRedirectPath(role: string): string {
     case 'DOCTOR':
       return '/doctor/dashboard';
     case 'RECEPTIONIST':
-    case 'CASHIER':
       return '/admin';
+    case 'CASHIER':
+      return '/admin/cashier';
     case 'PATIENT':
       return '/';
     default:

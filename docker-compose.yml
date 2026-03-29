@@ -37,6 +37,18 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:3000
       OWNER_PHONE: '0900000000'
       OWNER_PASSWORD: owner123
+      SMS_PROVIDER: ${SMS_PROVIDER:-none}
+      SMS_BRAND_NAME: ${SMS_BRAND_NAME:-Healthcare Clinic}
+      SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-84}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:4000/api/v1/payments/vnpay/return}
+      VNPAY_EXPIRE_MINUTES: ${VNPAY_EXPIRE_MINUTES:-15}
     depends_on:
       postgres:
         condition: service_healthy

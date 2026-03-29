@@ -22,3 +22,13 @@ export interface RegisterCredentials {
   phone: string;
   password: string;
 }
+
+export interface ForgotPasswordChallenge {
+  method: 'SMS' | 'TOTP';
+  message: string;
+}
+
+export interface ForgotPasswordVerification {
+  resetToken: string;
+  message: string;
+}

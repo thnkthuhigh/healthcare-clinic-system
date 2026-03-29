@@ -7,6 +7,22 @@ export interface Doctor {
   phone: string;
 }
 
+export interface DoctorTotpStatus {
+  configured: boolean;
+  confirmed: boolean;
+  issuer: string;
+  accountName: string;
+}
+
+export interface DoctorTotpSetup {
+  secret: string;
+  manualEntryKey: string;
+  otpAuthUri: string;
+  confirmed: boolean;
+  issuer: string;
+  accountName: string;
+}
+
 export interface Patient {
   id: string;
   fullName: string;

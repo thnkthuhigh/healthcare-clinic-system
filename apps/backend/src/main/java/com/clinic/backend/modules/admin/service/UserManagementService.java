@@ -4,12 +4,15 @@ import com.clinic.backend.modules.admin.dto.AdminDoctorDto;
 import com.clinic.backend.modules.admin.dto.AdminPatientDto;
 import com.clinic.backend.modules.admin.dto.CreateDoctorRequest;
 import com.clinic.backend.modules.admin.dto.UpdateDoctorRequest;
+import com.clinic.backend.modules.doctor.dto.DoctorTotpSetupDto;
 import com.clinic.backend.modules.doctor.entity.Doctor;
 import com.clinic.backend.modules.doctor.entity.Patient;
 import com.clinic.backend.modules.doctor.entity.User;
 import com.clinic.backend.modules.doctor.repository.DoctorRepository;
 import com.clinic.backend.modules.doctor.repository.PatientRepository;
 import com.clinic.backend.modules.doctor.repository.UserRepository;
+import com.clinic.backend.modules.doctor.service.DoctorSecurityService;
+import com.clinic.backend.security.TotpService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.http.HttpStatus;
@@ -32,6 +35,8 @@ public class UserManagementService {
     private final PatientRepository patientRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final TotpService totpService;
+    private final DoctorSecurityService doctorSecurityService;
 
     @PersistenceContext
     private EntityManager em;
@@ -40,12 +45,16 @@ public class UserManagementService {
                                  DoctorRepository doctorRepository,
                                  PatientRepository patientRepository,
                                  PasswordEncoder passwordEncoder,
-                                 AuditLogService auditLogService) {
+                                 AuditLogService auditLogService,
+                                 TotpService totpService,
+                                 DoctorSecurityService doctorSecurityService) {
         this.userRepository = userRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
+        this.totpService = totpService;
+        this.doctorSecurityService = doctorSecurityService;
     }
 
     // =========================================================================
@@ -72,6 +81,8 @@ public class UserManagementService {
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setRole(User.UserRole.DOCTOR);
         user.setFullName(req.getDisplayName());
+        user.setTotpSecret(totpService.generateSecret());
+        user.setTotpConfirmedAt(null);
         userRepository.save(user);
 
         Doctor doctor = new Doctor();
@@ -90,6 +101,13 @@ public class UserManagementService {
         syncDoctorServices(doctor.getId(), req.getServiceIds());
 
         return toDoctorDto(doctor);
+    }
+
+    @Transactional
+    public DoctorTotpSetupDto issueDoctorTotpSetup(UUID doctorId, boolean regenerate) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bac si"));
+        return doctorSecurityService.issueTotpSetup(doctor.getUser().getId(), regenerate);
     }
 
     @Transactional
@@ -238,6 +256,8 @@ public class UserManagementService {
         dto.setWorkHistory(doctor.getWorkHistory());
         dto.setServiceIds(getDoctorServiceIds(doctor.getId()));
         dto.setStatus(doctor.getUser().getStatus().name());
+        dto.setTotpProvisioned(doctor.getUser().getTotpSecret() != null && !doctor.getUser().getTotpSecret().isBlank());
+        dto.setTotpConfirmed(doctor.getUser().getTotpConfirmedAt() != null);
         dto.setCreatedAt(doctor.getUser().getCreatedAt());
         return dto;
     }

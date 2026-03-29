@@ -187,7 +187,18 @@ export interface AdminDoctorDto {
   workHistory: string | null;
   serviceIds: string[];
   status: 'ACTIVE' | 'LOCKED';
+  totpProvisioned: boolean;
+  totpConfirmed: boolean;
   createdAt: string;
+}
+
+export interface AdminDoctorTotpSetup {
+  secret: string;
+  manualEntryKey: string;
+  otpAuthUri: string;
+  confirmed: boolean;
+  issuer: string;
+  accountName: string;
 }
 
 export interface CreateDoctorRequest {
@@ -258,13 +269,13 @@ export interface CashierBooking {
   channel: 'WEB' | 'WALK_IN';
   paymentStatus: 'UNPAID' | 'PAID' | 'VOID';
   completedAt: string | null;
-  paymentMethod: 'QR' | 'CASH' | null;
+  paymentMethod: 'QR' | 'CASH' | 'VNPAY' | null;
   paidAt: string | null;
   billedByUserId: string | null;
   billedByName: string | null;
   bookingFeeCents: number | null;
   bookingFeePaidAt: string | null;
-  bookingFeePaymentMethod: 'QR' | 'CASH' | null;
+  bookingFeePaymentMethod: 'QR' | 'CASH' | 'VNPAY' | null;
   prescriptionId: string | null;
   prescriptionStatus: 'HELD' | 'PAID' | 'CANCELED' | 'EXPIRED' | null;
   prescriptionItems: CashierPrescriptionItem[] | null;

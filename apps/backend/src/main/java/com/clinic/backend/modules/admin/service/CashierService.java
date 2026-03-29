@@ -215,7 +215,7 @@ public class CashierService {
         Booking booking = bookingRepository.findByIdWithDetails(bookingId)
             .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lịch khám"));
 
-        if (booking.getStatus() != Booking.BookingStatus.COMPLETED) {
+        if (!canProcessGatewayPayment(booking)) {
             throw new IllegalStateException("Chỉ thanh toán được lịch khám đã COMPLETED");
         }
         if (booking.getPaymentStatus() == Booking.PaymentStatus.PAID) {
@@ -252,6 +252,63 @@ public class CashierService {
         auditLogService.log("PROCESS_BOOKING_PAYMENT", "BOOKING", bookingId, auditMeta);
 
         return getBookingForPayment(bookingId);
+    }
+
+    @Transactional
+    public CashierBookingDto processPaymentFromGateway(UUID bookingId, UUID actorUserId, Instant paidAt) {
+        Booking booking = bookingRepository.findByIdWithDetails(bookingId)
+            .orElseThrow(() -> new IllegalArgumentException("KhĂ´ng tĂ¬m tháº¥y lá»‹ch khĂ¡m"));
+
+        if (booking.getPaymentStatus() == Booking.PaymentStatus.PAID) {
+            return getBookingForPayment(bookingId);
+        }
+
+        if (!canProcessGatewayPayment(booking)) {
+            throw new IllegalStateException("Chá»‰ thanh toĂ¡n Ä‘Æ°á»£c lá»‹ch khĂ¡m Ä‘Ă£ COMPLETED");
+        }
+
+        Instant normalizedPaidAt = paidAt != null ? paidAt : Instant.now();
+
+        booking.setPaymentStatus(Booking.PaymentStatus.PAID);
+        booking.setPaymentMethod(Booking.PaymentMethod.VNPAY);
+        booking.setPaidAt(normalizedPaidAt);
+        booking.setPaidByUserId(actorUserId);
+        bookingRepository.save(booking);
+
+        prescriptionRepository.findByBookingIdWithItems(bookingId).ifPresent(prescription -> {
+            prescription.setStatus(Prescription.PrescriptionStatus.PAID);
+            prescriptionRepository.save(prescription);
+
+            for (PrescriptionItem item : prescription.getItems()) {
+                int updated = medicationRepository.confirmDeduction(item.getMedication().getId(), item.getQty());
+                if (updated == 0) {
+                    throw new IllegalStateException("KhĂ´ng Ä‘á»§ tá»“n kho cho thuá»‘c: " + item.getMedication().getName());
+                }
+            }
+        });
+
+        populateFinanceActorForBooking(bookingId, actorUserId);
+
+        var auditMeta = new LinkedHashMap<String, Object>();
+        auditMeta.put("paymentMethod", Booking.PaymentMethod.VNPAY.name());
+        auditMeta.put("paidAt", normalizedPaidAt.toString());
+        auditMeta.put("gateway", "VNPAY");
+        auditLogService.log("PROCESS_BOOKING_PAYMENT", "BOOKING", bookingId, auditMeta);
+
+        return getBookingForPayment(bookingId);
+    }
+
+    private boolean canProcessGatewayPayment(Booking booking) {
+        if (booking == null) {
+            return false;
+        }
+        if (booking.getStatus() == Booking.BookingStatus.COMPLETED) {
+            return true;
+        }
+        return booking.getChannel() == Booking.BookingChannel.WEB
+                && booking.getBookingFeePaidAt() != null
+                && booking.getStatus() != Booking.BookingStatus.CANCELED
+                && booking.getStatus() != Booking.BookingStatus.NO_SHOW;
     }
 
     @Transactional

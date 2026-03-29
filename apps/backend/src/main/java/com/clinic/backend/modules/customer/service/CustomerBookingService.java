@@ -215,6 +215,26 @@ public class CustomerBookingService {
         return toTicketDto(booking);
     }
 
+    public BookingTicketDto processBookingFeeFromGateway(UUID bookingId, Instant paidAt) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "KhĂ´ng tĂ¬m tháº¥y lá»‹ch khĂ¡m"));
+
+        if (booking.getBookingFeePaidAt() != null) {
+            return toTicketDto(booking);
+        }
+
+        if (booking.getStatus() == Booking.BookingStatus.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lá»‹ch háº¹n Ä‘Ă£ bá»‹ há»§y");
+        }
+
+        booking.setBookingFeeCents(1_000_000);
+        booking.setBookingFeePaidAt(paidAt != null ? paidAt : Instant.now());
+        booking.setBookingFeePaymentMethod(Booking.PaymentMethod.VNPAY);
+        bookingRepository.save(booking);
+
+        return toTicketDto(booking);
+    }
+
     // =====================================================
     // 5. Get booking ticket (for QR display)
     // =====================================================

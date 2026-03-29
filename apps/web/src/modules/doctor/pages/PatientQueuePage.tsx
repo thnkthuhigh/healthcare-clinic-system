@@ -7,13 +7,14 @@ import { useAuth } from '../../auth/useAuth';
 import { consultationApi, doctorApi } from '../api';
 import type { BookingStatus, QueueItem, Shift } from '../types';
 
-type FilterStatus = 'ALL' | 'CHECKED_IN' | 'WAITING' | 'IN_CONSULTATION';
+type FilterStatus = 'ALL' | 'CHECKED_IN' | 'WAITING' | 'IN_CONSULTATION' | 'COMPLETED';
 
 const statusFilters: { value: FilterStatus; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },
   { value: 'CHECKED_IN', label: 'Đã check-in' },
   { value: 'WAITING', label: 'Đang chờ' },
   { value: 'IN_CONSULTATION', label: 'Đang khám' },
+  { value: 'COMPLETED', label: 'Da kham xong' },
 ];
 
 const avatarColors = [
@@ -51,6 +52,14 @@ function getStatusBadge(status: BookingStatus) {
         borderClass: 'border-blue-200',
         pulse: true,
       };
+    case 'COMPLETED':
+      return {
+        label: 'Da kham xong',
+        bgClass: 'bg-emerald-100',
+        textClass: 'text-emerald-700',
+        borderClass: 'border-emerald-200',
+        pulse: false,
+      };
     default:
       return {
         label: status,
@@ -87,7 +96,7 @@ function matchesStatusFilter(status: BookingStatus, filter: FilterStatus) {
   if (filter === 'ALL') return true;
   if (filter === 'CHECKED_IN') return status === 'CHECKED_IN';
   if (filter === 'WAITING') {
-    return status === 'WAITING' || status === 'CHECKED_IN' || status === 'RESULTS_READY';
+    return status === 'WAITING' || status === 'RESULTS_READY';
   }
   return status === filter;
 }
@@ -96,12 +105,13 @@ function canStartConsultation(status: BookingStatus) {
   return status === 'CHECKED_IN' || status === 'WAITING' || status === 'RESULTS_READY';
 }
 
-function isVisibleInDoctorQueue(status: BookingStatus) {
+function isTrackableInDoctorQueue(status: BookingStatus) {
   return (
     status === 'CHECKED_IN' ||
     status === 'WAITING' ||
     status === 'IN_CONSULTATION' ||
-    status === 'RESULTS_READY'
+    status === 'RESULTS_READY' ||
+    status === 'COMPLETED'
   );
 }
 
@@ -176,6 +186,7 @@ export function PatientQueuePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
+  const [shiftBookings, setShiftBookings] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -257,7 +268,10 @@ export function PatientQueuePage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await doctorApi.getQueue(activeShiftId);
+      const [data, allBookings] = await Promise.all([
+        doctorApi.getQueue(activeShiftId),
+        doctorApi.getAllBookings(activeShiftId),
+      ]);
       const previousSnapshot = previousQueueSnapshotRef.current;
       const currentSnapshot = {
         total: data.length,
@@ -283,9 +297,12 @@ export function PatientQueuePage() {
 
       previousQueueSnapshotRef.current = currentSnapshot;
       setQueueItems(data);
+      setShiftBookings(allBookings);
       setLastUpdated(new Date());
     } catch (fetchError) {
       console.error('Failed to fetch queue:', fetchError);
+      setQueueItems([]);
+      setShiftBookings([]);
       setError('Không thể tải danh sách hàng chờ.');
     } finally {
       setLoading(false);
@@ -311,9 +328,22 @@ export function PatientQueuePage() {
     return () => clearInterval(interval);
   }, [activeShiftId, fetchQueue]);
 
-  const visibleQueueItems = queueItems.filter((item) => isVisibleInDoctorQueue(item.status));
+  const visibleQueueItems = queueItems.filter((item) => item.status !== 'COMPLETED');
+  const trackableBookings = shiftBookings.filter((item) => isTrackableInDoctorQueue(item.status));
+  const completedBookings = trackableBookings
+    .filter((item) => item.status === 'COMPLETED')
+    .sort((left, right) => {
+      const leftQueue = left.queueNumber ?? Number.MAX_SAFE_INTEGER;
+      const rightQueue = right.queueNumber ?? Number.MAX_SAFE_INTEGER;
+      if (leftQueue !== rightQueue) {
+        return leftQueue - rightQueue;
+      }
+      return left.slotSequence - right.slotSequence;
+    });
+  const listedItems =
+    statusFilter === 'COMPLETED' ? completedBookings : [...visibleQueueItems, ...completedBookings];
 
-  const filteredItems = visibleQueueItems.filter((item) => {
+  const filteredItems = listedItems.filter((item) => {
     const matchesSearch =
       searchQuery === '' ||
       item.patient.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -324,15 +354,13 @@ export function PatientQueuePage() {
   });
 
   const counts = {
-    ALL: visibleQueueItems.length,
-    CHECKED_IN: visibleQueueItems.filter((item) => item.status === 'CHECKED_IN').length,
-    WAITING: visibleQueueItems.filter(
-      (item) =>
-        item.status === 'WAITING' ||
-        item.status === 'CHECKED_IN' ||
-        item.status === 'RESULTS_READY',
+    ALL: trackableBookings.length,
+    CHECKED_IN: trackableBookings.filter((item) => item.status === 'CHECKED_IN').length,
+    WAITING: trackableBookings.filter(
+      (item) => item.status === 'WAITING' || item.status === 'RESULTS_READY',
     ).length,
-    IN_CONSULTATION: visibleQueueItems.filter((item) => item.status === 'IN_CONSULTATION').length,
+    IN_CONSULTATION: trackableBookings.filter((item) => item.status === 'IN_CONSULTATION').length,
+    COMPLETED: completedBookings.length,
   };
 
   const getTimeSinceUpdate = () => {
@@ -389,7 +417,7 @@ export function PatientQueuePage() {
           </div>
         )}
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
           <StatCard
             loading={loading}
             title="Tổng bệnh nhân"
@@ -417,6 +445,13 @@ export function PatientQueuePage() {
             value={counts.IN_CONSULTATION}
             icon="medical_services"
             tone="emerald"
+          />
+          <StatCard
+            loading={loading}
+            title="Da kham xong"
+            value={counts.COMPLETED}
+            icon="check_circle"
+            tone="slate"
           />
         </section>
 
@@ -645,7 +680,7 @@ function StatCard({
   title: string;
   value: number;
   icon: string;
-  tone: 'default' | 'sky' | 'primary' | 'emerald';
+  tone: 'default' | 'sky' | 'primary' | 'emerald' | 'slate';
 }) {
   const toneClass = {
     default: {
@@ -663,6 +698,10 @@ function StatCard({
     emerald: {
       value: 'text-emerald-600',
       iconWrap: 'bg-emerald-50 text-emerald-600',
+    },
+    slate: {
+      value: 'text-slate-700',
+      iconWrap: 'bg-slate-100 text-slate-600',
     },
   }[tone];
 

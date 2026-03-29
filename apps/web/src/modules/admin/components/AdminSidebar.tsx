@@ -21,6 +21,10 @@ const quickItems: NavItem[] = [
   { path: '/admin/cashier', icon: 'point_of_sale', label: 'Thu ngân' },
 ];
 
+const cashierQuickItems: NavItem[] = [
+  { path: '/admin/cashier', icon: 'point_of_sale', label: 'Thu ngân' },
+];
+
 const commonGroups: NavGroup[] = [
   {
     id: 'clinic',
@@ -58,14 +62,20 @@ export function AdminSidebar() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
-  const roleBadge = user?.role === 'OWNER' ? 'Owner' : 'Admin';
+  const roleBadge =
+    user?.role === 'OWNER' ? 'Owner' : user?.role === 'CASHIER' ? 'Cashier' : 'Admin';
 
   const navGroups = useMemo(() => {
+    if (user?.role === 'CASHIER') {
+      return [];
+    }
     if (user?.role === 'OWNER') {
       return [...commonGroups, ownerConfigGroup];
     }
     return commonGroups;
   }, [user?.role]);
+
+  const visibleQuickItems = user?.role === 'CASHIER' ? cashierQuickItems : quickItems;
 
   const handleSignOut = () => {
     logout();
@@ -96,7 +106,7 @@ export function AdminSidebar() {
       <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4" data-testid="admin-nav">
         <section className="space-y-1">
           <p className="ops-section-label px-2">Truy cập nhanh</p>
-          {quickItems.map((item) => (
+          {visibleQuickItems.map((item) => (
             <NavLink key={item.path} item={item} active={isRouteActive(item.path)} />
           ))}
         </section>

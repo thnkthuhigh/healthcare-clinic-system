@@ -40,6 +40,15 @@ const POOL_LABELS: Record<string, string> = {
   OVERRIDE: 'Override',
 };
 
+const WAITING_BUCKET_STATUSES = new Set(['WAITING', 'PENDING_LAB', 'RESULTS_READY']);
+
+function toReceptionSummaryStatus(status: string) {
+  if (WAITING_BUCKET_STATUSES.has(status)) {
+    return 'WAITING';
+  }
+  return status;
+}
+
 type GenderValue = 'MALE' | 'FEMALE' | 'OTHER' | '';
 type TabType = 'board' | 'checkin' | 'create_visit';
 
@@ -198,7 +207,9 @@ export function ReceptionPage() {
 
   const filteredBookings = useMemo(() => {
     const scoped = filterStatus
-      ? bookings.filter((booking: ReceptionBooking) => booking.status === filterStatus)
+      ? bookings.filter(
+          (booking: ReceptionBooking) => toReceptionSummaryStatus(booking.status) === filterStatus,
+        )
       : bookings;
 
     return [...scoped].sort((a, b) => {
@@ -212,7 +223,8 @@ export function ReceptionPage() {
     () =>
       bookings.reduce(
         (acc: Record<string, number>, booking: ReceptionBooking) => {
-          acc[booking.status] = (acc[booking.status] || 0) + 1;
+          const summaryStatus = toReceptionSummaryStatus(booking.status);
+          acc[summaryStatus] = (acc[summaryStatus] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>,

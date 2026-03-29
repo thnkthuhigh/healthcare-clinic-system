@@ -23,6 +23,8 @@ public class AdminDoctorDto {
     private String workHistory;
     private List<String> serviceIds = new ArrayList<>();
     private String status;    // ACTIVE | LOCKED
+    private boolean totpProvisioned;
+    private boolean totpConfirmed;
     private Instant createdAt;
 
     public UUID getId() { return id; }
@@ -106,6 +108,22 @@ public class AdminDoctorDto {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public boolean isTotpProvisioned() {
+        return totpProvisioned;
+    }
+
+    public void setTotpProvisioned(boolean totpProvisioned) {
+        this.totpProvisioned = totpProvisioned;
+    }
+
+    public boolean isTotpConfirmed() {
+        return totpConfirmed;
+    }
+
+    public void setTotpConfirmed(boolean totpConfirmed) {
+        this.totpConfirmed = totpConfirmed;
+    }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

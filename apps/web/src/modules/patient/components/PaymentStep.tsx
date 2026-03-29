@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import QRCode from 'react-qr-code';
 
 import { formatDateUtc7 } from '../../../lib/time';
 import type { AvailableShift, BookingTicket, ClinicService, DoctorSummary } from '../types';
@@ -13,6 +12,7 @@ interface PaymentStepProps {
   patientPhone: string;
   onPay: () => void;
   paying: boolean;
+  errorMessage?: string | null;
 }
 
 const SHIFT_LABEL: Record<string, string> = {
@@ -27,7 +27,6 @@ function formatVnd(amount: number): string {
 }
 
 export function PaymentStep({
-  ticket,
   doctor,
   shift,
   service,
@@ -35,174 +34,185 @@ export function PaymentStep({
   patientPhone,
   onPay,
   paying,
+  errorMessage,
 }: PaymentStepProps) {
   const [confirmed, setConfirmed] = useState(false);
-  const [showBillPopup, setShowBillPopup] = useState(false);
-
-  const draftBillCode = `BL-${(ticket?.bookingId ?? 'TEMP').slice(0, 8).toUpperCase()}`;
-  const paymentQrValue = `HC_BOOKING_FEE|BILL:${draftBillCode}|AMOUNT:${BOOKING_FEE_VND}|PHONE:${patientPhone}`;
 
   return (
     <div className="space-y-5">
-      <div className="clinic-card overflow-hidden rounded-[24px]">
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <p className="font-semibold text-slate-950">Tóm tắt lịch hẹn</p>
+      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+            Xác nhận lịch hẹn
+          </p>
+          <h3 className="mt-1 text-xl font-semibold text-slate-950">Tóm tắt thanh toán</h3>
         </div>
-        <div className="space-y-2 px-5 py-5 text-sm">
-          <Row label="Bác sĩ" value={doctor?.displayName ?? '-'} />
-          <Row label="Chuyên khoa" value={doctor?.specialty ?? 'Đa khoa'} />
-          <Row
-            label="Ca khám"
-            value={shift ? `${SHIFT_LABEL[shift.type] ?? shift.type} • ${shift.timeRange}` : '-'}
-          />
-          <Row
-            label="Ngày khám"
-            value={
-              shift
-                ? formatDateUtc7(shift.date, {
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                  })
-                : '-'
-            }
-          />
-          <Row label="Dịch vụ" value={service?.name ?? 'Khám theo chỉ định khi tiếp nhận'} />
 
-          <div className="mt-3 border-t border-dashed border-slate-200 pt-3">
-            <Row label="Bệnh nhân" value={patientName} />
-            <Row label="Số điện thoại" value={patientPhone} />
-          </div>
-
-          <div className="mt-3 border-t border-dashed border-slate-200 pt-3">
-            <Row label="Phí đặt lịch (thu trước)" value={formatVnd(BOOKING_FEE_VND)} bold />
-            <Row
-              label="Phí khám dịch vụ"
-              value={
-                service
-                  ? `${(service.priceCents / 100).toLocaleString('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                    })} (thu sau tại quầy)`
-                  : 'Thu sau tại quầy theo chỉ định'
+        <div className="space-y-5 px-5 py-5 text-sm">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SummaryCard
+              icon="medical_services"
+              title="Ca khám"
+              value={shift ? `${SHIFT_LABEL[shift.type] ?? shift.type} · ${shift.timeRange}` : '-'}
+              detail={
+                shift
+                  ? formatDateUtc7(shift.date, {
+                      weekday: 'long',
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })
+                  : 'Chưa chọn lịch'
               }
             />
+            <SummaryCard
+              icon="person"
+              title="Bệnh nhân"
+              value={patientName || '-'}
+              detail={patientPhone || '-'}
+            />
+          </div>
+
+          <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <DetailRow label="Bác sĩ" value={doctor?.displayName ?? '-'} />
+            <DetailRow label="Chuyên khoa" value={doctor?.specialty ?? 'Đa khoa'} />
+            <DetailRow
+              label="Dịch vụ"
+              value={service?.name ?? 'Khám theo chỉ định khi tiếp nhận'}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <PriceCard
+              title="Phí đặt lịch"
+              value={formatVnd(BOOKING_FEE_VND)}
+              note="Thanh toán ngay để giữ chỗ"
+              tone="sky"
+            />
+            <PriceCard
+              title="Phí khám và thuốc"
+              value={
+                service
+                  ? (service.priceCents / 100).toLocaleString('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND',
+                    })
+                  : 'Theo chỉ định'
+              }
+              note="Thu sau tại quầy thu ngân"
+              tone="amber"
+            />
+          </div>
+
+          <div className="rounded-[28px] border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">
+            Bấm thanh toán là hệ thống sẽ mở thẳng cổng VNPAY để bạn hoàn tất phí giữ lịch. Không
+            còn bước trung gian hay hiển thị thẻ test trong màn hình này.
           </div>
         </div>
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
         <input
           type="checkbox"
           checked={confirmed}
           onChange={(event) => setConfirmed(event.target.checked)}
-          className="mt-1 accent-[color:#2d7a7c]"
+          className="mt-1 accent-[color:#0f766e]"
           data-testid="patient-booking-payment-confirm"
         />
-        <span>
-          Tôi xác nhận thông tin trên là chính xác và đồng ý thanh toán trước phí đặt lịch 10.000đ
-          để giữ lịch hẹn.
+        <span className="leading-6">
+          Tôi xác nhận thông tin đặt lịch là chính xác và đồng ý thanh toán trước{' '}
+          <strong>{formatVnd(BOOKING_FEE_VND)}</strong> qua VNPAY để giữ chỗ khám.
         </span>
       </label>
 
       <button
         type="button"
         disabled={!confirmed || paying}
-        onClick={() => setShowBillPopup(true)}
-        className="btn-primary w-full"
+        onClick={onPay}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         data-testid="patient-booking-pay"
       >
         {paying ? (
           <>
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            <span>Đang xử lý thanh toán</span>
+            <span>Đang chuyển sang VNPAY</span>
           </>
         ) : (
           <>
             <span className="material-symbols-outlined text-base">payments</span>
-            <span>Thanh toán phí đặt lịch 10.000đ</span>
+            <span>Mở VNPAY để thanh toán phí đặt lịch</span>
           </>
         )}
       </button>
 
-      {showBillPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
-          <div className="clinic-card w-full max-w-xl p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                  Hóa đơn tạm thu
-                </p>
-                <h3 className="mt-1 text-2xl font-bold text-slate-950">Phí đặt lịch khám</h3>
-                <p className="mt-1 text-sm text-slate-500">Mã bill: {draftBillCode}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowBillPopup(false)}
-                className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
-              >
-                <span className="material-symbols-outlined text-lg">close</span>
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <Row label="Bệnh nhân" value={patientName} />
-              <Row label="Số điện thoại" value={patientPhone} />
-              <Row label="Khoản thu" value="Phí giữ lịch khám" />
-              <Row label="Số tiền" value={formatVnd(BOOKING_FEE_VND)} bold />
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Phí khám dịch vụ và thuốc sẽ thanh toán tại quầy thu ngân sau khi khám.
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4">
-              <p className="mb-3 text-sm font-semibold text-slate-900">Chuyển khoản QR</p>
-              <div className="flex flex-col items-center gap-3">
-                <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-soft">
-                  <QRCode value={paymentQrValue} size={160} />
-                </div>
-                <p className="text-center text-xs text-slate-600">
-                  Quét mã QR để chuyển khoản phí đặt lịch 10.000đ, sau đó bấm xác nhận.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowBillPopup(false)}
-                className="btn-secondary"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                disabled={paying}
-                onClick={() => {
-                  onPay();
-                  setShowBillPopup(false);
-                }}
-                className="btn-primary"
-              >
-                Xác nhận đã chuyển khoản 10.000đ
-              </button>
-            </div>
-          </div>
+      {errorMessage && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
         </div>
       )}
     </div>
   );
 }
 
-function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+function SummaryCard({
+  icon,
+  title,
+  value,
+  detail,
+}: {
+  icon: string;
+  title: string;
+  value: string;
+  detail: string;
+}) {
   return (
-    <div className="flex justify-between gap-3">
-      <span className="flex-shrink-0 text-slate-500">{label}</span>
-      <span className={`text-right ${bold ? 'font-semibold text-primary' : 'text-slate-800'}`}>
-        {value}
-      </span>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+          <span className="material-symbols-outlined text-[22px]">{icon}</span>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            {title}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+          <p className="mt-1 text-xs text-slate-500">{detail}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PriceCard({
+  title,
+  value,
+  note,
+  tone,
+}: {
+  title: string;
+  value: string;
+  note: string;
+  tone: 'sky' | 'amber';
+}) {
+  const toneClass =
+    tone === 'sky'
+      ? 'border-sky-200 bg-sky-50 text-sky-900'
+      : 'border-amber-200 bg-amber-50 text-amber-900';
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-2 text-xl font-semibold">{value}</p>
+      <p className="mt-1 text-sm text-slate-600">{note}</p>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-slate-500">{label}</span>
+      <span className="text-right text-slate-900">{value}</span>
     </div>
   );
 }

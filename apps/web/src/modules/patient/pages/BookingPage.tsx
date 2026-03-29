@@ -67,6 +67,20 @@ function inferServiceForDoctor(
   return byPreferred;
 }
 
+function getReadablePaymentError(error: Error): string {
+  const message = error.message ?? '';
+
+  if (message.includes('VNPAY chua duoc cau hinh')) {
+    return 'VNPAY chưa được cấu hình ở backend. Cần thêm TMN code và hash secret sandbox trước khi thanh toán.';
+  }
+
+  if (message.includes('Failed to fetch')) {
+    return 'Không kết nối được backend để tạo giao dịch VNPAY.';
+  }
+
+  return message;
+}
+
 export function BookingPage() {
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
@@ -76,7 +90,6 @@ export function BookingPage() {
   const [patientInfo, setPatientInfo] = useState<PatientInfoFormValues | null>(null);
   const [selectedService, setSelectedService] = useState<ClinicService | null>(null);
   const [createdTicket, setCreatedTicket] = useState<BookingTicket | null>(null);
-  const [paidTicket, setPaidTicket] = useState<BookingTicket | null>(null);
   const [error, setError] = useState<string | null>(null);
   const preselectedDoctorId = searchParams.get('doctorId');
   const preselectedServiceId = searchParams.get('serviceId');
@@ -153,12 +166,11 @@ export function BookingPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (bookingId: string) => customerApi.processPayment(bookingId, 'QR'),
-    onSuccess: (ticket) => {
-      setPaidTicket(ticket);
-      setStep(5);
+    mutationFn: (bookingId: string) => customerApi.createBookingFeeVnpayPayment(bookingId),
+    onSuccess: (response) => {
+      window.location.assign(response.paymentUrl);
     },
-    onError: (mutationError: Error) => setError(mutationError.message),
+    onError: (mutationError: Error) => setError(getReadablePaymentError(mutationError)),
   });
 
   const handleDoctorSelect = (doctor: DoctorSummary) => {
@@ -360,14 +372,18 @@ export function BookingPage() {
                   service={selectedService}
                   patientName={patientInfo?.fullName ?? ''}
                   patientPhone={patientInfo?.phone ?? ''}
-                  onPay={() => paymentMutation.mutate(createdTicket.bookingId)}
+                  onPay={() => {
+                    setError(null);
+                    paymentMutation.mutate(createdTicket.bookingId);
+                  }}
                   paying={paymentMutation.isPending}
+                  errorMessage={error}
                 />
               )}
 
               {step === 5 &&
                 (() => {
-                  const finalTicket = paidTicket ?? createdTicket;
+                  const finalTicket = createdTicket;
                   if (!finalTicket) return null;
 
                   return (
