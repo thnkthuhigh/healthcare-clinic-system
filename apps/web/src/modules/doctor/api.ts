@@ -1,5 +1,7 @@
 import type {
   Doctor,
+  DoctorTotpSetup,
+  DoctorTotpStatus,
   Shift,
   ScheduleShift,
   QueueItem,
@@ -54,9 +56,7 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
         const parsed = JSON.parse(rawBody) as { message?: string; error?: string };
         parsedMessage = parsed.message || parsed.error || '';
       } catch {
-        parsedMessage = rawBody.includes('<html') || rawBody.includes('<!doctype')
-          ? ''
-          : rawBody;
+        parsedMessage = rawBody.includes('<html') || rawBody.includes('<!doctype') ? '' : rawBody;
       }
     }
 
@@ -76,6 +76,28 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
 export const doctorApi = {
   // Get doctor profile
   getProfile: (userId: string) => fetchApi<Doctor>(`${API_BASE}/profile?userId=${userId}`),
+
+  getTotpStatus: () => fetchApi<DoctorTotpStatus>(`${API_BASE}/security/totp/status`),
+
+  issueTotpSetup: (regenerate = false) =>
+    fetchApi<DoctorTotpSetup>(
+      `${API_BASE}/security/totp/setup${regenerate ? '?regenerate=true' : ''}`,
+      {
+        method: 'POST',
+      },
+    ),
+
+  confirmTotp: (code: string) =>
+    fetchApi<DoctorTotpStatus>(`${API_BASE}/security/totp/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  changePassword: (payload: { currentPassword: string; newPassword: string; code: string }) =>
+    fetchApi<{ message: string }>(`${API_BASE}/security/change-password`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   // Get shifts for a date
   getShifts: (doctorId: string, date?: string) => {

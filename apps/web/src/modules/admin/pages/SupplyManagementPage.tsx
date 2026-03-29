@@ -101,9 +101,7 @@ function SupplyModal({ initial, onClose, onSaved }: SupplyModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <h2 className="font-semibold text-slate-900">
-            {isEdit ? 'Sửa vật tư' : 'Thêm vật tư'}
-          </h2>
+          <h2 className="font-semibold text-slate-900">{isEdit ? 'Sửa vật tư' : 'Thêm vật tư'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <span className="material-symbols-outlined">close</span>
           </button>

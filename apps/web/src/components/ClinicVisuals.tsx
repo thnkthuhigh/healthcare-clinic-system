@@ -1,12 +1,6 @@
 export function ClinicOverviewVisual() {
   return (
-    <svg
-      viewBox="0 0 520 320"
-      className="h-full w-full"
-      aria-hidden="true"
-      role="img"
-      fill="none"
-    >
+    <svg viewBox="0 0 520 320" className="h-full w-full" aria-hidden="true" role="img" fill="none">
       <rect x="10" y="10" width="500" height="300" rx="28" fill="#EFF5F9" />
       <rect x="32" y="36" width="292" height="248" rx="24" fill="#FFFFFF" stroke="#D9E2EA" />
       <rect x="348" y="36" width="140" height="112" rx="22" fill="#2B678C" />
@@ -44,13 +38,7 @@ export function ClinicOverviewVisual() {
 
 export function ClinicOperationsVisual() {
   return (
-    <svg
-      viewBox="0 0 520 320"
-      className="h-full w-full"
-      aria-hidden="true"
-      role="img"
-      fill="none"
-    >
+    <svg viewBox="0 0 520 320" className="h-full w-full" aria-hidden="true" role="img" fill="none">
       <rect x="8" y="10" width="504" height="300" rx="28" fill="#F0F4F7" />
       <rect x="28" y="34" width="168" height="248" rx="24" fill="#FFFFFF" stroke="#D9E2EA" />
       <rect x="212" y="34" width="280" height="116" rx="24" fill="#FFFFFF" stroke="#D9E2EA" />
@@ -84,13 +72,7 @@ export function ClinicOperationsVisual() {
 
 export function RecordAccessVisual() {
   return (
-    <svg
-      viewBox="0 0 420 260"
-      className="h-full w-full"
-      aria-hidden="true"
-      role="img"
-      fill="none"
-    >
+    <svg viewBox="0 0 420 260" className="h-full w-full" aria-hidden="true" role="img" fill="none">
       <rect x="10" y="10" width="400" height="240" rx="28" fill="#F0F4F7" />
       <rect x="34" y="34" width="178" height="192" rx="24" fill="#FFFFFF" stroke="#D9E2EA" />
       <rect x="228" y="34" width="158" height="88" rx="22" fill="#FFFFFF" stroke="#D9E2EA" />

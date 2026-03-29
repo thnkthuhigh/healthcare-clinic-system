@@ -97,7 +97,10 @@ export function BookingCard({
   const serviceAndLabCents = booking.servicePriceCents + (booking.labFeeCents ?? 0);
 
   return (
-    <article className="clinic-card overflow-hidden" data-testid={`patient-record-card-${booking.bookingId}`}>
+    <article
+      className="clinic-card overflow-hidden"
+      data-testid={`patient-record-card-${booking.bookingId}`}
+    >
       <header className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-soft">
@@ -134,7 +137,10 @@ export function BookingCard({
 
           <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <InfoBlock label="Ngày khám" value={formatDateValue(booking.date)} />
-            <InfoBlock label={getDisplayWindowLabel(booking)} value={formatDisplayWindow(booking)} />
+            <InfoBlock
+              label={getDisplayWindowLabel(booking)}
+              value={formatDisplayWindow(booking)}
+            />
             {booking.followUp && booking.followUpScheduledAt ? (
               <InfoBlock
                 label="Lịch tái khám"
@@ -146,10 +152,15 @@ export function BookingCard({
                 })}
               />
             ) : null}
-            <InfoBlock label="Dịch vụ đã khám" value={booking.serviceName ?? 'Khám theo chỉ định'} />
+            <InfoBlock
+              label="Dịch vụ đã khám"
+              value={booking.serviceName ?? 'Khám theo chỉ định'}
+            />
             <InfoBlock
               label="Tổng chi phí"
-              value={isPaid ? `Đã thanh toán ${formatMoney(booking.totalBillCents)}` : 'Chưa thanh toán'}
+              value={
+                isPaid ? `Đã thanh toán ${formatMoney(booking.totalBillCents)}` : 'Chưa thanh toán'
+              }
             />
             <InfoBlock label="Phí khám + xét nghiệm" value={formatMoney(serviceAndLabCents)} />
             {booking.labFeeCents > 0 && (
@@ -193,7 +204,9 @@ export function BookingCard({
         </section>
 
         <aside className="p-0">
-          <p className="mb-2 text-xs uppercase tracking-[0.12em] text-slate-400">Tài liệu và thao tác</p>
+          <p className="mb-2 text-xs uppercase tracking-[0.12em] text-slate-400">
+            Tài liệu và thao tác
+          </p>
           <div className="space-y-2">
             {isCompleted ? (
               !isPaid ? (

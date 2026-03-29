@@ -21,6 +21,7 @@ import {
 import { ForgotPasswordPage } from '../modules/auth/forgot-password.page';
 import { LoginPage } from '../modules/auth/login.page';
 import { RegisterPage } from '../modules/auth/register.page';
+import { useAuth } from '../modules/auth/useAuth';
 import { NotFoundPage } from '../modules/common/NotFound.page';
 import { DoctorLayout } from '../modules/doctor/components';
 import {
@@ -36,6 +37,8 @@ import { HomePage } from '../modules/home/home.page';
 import { AccountManagementPage } from '../modules/owner/pages';
 import {
   BookingPage,
+  BookingPaymentResultPage,
+  MockVnpayPage,
   HealthProfilePage,
   HealthRecordsPage,
   ProfilePage,
@@ -46,6 +49,13 @@ import {
 } from '../modules/patient/pages';
 
 import { RouteViewport } from './RouteViewport';
+
+// eslint-disable-next-line react-refresh/only-export-components
+function AdminIndexRedirect() {
+  const { user } = useAuth();
+  const target = user?.role === 'CASHIER' ? '/admin/cashier' : '/admin/dashboard';
+  return <Navigate to={target} replace />;
+}
 
 export const router = createBrowserRouter([
   {
@@ -76,6 +86,14 @@ export const router = createBrowserRouter([
       {
         path: '/booking',
         element: <BookingPage />,
+      },
+      {
+        path: '/booking/payment-result',
+        element: <BookingPaymentResultPage />,
+      },
+      {
+        path: '/payment/mock-vnpay',
+        element: <MockVnpayPage />,
       },
       {
         path: '/profile',
@@ -148,7 +166,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            element: <DoctorSettingsPage />,
+            element: (
+              <RequireAuth allowedRoles={['DOCTOR']}>
+                <DoctorSettingsPage />
+              </RequireAuth>
+            ),
           },
           {
             path: 'accounts',
@@ -187,26 +209,124 @@ export const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+          <RequireAuth allowedRoles={['ADMIN', 'OWNER', 'CASHIER']}>
             <AdminLayout />
           </RequireAuth>
         ),
         children: [
-          { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-          { path: 'dashboard', element: <AdminDashboardPage /> },
-          { path: 'reception', element: <ReceptionPage /> },
-          { path: 'cashier', element: <CashierPage /> },
-          { path: 'doctors', element: <DoctorManagementPage /> },
-          { path: 'patients', element: <PatientManagementPage /> },
-          { path: 'shifts', element: <ShiftManagementPage /> },
-          { path: 'services', element: <ServiceManagementPage /> },
-          { path: 'rooms', element: <RoomManagementPage /> },
-          { path: 'supplies', element: <SupplyManagementPage /> },
-          { path: 'assets', element: <AssetManagementPage /> },
-          { path: 'medications', element: <MedicationManagementPage /> },
-          { path: 'templates', element: <PrescriptionTemplatePage /> },
-          { path: 'departments', element: <DepartmentManagementPage /> },
-          { path: 'reports', element: <ReportsPage /> },
+          { index: true, element: <AdminIndexRedirect /> },
+          {
+            path: 'dashboard',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <AdminDashboardPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'reception',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <ReceptionPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'cashier',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER', 'CASHIER']}>
+                <CashierPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'doctors',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <DoctorManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'patients',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <PatientManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'shifts',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <ShiftManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'services',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <ServiceManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'rooms',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <RoomManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'supplies',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <SupplyManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'assets',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <AssetManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'medications',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <MedicationManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'templates',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <PrescriptionTemplatePage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'departments',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <DepartmentManagementPage />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: 'reports',
+            element: (
+              <RequireAuth allowedRoles={['ADMIN', 'OWNER']}>
+                <ReportsPage />
+              </RequireAuth>
+            ),
+          },
         ],
       },
 

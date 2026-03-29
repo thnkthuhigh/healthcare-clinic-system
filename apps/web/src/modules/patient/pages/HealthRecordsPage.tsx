@@ -146,7 +146,10 @@ export function HealthRecordsPage() {
       setSelectedBookingId('');
       return;
     }
-    if (!selectedBookingId || !sortedBookings.some((item) => item.bookingId === selectedBookingId)) {
+    if (
+      !selectedBookingId ||
+      !sortedBookings.some((item) => item.bookingId === selectedBookingId)
+    ) {
       setSelectedBookingId(sortedBookings[0]!.bookingId);
       setRecordTab('overview');
     }
@@ -169,7 +172,9 @@ export function HealthRecordsPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     Hồ sơ khám bệnh
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">Tra cứu hồ sơ khám bệnh</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                    Tra cứu hồ sơ khám bệnh
+                  </h2>
                 </div>
 
                 <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
@@ -193,7 +198,9 @@ export function HealthRecordsPage() {
                 </div>
 
                 {submittedPhone && !lookupError && !patientQuery.isError && (
-                  <p className="mt-4 text-xs text-slate-500">Đang hiển thị dữ liệu cho số: {submittedPhone}</p>
+                  <p className="mt-4 text-xs text-slate-500">
+                    Đang hiển thị dữ liệu cho số: {submittedPhone}
+                  </p>
                 )}
                 {lookupError && <p className="mt-4 text-xs text-red-600">{lookupError}</p>}
                 {patientQuery.isError && !lookupError && (
@@ -206,7 +213,10 @@ export function HealthRecordsPage() {
 
             {patientQuery.data && (
               <section className="space-y-4">
-                <div className="clinic-card overflow-hidden" data-testid="patient-health-records-summary">
+                <div
+                  className="clinic-card overflow-hidden"
+                  data-testid="patient-health-records-summary"
+                >
                   <div className="bg-slate-50 px-5 py-5 sm:px-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-4">
@@ -214,7 +224,9 @@ export function HealthRecordsPage() {
                           {getInitials(patientQuery.data.fullName)}
                         </div>
                         <div>
-                          <p className="text-xl font-semibold text-slate-950">{patientQuery.data.fullName}</p>
+                          <p className="text-xl font-semibold text-slate-950">
+                            {patientQuery.data.fullName}
+                          </p>
                           <p className="mt-1 text-sm text-slate-500">{patientQuery.data.phone}</p>
                         </div>
                       </div>
@@ -226,7 +238,10 @@ export function HealthRecordsPage() {
                   </div>
 
                   <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
-                    <InfoStat label="CCCD / Hộ chiếu" value={patientQuery.data.nationalId ?? 'Chưa cập nhật'} />
+                    <InfoStat
+                      label="CCCD / Hộ chiếu"
+                      value={patientQuery.data.nationalId ?? 'Chưa cập nhật'}
+                    />
                     <InfoStat label="Lịch sử khám" value={String(bookings.length)} />
                     <InfoStat label="Đơn thuốc" value={String(recordStats.withPrescription)} />
                     <InfoStat label="Kết quả khám" value={String(recordStats.withMedicalRecord)} />
@@ -234,13 +249,19 @@ export function HealthRecordsPage() {
                 </div>
 
                 {loadingBookings && (
-                  <div className="clinic-card p-10 text-center text-slate-500">Đang tải lịch sử khám...</div>
+                  <div className="clinic-card p-10 text-center text-slate-500">
+                    Đang tải lịch sử khám...
+                  </div>
                 )}
 
                 {!loadingBookings && bookings.length === 0 && (
                   <div className="clinic-empty">
-                    <span className="material-symbols-outlined text-5xl text-slate-300">folder_open</span>
-                    <p className="mt-3 text-slate-500">Chưa có hồ sơ khám bệnh nào cho bệnh nhân này.</p>
+                    <span className="material-symbols-outlined text-5xl text-slate-300">
+                      folder_open
+                    </span>
+                    <p className="mt-3 text-slate-500">
+                      Chưa có hồ sơ khám bệnh nào cho bệnh nhân này.
+                    </p>
                   </div>
                 )}
 
@@ -288,7 +309,9 @@ export function HealthRecordsPage() {
                                 <p className="mt-1 text-xs text-slate-600">
                                   {booking.serviceName ?? 'Dịch vụ khám'}
                                 </p>
-                                <p className="mt-0.5 text-xs text-slate-500">BS. {booking.doctorName}</p>
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                  BS. {booking.doctorName}
+                                </p>
                                 <span
                                   className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_BADGE[booking.status] ?? 'bg-slate-200 text-slate-700'}`}
                                 >
@@ -319,7 +342,9 @@ export function HealthRecordsPage() {
                                   </h3>
                                   <p className="mt-1 text-sm text-slate-600">
                                     Bác sĩ điều trị:{' '}
-                                    <span className="font-semibold">BS. {selectedBooking.doctorName}</span>
+                                    <span className="font-semibold">
+                                      BS. {selectedBooking.doctorName}
+                                    </span>
                                   </p>
                                 </div>
                                 <div className="text-right">
@@ -337,7 +362,9 @@ export function HealthRecordsPage() {
                               </div>
 
                               <div className="mt-4 flex flex-wrap gap-2">
-                                {(['overview', 'lab', 'prescription', 'invoice'] as RecordTab[]).map((tab) => (
+                                {(
+                                  ['overview', 'lab', 'prescription', 'invoice'] as RecordTab[]
+                                ).map((tab) => (
                                   <button
                                     key={tab}
                                     type="button"
@@ -374,7 +401,8 @@ export function HealthRecordsPage() {
                                       Triệu chứng
                                     </p>
                                     <p className="mt-1">
-                                      {selectedBooking.medicalRecord?.symptoms ?? 'Chưa có thông tin triệu chứng.'}
+                                      {selectedBooking.medicalRecord?.symptoms ??
+                                        'Chưa có thông tin triệu chứng.'}
                                     </p>
                                   </div>
                                 </div>
@@ -386,11 +414,15 @@ export function HealthRecordsPage() {
                                   <div className="mt-3 space-y-3 text-sm">
                                     <Field
                                       label="Chẩn đoán"
-                                      value={selectedBooking.medicalRecord?.diagnosis ?? 'Chưa cập nhật'}
+                                      value={
+                                        selectedBooking.medicalRecord?.diagnosis ?? 'Chưa cập nhật'
+                                      }
                                     />
                                     <Field
                                       label="Kết luận"
-                                      value={selectedBooking.medicalRecord?.conclusion ?? 'Chưa cập nhật'}
+                                      value={
+                                        selectedBooking.medicalRecord?.conclusion ?? 'Chưa cập nhật'
+                                      }
                                     />
                                     <Field
                                       label="Dịch vụ đã khám"
@@ -427,7 +459,8 @@ export function HealthRecordsPage() {
                                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                                   Đơn thuốc điện tử
                                 </p>
-                                {!selectedBooking.prescription || selectedBooking.prescription.items.length === 0 ? (
+                                {!selectedBooking.prescription ||
+                                selectedBooking.prescription.items.length === 0 ? (
                                   <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                                     Chưa có đơn thuốc cho lần khám này.
                                   </p>
@@ -462,7 +495,9 @@ export function HealthRecordsPage() {
                                 {selectedBooking.prescription && (
                                   <button
                                     type="button"
-                                    onClick={() => setViewPrescription(selectedBooking.prescription)}
+                                    onClick={() =>
+                                      setViewPrescription(selectedBooking.prescription)
+                                    }
                                     className="mt-3 text-sm font-semibold text-primary underline underline-offset-2"
                                   >
                                     Xem đơn thuốc đầy đủ
@@ -477,29 +512,44 @@ export function HealthRecordsPage() {
                                   Hóa đơn lần khám
                                 </p>
                                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                  <InfoStat label="Phí dịch vụ khám" value={formatMoney(selectedBooking.servicePriceCents)} />
-                                  <InfoStat label="Phí xét nghiệm" value={formatMoney(selectedBooking.labFeeCents)} />
-                                  <InfoStat label="Tiền thuốc" value={formatMoney(selectedBooking.prescriptionAmountCents)} />
-                                  <InfoStat label="Tổng thanh toán" value={formatMoney(selectedBooking.totalBillCents)} />
+                                  <InfoStat
+                                    label="Phí dịch vụ khám"
+                                    value={formatMoney(selectedBooking.servicePriceCents)}
+                                  />
+                                  <InfoStat
+                                    label="Phí xét nghiệm"
+                                    value={formatMoney(selectedBooking.labFeeCents)}
+                                  />
+                                  <InfoStat
+                                    label="Tiền thuốc"
+                                    value={formatMoney(selectedBooking.prescriptionAmountCents)}
+                                  />
+                                  <InfoStat
+                                    label="Tổng thanh toán"
+                                    value={formatMoney(selectedBooking.totalBillCents)}
+                                  />
                                 </div>
                                 <p className="mt-3 text-sm text-slate-600">
                                   Trạng thái thanh toán:{' '}
                                   <span className="font-semibold">
-                                    {selectedBooking.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                                    {selectedBooking.paymentStatus === 'PAID'
+                                      ? 'Đã thanh toán'
+                                      : 'Chưa thanh toán'}
                                   </span>
                                 </p>
                               </div>
                             )}
 
-                            {!selectedBooking.ratingStars && selectedBooking.status === 'COMPLETED' && (
-                              <button
-                                type="button"
-                                onClick={() => setRatingBooking(selectedBooking)}
-                                className="text-sm font-semibold text-primary underline underline-offset-2"
-                              >
-                                Gửi đánh giá cho bác sĩ
-                              </button>
-                            )}
+                            {!selectedBooking.ratingStars &&
+                              selectedBooking.status === 'COMPLETED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRatingBooking(selectedBooking)}
+                                  className="text-sm font-semibold text-primary underline underline-offset-2"
+                                >
+                                  Gửi đánh giá cho bác sĩ
+                                </button>
+                              )}
                           </>
                         )}
                       </section>
@@ -525,7 +575,9 @@ export function HealthRecordsPage() {
                     {item.note ? ` (${item.note})` : ''}
                   </p>
                 </div>
-                <span className="self-center text-xs text-slate-500">{formatMoney(item.totalCents)}</span>
+                <span className="self-center text-xs text-slate-500">
+                  {formatMoney(item.totalCents)}
+                </span>
               </div>
             ))}
             <div className="flex justify-between pt-1 font-semibold text-primary">

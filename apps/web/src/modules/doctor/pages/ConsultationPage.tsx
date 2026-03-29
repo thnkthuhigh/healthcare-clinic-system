@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
@@ -182,6 +183,8 @@ export function ConsultationPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showSendToLabConfirm, setShowSendToLabConfirm] = useState(false);
+  const [labTransferToast, setLabTransferToast] = useState<string | null>(null);
   const [followUpDate, setFollowUpDate] = useState(() => toIsoDateUtc7());
   const [followUpNote, setFollowUpNote] = useState('');
   const [schedulingFollowUp, setSchedulingFollowUp] = useState(false);
@@ -300,6 +303,12 @@ export function ConsultationPage() {
     const debounce = setTimeout(searchMedications, 300);
     return () => clearTimeout(debounce);
   }, [medSearch]);
+
+  useEffect(() => {
+    if (!labTransferToast) return;
+    const timer = setTimeout(() => setLabTransferToast(null), 2600);
+    return () => clearTimeout(timer);
+  }, [labTransferToast]);
 
   const medicationSuggestions = useMemo(() => {
     const keyword = medSearch.trim();
@@ -577,7 +586,9 @@ export function ConsultationPage() {
       }
 
       await consultationApi.sendToLab(bookingId);
+      setShowSendToLabConfirm(false);
       setSuccessMessage('Đã gửi bệnh nhân sang khu xét nghiệm và lưu dữ liệu phiên khám.');
+      setLabTransferToast('Đã chuyển bệnh nhân qua xét nghiệm.');
     } catch (sendError) {
       console.error('Failed to send to lab:', sendError);
       const resolvedMessage =
@@ -588,6 +599,12 @@ export function ConsultationPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleOpenSendToLabConfirm = () => {
+    if (saving || !bookingId) return;
+    setError(null);
+    setShowSendToLabConfirm(true);
   };
 
   const handleScheduleFollowUp = async () => {
@@ -1022,7 +1039,8 @@ export function ConsultationPage() {
                 {followUpResult && (
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                     <p className="font-semibold">
-                      Đã tạo lịch tái khám: {formatDateUtc7(followUpResult.date, {
+                      Đã tạo lịch tái khám:{' '}
+                      {formatDateUtc7(followUpResult.date, {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
@@ -1256,7 +1274,7 @@ export function ConsultationPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={handleSendToLab}
+              onClick={handleOpenSendToLabConfirm}
               disabled={saving}
               className="btn-secondary border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 disabled:opacity-50"
             >
@@ -1281,7 +1299,64 @@ export function ConsultationPage() {
           </div>
         </div>
       </div>
+
+      {showSendToLabConfirm && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-2xl text-primary">science</span>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-slate-900">Xác nhận gửi xét nghiệm</h3>
+                <p className="text-sm text-slate-600">
+                  Bệnh nhân sẽ chuyển sang trạng thái <strong>PENDING_LAB</strong> và được đánh dấu
+                  trong hàng chờ xét nghiệm.
+                </p>
+                <p className="text-sm text-slate-600">
+                  Hệ thống cũng sẽ lưu thông tin khám hiện tại trước khi gửi đi.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSendToLabConfirm(false)}
+                className="btn-secondary"
+                disabled={saving}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSendToLab}
+                className="btn-primary"
+                disabled={saving}
+              >
+                {saving ? 'Đang gửi...' : 'Xác nhận gửi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ViewportToast message={labTransferToast} />
     </div>
+  );
+}
+
+function ViewportToast({ message }: { message: string | null }) {
+  if (!message || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
+    <div className="pointer-events-none fixed right-4 top-4 z-[100] w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-emerald-200 bg-white px-3 py-2 text-emerald-800 shadow-lg">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+        <p className="text-xs font-medium leading-5">{message}</p>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

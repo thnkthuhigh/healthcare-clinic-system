@@ -10,6 +10,9 @@ import com.clinic.backend.modules.customer.dto.RatingRequest;
 import com.clinic.backend.modules.customer.service.CustomerBookingService;
 import com.clinic.backend.modules.doctor.entity.Booking;
 import com.clinic.backend.modules.doctor.repository.ServiceRepository;
+import com.clinic.backend.modules.payment.dto.PaymentRedirectResponse;
+import com.clinic.backend.modules.payment.service.VnPayService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -35,10 +38,14 @@ public class CustomerController {
 
     private final CustomerBookingService bookingService;
     private final ServiceRepository serviceRepository;
+    private final VnPayService vnPayService;
 
-    public CustomerController(CustomerBookingService bookingService, ServiceRepository serviceRepository) {
+    public CustomerController(CustomerBookingService bookingService,
+                              ServiceRepository serviceRepository,
+                              VnPayService vnPayService) {
         this.bookingService = bookingService;
         this.serviceRepository = serviceRepository;
+        this.vnPayService = vnPayService;
     }
 
     @GetMapping("/doctors")
@@ -79,6 +86,13 @@ public class CustomerController {
             @RequestBody(required = false) BookingFeePaymentRequest request) {
         Booking.PaymentMethod method = parsePaymentMethod(request);
         return ResponseEntity.ok(bookingService.processBookingFee(bookingId, method));
+    }
+
+    @PostMapping("/bookings/{bookingId}/pay/vnpay")
+    public ResponseEntity<PaymentRedirectResponse> createVnpayPayment(
+            @PathVariable UUID bookingId,
+            HttpServletRequest request) {
+        return ResponseEntity.ok(vnPayService.createBookingFeePayment(bookingId, resolveClientIp(request)));
     }
 
     private Booking.PaymentMethod parsePaymentMethod(BookingFeePaymentRequest request) {
@@ -133,5 +147,19 @@ public class CustomerController {
             @RequestParam String phone) {
         bookingService.cancelBooking(bookingId, phone);
         return ResponseEntity.ok(Map.of("message", "Đã hủy lịch khám."));
+    }
+    private String resolveClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "127.0.0.1";
+        }
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
     }
 }

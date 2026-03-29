@@ -100,19 +100,17 @@ function StarRating({ stars }: { stars: number | null }) {
   );
 }
 
-function DoctorAvatar({
-  doctor,
-  colorClass,
-}: {
-  doctor: DoctorSummary;
-  colorClass: string;
-}) {
+function DoctorAvatar({ doctor, colorClass }: { doctor: DoctorSummary; colorClass: string }) {
   return (
     <div
       className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl ${colorClass} text-lg font-bold text-slate-700`}
     >
       {doctor.avatarUrl ? (
-        <img src={doctor.avatarUrl} alt={doctor.displayName} className="h-full w-full object-cover" />
+        <img
+          src={doctor.avatarUrl}
+          alt={doctor.displayName}
+          className="h-full w-full object-cover"
+        />
       ) : (
         getInitials(doctor.displayName)
       )}
@@ -120,13 +118,7 @@ function DoctorAvatar({
   );
 }
 
-function DoctorDetailModal({
-  doctor,
-  onClose,
-}: {
-  doctor: DoctorSummary;
-  onClose: () => void;
-}) {
+function DoctorDetailModal({ doctor, onClose }: { doctor: DoctorSummary; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4">
       <div className="clinic-card w-full max-w-2xl p-6 sm:p-7">
@@ -301,7 +293,9 @@ export function DoctorsPage() {
                 <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
                   {featuredDoctor.displayName}
                 </h1>
-                <p className="mt-1 text-sm text-slate-600">{featuredDoctor.specialty ?? 'Đa khoa'}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {featuredDoctor.specialty ?? 'Đa khoa'}
+                </p>
                 <div className="mt-3">
                   <StarRating stars={featuredDoctor.averageStars} />
                 </div>
@@ -405,7 +399,9 @@ export function DoctorsPage() {
               <span className="material-symbols-outlined text-5xl text-slate-300">
                 person_search
               </span>
-              <p className="mt-3 text-slate-600">Chưa tìm thấy bác sĩ phù hợp với bộ lọc hiện tại.</p>
+              <p className="mt-3 text-slate-600">
+                Chưa tìm thấy bác sĩ phù hợp với bộ lọc hiện tại.
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -421,7 +417,9 @@ export function DoctorsPage() {
         </section>
       </main>
 
-      {selectedDoctor && <DoctorDetailModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />}
+      {selectedDoctor && (
+        <DoctorDetailModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />
+      )}
 
       <PatientFooter />
     </div>

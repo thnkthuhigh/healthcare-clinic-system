@@ -29,9 +29,13 @@ async function waitForPostgres(timeoutMs = 90_000) {
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      execFileSync('docker', ['exec', 'clinic_postgres', 'pg_isready', '-U', 'postgres', '-d', 'clinic_dev'], {
-        encoding: 'utf8',
-      });
+      execFileSync(
+        'docker',
+        ['exec', 'clinic_postgres', 'pg_isready', '-U', 'postgres', '-d', 'clinic_dev'],
+        {
+          encoding: 'utf8',
+        },
+      );
       return;
     } catch {
       await sleep(1_500);

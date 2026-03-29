@@ -66,17 +66,17 @@ public class ReceptionService {
                 "LEFT JOIN services sv ON b.service_id = sv.id " +
                 "LEFT JOIN rooms r ON r.id = s.room_id " +
                 "LEFT JOIN slots sl ON sl.id = b.slot_id " +
-                "WHERE s.date = :date ";
+                "WHERE s.date = ?1 ";
 
         if (shiftId != null) {
-            sql += "AND s.id = :shiftId ";
+            sql += "AND s.id = ?2 ";
         }
         sql += "ORDER BY b.priority_score DESC, b.check_in_at ASC NULLS LAST, b.created_at ASC";
 
         var query = em.createNativeQuery(sql);
-        query.setParameter("date", date);
+        query.setParameter(1, date);
         if (shiftId != null) {
-            query.setParameter("shiftId", shiftId);
+            query.setParameter(2, shiftId);
         }
 
         @SuppressWarnings("unchecked")
@@ -98,7 +98,7 @@ public class ReceptionService {
             dto.setPaymentStatus(row[10].toString());
             dto.setCheckInAt(toInstant(row[11]));
             dto.setCreatedAt(toInstant(row[12]));
-            dto.setPriorityScore(((Number) row[13]).intValue());
+            dto.setPriorityScore(row[13] != null ? ((Number) row[13]).intValue() : 0);
             dto.setRoomName(row[14] != null ? row[14].toString() : null);
             dto.setSlotPool(row[15] != null ? row[15].toString() : null);
             dto.setFollowUp(row[16] != null && (Boolean) row[16]);
@@ -127,16 +127,16 @@ public class ReceptionService {
                 "LEFT JOIN services sv ON b.service_id = sv.id " +
                 "LEFT JOIN rooms r ON r.id = s.room_id " +
                 "LEFT JOIN slots sl ON sl.id = b.slot_id " +
-                "WHERE p.phone = :phone AND b.status = 'BOOKED' " +
+                "WHERE p.phone = ?1 AND b.status = 'BOOKED' " +
                 (followUpOnly
-                        ? "AND b.is_follow_up = TRUE AND s.date >= :date "
-                        : "AND s.date = :date ") +
+                    ? "AND b.is_follow_up = TRUE AND s.date >= ?2 "
+                    : "AND s.date = ?2 ") +
                 "ORDER BY s.date ASC, s.start_time ASC";
 
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createNativeQuery(sql)
-                .setParameter("phone", phone)
-                .setParameter("date", date)
+                .setParameter(1, phone)
+                .setParameter(2, date)
                 .getResultList();
 
         List<ReceptionBookingDto> result = new ArrayList<>();
@@ -155,7 +155,7 @@ public class ReceptionService {
             dto.setPaymentStatus(row[10].toString());
             dto.setCheckInAt(toInstant(row[11]));
             dto.setCreatedAt(toInstant(row[12]));
-            dto.setPriorityScore(((Number) row[13]).intValue());
+            dto.setPriorityScore(row[13] != null ? ((Number) row[13]).intValue() : 0);
             dto.setRoomName(row[14] != null ? row[14].toString() : null);
             dto.setSlotPool(row[15] != null ? row[15].toString() : null);
             dto.setFollowUp(row[16] != null && (Boolean) row[16]);

@@ -53,9 +53,7 @@ function financeFlowLabelVi(row: FinanceLedgerEntryDto) {
   return '-';
 }
 
-function resolveLedgerType(
-  row: FinanceLedgerEntryDto,
-): { label: string; className: string } {
+function resolveLedgerType(row: FinanceLedgerEntryDto): { label: string; className: string } {
   const category = row.category?.toUpperCase() ?? '';
 
   if (category === 'MANUAL_STOCK_IN') {

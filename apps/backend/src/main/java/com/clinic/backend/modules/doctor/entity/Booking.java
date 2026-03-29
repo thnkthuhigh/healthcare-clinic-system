@@ -127,7 +127,7 @@ public class Booking {
     }
 
     public enum PaymentMethod {
-        QR, CASH
+        QR, CASH, VNPAY
     }
     
     // Getters and Setters

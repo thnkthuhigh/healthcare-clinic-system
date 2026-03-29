@@ -22,12 +22,17 @@ export function PatientNavbar() {
     >
       <div className="clinic-container">
         <div className="grid min-h-[78px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-6">
-          <Link to="/" className="flex min-w-0 items-center gap-3 justify-self-start md:min-w-[220px]">
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-3 justify-self-start md:min-w-[220px]"
+          >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-soft">
               <span className="material-symbols-outlined text-[26px]">local_hospital</span>
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-slate-950">{CLINIC_CONTACT.brand}</p>
+              <p className="truncate text-base font-semibold text-slate-950">
+                {CLINIC_CONTACT.brand}
+              </p>
             </div>
           </Link>
 
@@ -73,7 +78,9 @@ export function PatientNavbar() {
                   <span className="hidden max-w-[160px] truncate text-sm text-slate-700 sm:block">
                     {user?.phone ?? 'Bệnh nhân'}
                   </span>
-                  <span className="material-symbols-outlined text-base text-slate-400">expand_more</span>
+                  <span className="material-symbols-outlined text-base text-slate-400">
+                    expand_more
+                  </span>
                 </button>
 
                 {isDropdownOpen && (
@@ -84,7 +91,9 @@ export function PatientNavbar() {
                         <p className="text-xs uppercase tracking-[0.14em] text-slate-400">
                           Tài khoản bệnh nhân
                         </p>
-                        <p className="mt-1 truncate text-sm font-semibold text-slate-900">{user?.phone}</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                          {user?.phone}
+                        </p>
                       </div>
                       <div className="mt-2 space-y-1">
                         <MenuLink
@@ -114,7 +123,9 @@ export function PatientNavbar() {
                           }}
                           className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                         >
-                          <span className="material-symbols-outlined text-lg text-red-400">logout</span>
+                          <span className="material-symbols-outlined text-lg text-red-400">
+                            logout
+                          </span>
                           <span>Đăng xuất</span>
                         </button>
                       </div>

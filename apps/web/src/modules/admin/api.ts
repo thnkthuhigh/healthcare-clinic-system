@@ -1,6 +1,7 @@
 import type {
   AdminAssetDto,
   AdminDoctorDto,
+  AdminDoctorTotpSetup,
   AdminMedicationDto,
   AdminPatientDto,
   AdminPrescriptionTemplateDto,
@@ -51,6 +52,22 @@ import type {
 } from './types';
 
 const API_BASE = 'http://localhost:4000/api/v1/admin';
+
+type PaymentRedirectResponse = {
+  gateway: string;
+  paymentUrl: string;
+  expiresAt: string;
+};
+
+type VnpayMerchantResponse = {
+  command: string;
+  responseOk: boolean;
+  signatureValid: boolean;
+  responseCode: string | null;
+  transactionStatus: string | null;
+  message: string;
+  raw: Record<string, string>;
+};
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('clinic_token');
@@ -186,6 +203,42 @@ export const adminApi = {
       body: JSON.stringify({ method }),
     }),
 
+  createCashierVnpayPayment: (bookingId: string) =>
+    fetchApi<PaymentRedirectResponse>(`${API_BASE}/cashier/pay/${bookingId}/vnpay`, {
+      method: 'POST',
+    }),
+
+  queryVnpayTransaction: (data: {
+    txnRef: string;
+    transactionDate?: string;
+    transactionNo?: string;
+    orderInfo?: string;
+  }) =>
+    fetchApi<VnpayMerchantResponse>(
+      'http://localhost:4000/api/v1/payments/vnpay/transactions/query',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
+  refundVnpayTransaction: (data: {
+    txnRef: string;
+    transactionDate?: string;
+    amountCents: number;
+    transactionType: '02' | '03';
+    transactionNo?: string;
+    orderInfo?: string;
+    createBy?: string;
+  }) =>
+    fetchApi<VnpayMerchantResponse>(
+      'http://localhost:4000/api/v1/payments/vnpay/transactions/refund',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+
   removePrescriptionItem: (bookingId: string, itemId: string) =>
     fetchApi<CashierBooking>(`${API_BASE}/cashier/bookings/${bookingId}/items/${itemId}`, {
       method: 'DELETE',
@@ -211,6 +264,14 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  issueDoctorTotpSetup: (id: string, regenerate = false) =>
+    fetchApi<AdminDoctorTotpSetup>(
+      `${API_BASE}/doctors/${id}/totp/setup${regenerate ? '?regenerate=true' : ''}`,
+      {
+        method: 'POST',
+      },
+    ),
 
   updateDoctor: (id: string, data: UpdateDoctorRequest) =>
     fetchApi<AdminDoctorDto>(`${API_BASE}/doctors/${id}`, {

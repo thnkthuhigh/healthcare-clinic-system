@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +31,7 @@ import java.util.UUID;
 @Transactional
 public class CustomerBookingService {
     private static final ZoneId CLINIC_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm").withZone(CLINIC_ZONE);
 
     private final DoctorRepository doctorRepository;
     private final ShiftRepository shiftRepository;
@@ -110,13 +112,14 @@ public class CustomerBookingService {
         return shifts.stream()
                 .map(shift -> {
                     long available = slotRepository.countOpenCommonSlots(shift.getId());
+                String timeRange = TIME_FORMATTER.format(shift.getStartTime()) + " - " + TIME_FORMATTER.format(shift.getEndTime());
                     return new AvailableShiftDto(
                             shift.getId(),
                             shift.getDate(),
                             shift.getType(),
                             shift.getStartTime(),
                             shift.getEndTime(),
-                            shift.getTimeRange(),
+                    timeRange,
                             shift.getStatus(),
                             available,
                             available == 0);
@@ -207,6 +210,26 @@ public class CustomerBookingService {
         booking.setBookingFeeCents(1_000_000);
         booking.setBookingFeePaidAt(Instant.now());
         booking.setBookingFeePaymentMethod(method != null ? method : Booking.PaymentMethod.QR);
+        bookingRepository.save(booking);
+
+        return toTicketDto(booking);
+    }
+
+    public BookingTicketDto processBookingFeeFromGateway(UUID bookingId, Instant paidAt) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "KhĂ´ng tĂ¬m tháº¥y lá»‹ch khĂ¡m"));
+
+        if (booking.getBookingFeePaidAt() != null) {
+            return toTicketDto(booking);
+        }
+
+        if (booking.getStatus() == Booking.BookingStatus.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lá»‹ch háº¹n Ä‘Ă£ bá»‹ há»§y");
+        }
+
+        booking.setBookingFeeCents(1_000_000);
+        booking.setBookingFeePaidAt(paidAt != null ? paidAt : Instant.now());
+        booking.setBookingFeePaymentMethod(Booking.PaymentMethod.VNPAY);
         bookingRepository.save(booking);
 
         return toTicketDto(booking);

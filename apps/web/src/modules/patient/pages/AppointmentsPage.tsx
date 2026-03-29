@@ -110,7 +110,11 @@ function buildActualWindow(booking: PatientBooking) {
   return booking.timeRange;
 }
 
-function toBookingTicket(booking: PatientBooking, patientName: string, phone: string): BookingTicket {
+function toBookingTicket(
+  booking: PatientBooking,
+  patientName: string,
+  phone: string,
+): BookingTicket {
   return {
     bookingId: booking.bookingId,
     queueNumber: booking.queueNumber,
@@ -232,7 +236,9 @@ function BookingAppointmentCard({
                 {cfg.label}
               </span>
             </div>
-            {booking.specialty && <p className="mt-1 text-xs text-slate-500">{booking.specialty}</p>}
+            {booking.specialty && (
+              <p className="mt-1 text-xs text-slate-500">{booking.specialty}</p>
+            )}
           </div>
         </div>
 
@@ -272,7 +278,9 @@ function BookingAppointmentCard({
         </span>
         {booking.serviceName && (
           <span className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-base text-slate-400">medical_services</span>
+            <span className="material-symbols-outlined text-base text-slate-400">
+              medical_services
+            </span>
             {booking.serviceName}
           </span>
         )}
@@ -294,7 +302,8 @@ function BookingAppointmentCard({
           </p>
           {cancelMutation.isError && (
             <p className="mt-3 rounded-xl bg-red-100 p-2 text-xs text-red-700">
-              {(cancelMutation.error as Error)?.message ?? 'Hủy lịch thất bại, vui lòng thử lại sau.'}
+              {(cancelMutation.error as Error)?.message ??
+                'Hủy lịch thất bại, vui lòng thử lại sau.'}
             </p>
           )}
           <div className="mt-3 flex gap-2">
@@ -367,7 +376,11 @@ function PhoneLookupPanel({ onLookup }: { onLookup: (phone: string) => void }) {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4" data-testid="patient-appointments-lookup-form">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-5 space-y-4"
+          data-testid="patient-appointments-lookup-form"
+        >
           <div>
             <label className="field-label">Số điện thoại</label>
             <input
@@ -391,15 +404,21 @@ function PhoneLookupPanel({ onLookup }: { onLookup: (phone: string) => void }) {
         <div className="mt-4 space-y-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-950">Mở phiếu khám</p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Xem lại mã QR và thông tin check-in.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Xem lại mã QR và thông tin check-in.
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-950">Theo dõi trạng thái</p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Biết lịch đang chờ, đang khám hay đã hoàn tất.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Biết lịch đang chờ, đang khám hay đã hoàn tất.
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-950">Hủy lịch khi còn hạn</p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Chỉ áp dụng cho lịch chưa bắt đầu và đủ điều kiện.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Chỉ áp dụng cho lịch chưa bắt đầu và đủ điều kiện.
+            </p>
           </div>
         </div>
       </aside>
@@ -496,7 +515,8 @@ export function AppointmentsPage() {
             <span className="material-symbols-outlined text-4xl text-slate-300">person_off</span>
             <h3 className="mt-3 font-semibold text-slate-900">Không tìm thấy hồ sơ</h3>
             <p className="mt-2 text-sm text-slate-600">
-              Số điện thoại <strong>{phone}</strong> chưa có lịch hẹn hoặc chưa được đăng ký tại phòng khám.
+              Số điện thoại <strong>{phone}</strong> chưa có lịch hẹn hoặc chưa được đăng ký tại
+              phòng khám.
             </p>
             <button onClick={handleReset} className="btn-secondary mt-5">
               Thử lại với số khác
@@ -572,7 +592,9 @@ export function AppointmentsPage() {
 
             {!bookingsQuery.isLoading && sortedBookings.length === 0 && (
               <div className="clinic-empty">
-                <span className="material-symbols-outlined text-6xl text-slate-300">event_busy</span>
+                <span className="material-symbols-outlined text-6xl text-slate-300">
+                  event_busy
+                </span>
                 <p className="mt-4 text-lg font-medium text-slate-700">Chưa có lịch hẹn nào</p>
                 <p className="mt-2 text-sm text-slate-500">
                   Bắt đầu bằng cách đặt lịch khám với bác sĩ hoặc dịch vụ phù hợp.

@@ -16,6 +16,31 @@ const SHIFT_LABELS: Record<string, string> = {
   AFTERNOON: 'Buổi chiều',
 };
 
+const DEFAULT_SHIFT_RANGES: Record<string, string> = {
+  MORNING: '07:00 - 12:00',
+  AFTERNOON: '13:00 - 18:00',
+};
+
+function formatClockUtc7(iso: string): string {
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(dt);
+}
+
+function resolveShiftTimeRange(shift: AvailableShift): string {
+  const start = shift.startTime ? formatClockUtc7(shift.startTime) : '';
+  const end = shift.endTime ? formatClockUtc7(shift.endTime) : '';
+
+  if (start && end) return `${start} - ${end}`;
+  if (shift.timeRange?.trim()) return shift.timeRange;
+  return DEFAULT_SHIFT_RANGES[shift.type] ?? '--:-- - --:--';
+}
+
 export function ShiftPicker({
   selectedDate,
   onDateChange,
@@ -115,7 +140,7 @@ export function ShiftPicker({
                       >
                         {SHIFT_LABELS[shift.type] ?? shift.type}
                       </p>
-                      <p className="mt-1 text-sm text-slate-500">{shift.timeRange}</p>
+                      <p className="mt-1 text-sm text-slate-500">{resolveShiftTimeRange(shift)}</p>
                     </div>
                   </div>
 

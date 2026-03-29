@@ -1,0 +1,6 @@
+DO $$
+BEGIN
+  ALTER TYPE payment_method ADD VALUE IF NOT EXISTS 'VNPAY';
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;

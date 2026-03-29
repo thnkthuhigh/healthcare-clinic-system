@@ -43,4 +43,3 @@ test.describe('Admin Module', () => {
     await expect(page.getByTestId('auth-login-form')).toBeVisible();
   });
 });
-

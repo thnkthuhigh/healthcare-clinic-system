@@ -58,7 +58,7 @@ export interface BookingTicket {
   bookingFeeCents: number;
   bookingFeePaid: boolean;
   bookingFeePaidAt: string | null;
-  bookingFeePaymentMethod: 'QR' | 'CASH' | null;
+  bookingFeePaymentMethod: 'QR' | 'CASH' | 'VNPAY' | null;
 }
 
 export interface PatientSummary {
@@ -124,7 +124,7 @@ export interface PatientBooking {
   bookingFeeCents: number;
   bookingFeePaid: boolean;
   bookingFeePaidAt: string | null;
-  bookingFeePaymentMethod: 'QR' | 'CASH' | null;
+  bookingFeePaymentMethod: 'QR' | 'CASH' | 'VNPAY' | null;
   followUp: boolean;
   followUpSourceBookingId: string | null;
   followUpScheduledAt: string | null;

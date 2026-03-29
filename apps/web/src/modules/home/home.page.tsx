@@ -170,14 +170,8 @@ export function HomePage() {
     queryFn: customerApi.getServices,
   });
 
-  const publicDoctors = useMemo(
-    () => doctors.filter(isPublicDoctor).slice(0, 4),
-    [doctors],
-  );
-  const publicServices = useMemo(
-    () => services.filter(isPublicService).slice(0, 6),
-    [services],
-  );
+  const publicDoctors = useMemo(() => doctors.filter(isPublicDoctor).slice(0, 4), [doctors]);
+  const publicServices = useMemo(() => services.filter(isPublicService).slice(0, 6), [services]);
 
   return (
     <div className="clinic-page" data-testid="public-home-page">
@@ -244,11 +238,18 @@ export function HomePage() {
           />
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {publicServices.map((service) => (
-              <article key={service.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <article
+                key={service.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
                 <h3 className="text-base font-semibold text-slate-950">{service.name}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{serviceSummary(service.name)}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {serviceSummary(service.name)}
+                </p>
                 <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-primary">{formatVnd(service.priceCents)}</p>
+                  <p className="text-sm font-semibold text-primary">
+                    {formatVnd(service.priceCents)}
+                  </p>
                   <Link to={`/booking?serviceId=${service.id}`} className="btn-primary px-4 py-2.5">
                     Đặt lịch
                   </Link>
@@ -272,10 +273,7 @@ export function HomePage() {
         </section>
 
         <section className="clinic-card p-6 sm:p-8">
-          <SectionHeading
-            eyebrow="Quy trình khám"
-            title="Đi khám đơn giản với 3 bước rõ ràng"
-          />
+          <SectionHeading eyebrow="Quy trình khám" title="Đi khám đơn giản với 3 bước rõ ràng" />
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {PROCESS_STEPS.map((item) => (
               <div key={item.step} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">

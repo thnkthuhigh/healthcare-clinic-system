@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "mvn clean spring-boot:run",
+    "dev": "node scripts/dev-with-env.mjs",
     "build": "mvn -DskipTests package",
     "test": "mvn test"
   }

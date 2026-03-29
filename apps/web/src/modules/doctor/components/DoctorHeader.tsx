@@ -1,6 +1,11 @@
 import { formatDateUtc7 } from '../../../lib/time';
 
-export function DoctorHeader() {
+interface DoctorHeaderProps {
+  isSidebarVisible: boolean;
+  onToggleSidebar: () => void;
+}
+
+export function DoctorHeader({ isSidebarVisible, onToggleSidebar }: DoctorHeaderProps) {
   const current = {
     title: 'Khu vực bác sĩ',
     icon: 'stethoscope',
@@ -16,6 +21,17 @@ export function DoctorHeader() {
   return (
     <header className="ops-header" data-testid="doctor-header">
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100"
+          title={isSidebarVisible ? 'Ẩn menu trái' : 'Hiện menu trái'}
+          data-testid="doctor-sidebar-toggle"
+        >
+          <span className="material-symbols-outlined text-[20px]">
+            {isSidebarVisible ? 'left_panel_close' : 'left_panel_open'}
+          </span>
+        </button>
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <span className="material-symbols-outlined text-[20px]">{current.icon}</span>
         </div>

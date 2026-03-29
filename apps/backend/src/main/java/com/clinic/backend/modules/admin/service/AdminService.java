@@ -23,63 +23,52 @@ public class AdminService {
     public DashboardStatsResponse getDashboardStats(LocalDate date) {
         DashboardStatsResponse stats = new DashboardStatsResponse();
 
-        // Total patients for date (count bookings for shifts on that date)
-        Query totalQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id WHERE s.date = :date");
-        totalQ.setParameter("date", date);
-        stats.setTodayPatients(((Number) totalQ.getSingleResult()).longValue());
+        Object[] bookingStats = (Object[]) em.createNativeQuery("""
+                SELECT
+                  COUNT(*) AS total_bookings,
+                  COUNT(*) FILTER (
+                    WHERE b.status IN ('CHECKED_IN', 'WAITING', 'PENDING_LAB', 'RESULTS_READY')
+                  ) AS waiting_count,
+                  COUNT(*) FILTER (WHERE b.status = 'IN_CONSULTATION') AS in_consultation_count,
+                  COUNT(*) FILTER (WHERE b.status = 'COMPLETED') AS completed_count,
+                  COUNT(*) FILTER (
+                    WHERE b.status = 'COMPLETED' AND b.payment_status = 'UNPAID'
+                  ) AS unpaid_count,
+                  COUNT(*) FILTER (WHERE b.channel = 'WEB') AS web_count,
+                  COUNT(*) FILTER (WHERE b.channel = 'WALK_IN') AS walk_in_count
+                FROM bookings b
+                JOIN shifts s ON b.shift_id = s.id
+                WHERE s.date = :date
+                """)
+            .setParameter("date", date)
+            .getSingleResult();
 
-        // Waiting (CHECKED_IN + WAITING)
-        Query waitingQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND b.status IN ('CHECKED_IN', 'WAITING')");
-        waitingQ.setParameter("date", date);
-        stats.setWaitingCount(((Number) waitingQ.getSingleResult()).longValue());
+        stats.setTodayPatients(((Number) bookingStats[0]).longValue());
+        stats.setWaitingCount(((Number) bookingStats[1]).longValue());
+        stats.setInConsultationCount(((Number) bookingStats[2]).longValue());
+        stats.setCompletedCount(((Number) bookingStats[3]).longValue());
+        stats.setUnpaidCount(((Number) bookingStats[4]).longValue());
+        stats.setWebBookings(((Number) bookingStats[5]).longValue());
+        stats.setWalkInBookings(((Number) bookingStats[6]).longValue());
 
-        // In consultation
-        Query consultQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND b.status = 'IN_CONSULTATION'");
-        consultQ.setParameter("date", date);
-        stats.setInConsultationCount(((Number) consultQ.getSingleResult()).longValue());
-
-        // Completed
-        Query completedQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND b.status = 'COMPLETED'");
-        completedQ.setParameter("date", date);
-        stats.setCompletedCount(((Number) completedQ.getSingleResult()).longValue());
-
-        // Unpaid (COMPLETED but payment UNPAID)
-        Query unpaidQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND b.status = 'COMPLETED' AND b.payment_status = 'UNPAID'");
-        unpaidQ.setParameter("date", date);
-        stats.setUnpaidCount(((Number) unpaidQ.getSingleResult()).longValue());
-
-        // Revenue (sum of paid prescriptions for today's bookings)
-        Query revenueQ = em.createNativeQuery(
-            "SELECT COALESCE(SUM(pi.unit_price_cents * pi.qty), 0) " +
-            "FROM prescription_items pi " +
-            "JOIN prescriptions p ON pi.prescription_id = p.id " +
-            "JOIN bookings b ON p.booking_id = b.id " +
-            "JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND p.status = 'PAID'");
+        Query revenueQ = em.createNativeQuery("""
+                SELECT
+                  COALESCE((
+                    SELECT SUM(fl.amount_cents)
+                    FROM finance_ledger fl
+                    WHERE fl.entry_date = :date
+                      AND fl.entry_type = 'INCOME'
+                  ), 0)
+                  +
+                  COALESCE((
+                    SELECT SUM(b.booking_fee_cents)
+                    FROM bookings b
+                    WHERE b.booking_fee_paid_at IS NOT NULL
+                      AND CAST(timezone('Asia/Ho_Chi_Minh', b.booking_fee_paid_at) AS date) = :date
+                  ), 0)
+                """);
         revenueQ.setParameter("date", date);
         stats.setRevenue(((Number) revenueQ.getSingleResult()).longValue());
-
-        // Channel stats
-        Query webQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND b.channel = 'WEB'");
-        webQ.setParameter("date", date);
-        stats.setWebBookings(((Number) webQ.getSingleResult()).longValue());
-
-        Query walkInQ = em.createNativeQuery(
-            "SELECT COUNT(*) FROM bookings b JOIN shifts s ON b.shift_id = s.id " +
-            "WHERE s.date = :date AND b.channel = 'WALK_IN'");
-        walkInQ.setParameter("date", date);
-        stats.setWalkInBookings(((Number) walkInQ.getSingleResult()).longValue());
 
         return stats;
     }

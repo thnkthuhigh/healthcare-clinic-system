@@ -38,7 +38,15 @@ async function waitForPostgres(timeoutMs = 90_000) {
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      runCommand('docker', ['exec', DB_CONTAINER, 'pg_isready', '-U', 'postgres', '-d', 'clinic_dev']);
+      runCommand('docker', [
+        'exec',
+        DB_CONTAINER,
+        'pg_isready',
+        '-U',
+        'postgres',
+        '-d',
+        'clinic_dev',
+      ]);
       return;
     } catch {
       await delay(1_500);

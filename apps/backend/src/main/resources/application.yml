@@ -10,6 +10,23 @@ app:
   owner:
     phone: ${OWNER_PHONE:0900000000}
     password: ${OWNER_PASSWORD:owner123}
+  sms:
+    provider: ${SMS_PROVIDER:none}
+    brand-name: ${SMS_BRAND_NAME:Healthcare Clinic}
+    default-country-code: ${SMS_DEFAULT_COUNTRY_CODE:84}
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      from-number: ${TWILIO_FROM_NUMBER:}
+  vnpay:
+    tmn-code: ${VNPAY_TMN_CODE:}
+    hash-secret: ${VNPAY_HASH_SECRET:}
+    payment-url: ${VNPAY_PAYMENT_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+    api-url: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+    return-url: ${VNPAY_RETURN_URL:http://localhost:4000/api/v1/payments/vnpay/return}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+    expire-minutes: ${VNPAY_EXPIRE_MINUTES:15}
+    mock-enabled: ${VNPAY_MOCK_ENABLED:true}
   demo:
     refresh-on-startup: ${APP_DEMO_REFRESH_ON_STARTUP:false}
 
@@ -43,6 +60,9 @@ spring:
           time_zone: Asia/Ho_Chi_Minh
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

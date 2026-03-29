@@ -11,6 +11,12 @@ import type {
 
 const API_BASE = 'http://localhost:4000/api/customer';
 
+type PaymentRedirectResponse = {
+  gateway: string;
+  paymentUrl: string;
+  expiresAt: string;
+};
+
 type FetchApiOptions = RequestInit & {
   withAuth?: boolean;
 };
@@ -68,6 +74,11 @@ export const customerApi = {
     fetchApi<BookingTicket>(`${API_BASE}/bookings/${bookingId}/pay`, {
       method: 'POST',
       body: JSON.stringify({ method }),
+    }),
+
+  createBookingFeeVnpayPayment: (bookingId: string) =>
+    fetchApi<PaymentRedirectResponse>(`${API_BASE}/bookings/${bookingId}/pay/vnpay`, {
+      method: 'POST',
     }),
 
   getBookingTicket: (bookingId: string) =>

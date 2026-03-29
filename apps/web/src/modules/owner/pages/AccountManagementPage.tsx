@@ -174,7 +174,9 @@ export function AccountManagementPage() {
                       className="transition-colors hover:bg-slate-50"
                       data-testid={`owner-account-row-${account.id}`}
                     >
-                      <td className="px-4 py-3 font-medium text-slate-900">{account.fullName || '—'}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        {account.fullName || '—'}
+                      </td>
                       <td className="px-4 py-3 text-slate-600">{account.phone}</td>
                       <td className="px-4 py-3">
                         <span
@@ -215,7 +217,9 @@ export function AccountManagementPage() {
                               </span>
                             </button>
                             <button
-                              onClick={() => setResetModal({ userId: account.id, phone: account.phone })}
+                              onClick={() =>
+                                setResetModal({ userId: account.id, phone: account.phone })
+                              }
                               title="Đặt lại mật khẩu"
                               className="rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600"
                               data-testid={`owner-account-open-reset-${account.id}`}
@@ -301,12 +305,19 @@ function CreateAccountModal({
       <div className="clinic-card w-full max-w-lg p-0">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">Tạo tài khoản mới</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-6" data-testid="owner-create-account-form">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 p-6"
+          data-testid="owner-create-account-form"
+        >
           {error && <div className="surface-alert">{error}</div>}
 
           <div>
@@ -442,14 +453,19 @@ function ResetPasswordModal({
       <div className="clinic-card w-full max-w-md p-0">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">Đặt lại mật khẩu</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         {success ? (
           <div className="p-6 text-center">
-            <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
+            <span className="material-symbols-outlined text-5xl text-emerald-500">
+              check_circle
+            </span>
             <p className="mt-3 text-sm font-medium text-slate-700">
               Đã đặt lại mật khẩu cho <strong>{phone}</strong>
             </p>

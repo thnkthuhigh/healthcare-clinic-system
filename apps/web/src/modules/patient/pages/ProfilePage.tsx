@@ -78,7 +78,8 @@ export function ProfilePage() {
             <span className="material-symbols-outlined text-5xl text-slate-300">person_off</span>
             <h2 className="mt-4 text-xl font-semibold text-slate-950">Chưa đăng nhập</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Đăng nhập để xem thông tin tài khoản, hoặc dùng trang tra cứu nếu bạn cần mở lại hồ sơ khám bằng số điện thoại.
+              Đăng nhập để xem thông tin tài khoản, hoặc dùng trang tra cứu nếu bạn cần mở lại hồ sơ
+              khám bằng số điện thoại.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link to="/login" className="btn-primary">
@@ -131,11 +132,17 @@ export function ProfilePage() {
 
               <div className="clinic-grid mt-5 sm:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Số điện thoại</p>
-                  <p className="mt-2 font-semibold text-slate-800">{patientQuery.data?.phone ?? phone}</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">
+                    Số điện thoại
+                  </p>
+                  <p className="mt-2 font-semibold text-slate-800">
+                    {patientQuery.data?.phone ?? phone}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">CCCD / Hộ chiếu</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">
+                    CCCD / Hộ chiếu
+                  </p>
                   <p className="mt-2 font-semibold text-slate-800">
                     {patientQuery.data?.nationalId ?? 'Chưa cập nhật'}
                   </p>

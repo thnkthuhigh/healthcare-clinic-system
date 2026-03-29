@@ -7,7 +7,14 @@ interface RatingModalProps {
   onClose: () => void;
 }
 
-const RATING_LABELS = ['', 'Rất chưa hài lòng', 'Chưa hài lòng', 'Bình thường', 'Hài lòng', 'Rất hài lòng'];
+const RATING_LABELS = [
+  '',
+  'Rất chưa hài lòng',
+  'Chưa hài lòng',
+  'Bình thường',
+  'Hài lòng',
+  'Rất hài lòng',
+];
 
 export function RatingModal({ doctorName, onSubmit, onClose }: RatingModalProps) {
   const [stars, setStars] = useState(0);

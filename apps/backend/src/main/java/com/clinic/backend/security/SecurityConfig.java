@@ -38,6 +38,11 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/health").permitAll()
+                .requestMatchers(
+                        "/api/v1/payments/vnpay/return",
+                        "/api/v1/payments/vnpay/ipn",
+                        "/api/v1/payments/vnpay/mock/complete"
+                ).permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -48,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/customer/services").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/customer/bookings").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/customer/bookings/*/pay").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/customer/bookings/*/pay/vnpay").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/customer/bookings/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/customer/patients/lookup").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/customer/patients/*/bookings").permitAll()

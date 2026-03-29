@@ -24,4 +24,3 @@ test.describe('Access Control', () => {
     await expect(page.getByTestId('doctor-layout')).toBeVisible();
   });
 });
-

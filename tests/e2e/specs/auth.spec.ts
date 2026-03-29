@@ -29,7 +29,10 @@ test.describe('Auth Flows', () => {
     await expect(page.getByTestId('auth-register-success')).toBeVisible();
   });
 
-  test('forgot password flow with OTP from postgres works end-to-end', async ({ page, request }) => {
+  test('forgot password flow with OTP from postgres works end-to-end', async ({
+    page,
+    request,
+  }) => {
     const phone = uniquePhone('095');
     const oldPassword = 'Initial@123';
     const newPassword = 'Updated@123';
@@ -76,4 +79,3 @@ test.describe('Auth Flows', () => {
     await expect(page.getByTestId('admin-layout')).toBeVisible();
   });
 });
-

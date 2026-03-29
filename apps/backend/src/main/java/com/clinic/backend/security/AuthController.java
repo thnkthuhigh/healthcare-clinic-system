@@ -54,25 +54,35 @@ public class AuthController {
 
     @Operation(summary = "Send reset OTP", description = "Gửi mã OTP để đặt lại mật khẩu (demo: logs OTP if email not configured)")
     @PostMapping("/forgot/send-otp")
-    public ResponseEntity<Void> sendResetOtp(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> sendResetOtp(@RequestBody Map<String, String> body) {
         String phone = body.get("phone");
         if (phone == null || phone.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        authService.sendResetOtp(phone);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(authService.sendResetOtp(phone));
     }
 
-    @Operation(summary = "Reset password using OTP", description = "Xác minh OTP và đặt lại mật khẩu")
+    @Operation(summary = "Verify reset challenge", description = "Xác minh OTP/TOTP và lấy reset token ngắn hạn")
+    @PostMapping("/forgot/verify")
+    public ResponseEntity<Map<String, String>> verifyResetOtp(@RequestBody Map<String, String> body) {
+        String phone = body.get("phone");
+        String otp = body.get("otp");
+        if (phone == null || otp == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(authService.verifyResetChallenge(phone, otp));
+    }
+
+    @Operation(summary = "Reset password using reset token", description = "Dùng reset token ngắn hạn để đặt lại mật khẩu")
     @PostMapping("/forgot/reset")
     public ResponseEntity<Void> resetPassword(@RequestBody Map<String, String> body) {
         String phone = body.get("phone");
-        String otp = body.get("otp");
+        String resetToken = body.get("resetToken");
         String newPassword = body.get("newPassword");
-        if (phone == null || otp == null || newPassword == null) {
+        if (phone == null || resetToken == null || newPassword == null) {
             return ResponseEntity.badRequest().build();
         }
-        authService.resetPassword(phone, otp, newPassword);
+        authService.resetPassword(phone, resetToken, newPassword);
         return ResponseEntity.ok().build();
     }
 }

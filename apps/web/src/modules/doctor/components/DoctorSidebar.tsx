@@ -6,6 +6,7 @@ interface SidebarProps {
   doctorName: string;
   specialty?: string;
   avatarUrl?: string;
+  isVisible?: boolean;
 }
 
 const mainNavItems = [
@@ -24,7 +25,12 @@ function navIdFromPath(path: string) {
   return slug || 'dashboard';
 }
 
-export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps) {
+export function DoctorSidebar({
+  doctorName,
+  specialty,
+  avatarUrl,
+  isVisible = true,
+}: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -37,6 +43,10 @@ export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps
     logout();
     navigate('/login', { replace: true });
   };
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <aside className="ops-sidebar" data-testid="doctor-sidebar">
@@ -66,7 +76,10 @@ export function DoctorSidebar({ doctorName, specialty, avatarUrl }: SidebarProps
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4" data-testid="doctor-nav">
+      <nav
+        className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4"
+        data-testid="doctor-nav"
+      >
         <p className="ops-section-label px-2 pb-1">Điều hướng</p>
         {allNavItems.map((item) => {
           const isActive = location.pathname.startsWith(item.path);

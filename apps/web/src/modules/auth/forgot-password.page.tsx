@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { AuthShell } from '../../components/ClinicUI';
+import { OtpCodeInput } from '../../components/OtpCodeInput';
 
 import { authApi } from './auth.api';
+import type { ForgotPasswordChallenge } from './auth.types';
 
 type Step = 'phone' | 'otp' | 'new-password' | 'success';
 
 const STEPS = [
-  { key: 'phone', label: 'Số điện thoại' },
-  { key: 'otp', label: 'Xác minh OTP' },
-  { key: 'new-password', label: 'Mật khẩu mới' },
+  { key: 'phone', label: 'So dien thoai' },
+  { key: 'otp', label: 'Ma xac thuc' },
+  { key: 'new-password', label: 'Mat khau moi' },
 ] as const;
 
 function getStepIndex(step: Step) {
@@ -22,8 +24,10 @@ export function ForgotPasswordPage() {
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [challenge, setChallenge] = useState<ForgotPasswordChallenge | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -31,72 +35,89 @@ export function ForgotPasswordPage() {
   const navigate = useNavigate();
 
   const currentIndex = getStepIndex(step);
+  const isDoctorTotp = challenge?.method === 'TOTP';
 
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePhoneSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
 
     if (!/^0[0-9]{9}$/.test(phone)) {
-      setError('Số điện thoại không hợp lệ, ví dụ 0912345678.');
+      setError('So dien thoai khong hop le, vi du 0912345678.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await authApi.sendResetOtp(phone);
+      const nextChallenge = await authApi.sendResetOtp(phone);
+      setChallenge(nextChallenge);
+      setOtp('');
+      setResetToken('');
       setStep('otp');
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 900));
-      setStep('otp');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Khong the bat dau quy trinh khoi phuc.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOtpSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
+    if (otp.length !== 6) {
+      setError('Vui long nhap du 6 chu so.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await authApi.resetPassword(phone, otp, '__verify_only__');
+      const verification = await authApi.verifyResetOtp(phone, otp);
+      setResetToken(verification.resetToken);
       setStep('new-password');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Mã OTP không đúng hoặc đã hết hạn.');
+      setError(err instanceof Error ? err.message : 'Ma xac thuc khong dung hoac da het han.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePasswordSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
 
     if (newPassword.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự.');
+      setError('Mat khau phai co it nhat 6 ky tu.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
+      setError('Mat khau xac nhan khong khop.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await authApi.resetPassword(phone, otp, newPassword);
+      await authApi.resetPassword(phone, resetToken, newPassword);
       setStep('success');
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại.');
+      setError(err instanceof Error ? err.message : 'Dat lai mat khau that bai.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetToPhoneStep = () => {
+    setStep('phone');
+    setChallenge(null);
+    setOtp('');
+    setResetToken('');
+    setError('');
   };
 
   return (
     <AuthShell
       icon="lock_reset"
-      title="Khôi phục mật khẩu"
-      description="Xác minh số điện thoại và cập nhật lại mật khẩu cho tài khoản đã đăng ký."
+      title="Khoi phuc mat khau"
+      description="Bac si dung ma TOTP 6 so trong app xac thuc da quet tu QR do admin hoac owner cap."
     >
       {step !== 'success' && (
         <div className="mb-6 flex items-center">
@@ -122,10 +143,14 @@ export function ForgotPasswordPage() {
                       index + 1
                     )}
                   </div>
-                  <span className="mt-1.5 whitespace-nowrap text-[11px] text-slate-500">{item.label}</span>
+                  <span className="mt-1.5 whitespace-nowrap text-[11px] text-slate-500">
+                    {item.label}
+                  </span>
                 </div>
                 {index < STEPS.length - 1 && (
-                  <div className={`mx-2 mb-4 h-px flex-1 ${isDone ? 'bg-primary' : 'bg-slate-200'}`} />
+                  <div
+                    className={`mx-2 mb-4 h-px flex-1 ${isDone ? 'bg-primary' : 'bg-slate-200'}`}
+                  />
                 )}
               </div>
             );
@@ -143,16 +168,21 @@ export function ForgotPasswordPage() {
       )}
 
       {step === 'phone' && (
-        <form onSubmit={handlePhoneSubmit} className="space-y-5" data-testid="auth-forgot-phone-form">
+        <form
+          onSubmit={handlePhoneSubmit}
+          className="space-y-5"
+          data-testid="auth-forgot-phone-form"
+        >
           <p className="text-sm leading-6 text-slate-600">
-            Nhập số điện thoại đã đăng ký. Hệ thống sẽ gửi mã OTP để xác minh yêu cầu khôi phục mật khẩu.
+            Nhap so dien thoai da dang ky. Neu day la tai khoan bac si, he thong se yeu cau ma TOTP
+            6 so tu app xac thuc da duoc cap QR truoc do, khong gui SMS.
           </p>
           <div>
-            <label className="field-label">Số điện thoại</label>
+            <label className="field-label">So dien thoai</label>
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(event) => setPhone(event.target.value)}
               placeholder="0912345678"
               autoComplete="tel"
               disabled={isSubmitting}
@@ -169,10 +199,10 @@ export function ForgotPasswordPage() {
             {isSubmitting ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Đang gửi OTP</span>
+                <span>Dang kiem tra</span>
               </>
             ) : (
-              'Gửi OTP'
+              'Tiep tuc'
             )}
           </button>
         </form>
@@ -181,24 +211,30 @@ export function ForgotPasswordPage() {
       {step === 'otp' && (
         <form onSubmit={handleOtpSubmit} className="space-y-5" data-testid="auth-forgot-otp-form">
           <div className="surface-note">
-            <p>
-              Mã OTP đã được gửi tới <span className="font-semibold text-slate-900">{phone}</span>.
+            <p className="font-semibold text-slate-900">{challenge?.message}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {isDoctorTotp
+                ? `Tai khoan bac si ${phone} can ma 6 so tu app xac thuc da quet QR do admin hoac owner cap.`
+                : `Ma OTP da duoc gui toi ${phone}.`}
             </p>
           </div>
-          <div>
-            <label className="field-label">Mã OTP</label>
-            <input
-              type="text"
-              inputMode="numeric"
+
+          <div className="space-y-3">
+            <label className="field-label">{isDoctorTotp ? 'Ma TOTP 6 so' : 'Ma OTP 6 so'}</label>
+            <OtpCodeInput
               value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="000000"
-              maxLength={6}
+              onChange={setOtp}
               disabled={isSubmitting}
-              className="input-field text-center font-mono text-2xl tracking-[0.5em]"
-              data-testid="auth-forgot-otp"
+              autoFocus
+              testId="auth-forgot-otp"
             />
+            <p className="text-xs text-slate-500">
+              {isDoctorTotp
+                ? 'Mo Google Authenticator, Microsoft Authenticator, 1Password, Authy hoac iPhone Passwords de lay ma moi nhat.'
+                : 'Ban co the paste toan bo 6 chu so vao o dau tien.'}
+            </p>
           </div>
+
           <button
             type="submit"
             disabled={otp.length !== 6 || isSubmitting}
@@ -208,22 +244,18 @@ export function ForgotPasswordPage() {
             {isSubmitting ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Đang xác minh</span>
+                <span>Dang xac minh</span>
               </>
             ) : (
-              'Xác nhận OTP'
+              'Xac nhan ma'
             )}
           </button>
           <button
             type="button"
-            onClick={() => {
-              setStep('phone');
-              setOtp('');
-              setError('');
-            }}
+            onClick={resetToPhoneStep}
             className="w-full text-sm text-slate-500 transition-colors hover:text-primary"
           >
-            Nhập lại số điện thoại
+            Nhap lai so dien thoai
           </button>
         </form>
       )}
@@ -234,15 +266,15 @@ export function ForgotPasswordPage() {
           className="space-y-5"
           data-testid="auth-forgot-reset-form"
         >
-          <p className="text-sm text-slate-600">Tạo mật khẩu mới cho tài khoản của bạn.</p>
+          <p className="text-sm text-slate-600">Tao mat khau moi cho tai khoan cua ban.</p>
           <div>
-            <label className="field-label">Mật khẩu mới</label>
+            <label className="field-label">Mat khau moi</label>
             <div className="relative">
               <input
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Nhập mật khẩu mới"
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Nhap mat khau moi"
                 autoComplete="new-password"
                 disabled={isSubmitting}
                 className="input-field pr-11"
@@ -259,17 +291,17 @@ export function ForgotPasswordPage() {
                 </span>
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Tối thiểu 6 ký tự</p>
+            <p className="mt-1 text-xs text-slate-500">Toi thieu 6 ky tu</p>
           </div>
 
           <div>
-            <label className="field-label">Xác nhận mật khẩu</label>
+            <label className="field-label">Xac nhan mat khau</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu"
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Nhap lai mat khau"
                 autoComplete="new-password"
                 disabled={isSubmitting}
                 className="input-field pr-11"
@@ -290,17 +322,17 @@ export function ForgotPasswordPage() {
 
           <button
             type="submit"
-            disabled={!newPassword || !confirmPassword || isSubmitting}
+            disabled={!newPassword || !confirmPassword || !resetToken || isSubmitting}
             className="btn-primary w-full"
             data-testid="auth-forgot-reset-submit"
           >
             {isSubmitting ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Đang cập nhật</span>
+                <span>Dang cap nhat</span>
               </>
             ) : (
-              'Đổi mật khẩu'
+              'Doi mat khau'
             )}
           </button>
         </form>
@@ -311,21 +343,26 @@ export function ForgotPasswordPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
             <span className="material-symbols-outlined text-3xl">check_circle</span>
           </div>
-          <p className="text-lg font-semibold text-slate-900">Đã cập nhật mật khẩu</p>
-          <p className="text-sm text-slate-600">Hệ thống sẽ chuyển bạn về màn đăng nhập sau ít giây.</p>
+          <p className="text-lg font-semibold text-slate-900">Da cap nhat mat khau</p>
+          <p className="text-sm text-slate-600">
+            He thong se chuyen ban ve man dang nhap sau it giay.
+          </p>
         </div>
       )}
 
       <div className="mt-6 space-y-2 text-center text-sm">
         <p className="text-slate-600">
-          Đã nhớ mật khẩu?{' '}
+          Da nho mat khau?{' '}
           <Link to="/login" className="font-semibold text-primary hover:underline">
-            Đăng nhập
+            Dang nhap
           </Link>
         </p>
-        <Link to="/" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+        >
           <span className="material-symbols-outlined text-base">arrow_back</span>
-          <span>Về trang công khai</span>
+          <span>Ve trang cong khai</span>
         </Link>
       </div>
     </AuthShell>

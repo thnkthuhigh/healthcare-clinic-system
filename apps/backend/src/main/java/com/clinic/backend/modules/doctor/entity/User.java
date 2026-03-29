@@ -35,6 +35,12 @@ public class User {
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "totp_secret")
+    private String totpSecret;
+
+    @Column(name = "totp_confirmed_at")
+    private Instant totpConfirmedAt;
+
     public enum UserRole {
         OWNER, ADMIN, RECEPTIONIST, CASHIER, DOCTOR, PATIENT
     }
@@ -67,4 +73,10 @@ public class User {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getTotpSecret() { return totpSecret; }
+    public void setTotpSecret(String totpSecret) { this.totpSecret = totpSecret; }
+
+    public Instant getTotpConfirmedAt() { return totpConfirmedAt; }
+    public void setTotpConfirmedAt(Instant totpConfirmedAt) { this.totpConfirmedAt = totpConfirmedAt; }
 }

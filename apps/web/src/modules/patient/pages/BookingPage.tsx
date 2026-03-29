@@ -67,6 +67,20 @@ function inferServiceForDoctor(
   return byPreferred;
 }
 
+function getReadablePaymentError(error: Error): string {
+  const message = error.message ?? '';
+
+  if (message.includes('VNPAY chua duoc cau hinh')) {
+    return 'VNPAY chưa được cấu hình ở backend. Cần thêm TMN code và hash secret sandbox trước khi thanh toán.';
+  }
+
+  if (message.includes('Failed to fetch')) {
+    return 'Không kết nối được backend để tạo giao dịch VNPAY.';
+  }
+
+  return message;
+}
+
 export function BookingPage() {
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
@@ -76,7 +90,6 @@ export function BookingPage() {
   const [patientInfo, setPatientInfo] = useState<PatientInfoFormValues | null>(null);
   const [selectedService, setSelectedService] = useState<ClinicService | null>(null);
   const [createdTicket, setCreatedTicket] = useState<BookingTicket | null>(null);
-  const [paidTicket, setPaidTicket] = useState<BookingTicket | null>(null);
   const [error, setError] = useState<string | null>(null);
   const preselectedDoctorId = searchParams.get('doctorId');
   const preselectedServiceId = searchParams.get('serviceId');
@@ -115,7 +128,9 @@ export function BookingPage() {
       return visibleAllDoctors;
     }
 
-    const scopedDoctors = serviceScopedDoctors.filter((doctor) => !isNoisyPublicName(doctor.displayName));
+    const scopedDoctors = serviceScopedDoctors.filter(
+      (doctor) => !isNoisyPublicName(doctor.displayName),
+    );
     return scopedDoctors;
   })();
 
@@ -151,12 +166,11 @@ export function BookingPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (bookingId: string) => customerApi.processPayment(bookingId, 'QR'),
-    onSuccess: (ticket) => {
-      setPaidTicket(ticket);
-      setStep(5);
+    mutationFn: (bookingId: string) => customerApi.createBookingFeeVnpayPayment(bookingId),
+    onSuccess: (response) => {
+      window.location.assign(response.paymentUrl);
     },
-    onError: (mutationError: Error) => setError(mutationError.message),
+    onError: (mutationError: Error) => setError(getReadablePaymentError(mutationError)),
   });
 
   const handleDoctorSelect = (doctor: DoctorSummary) => {
@@ -342,7 +356,10 @@ export function BookingPage() {
                       Đang tạo lịch hẹn...
                     </div>
                   ) : (
-                    <PatientInfoForm selectedService={selectedService} onSubmit={handlePatientInfoSubmit} />
+                    <PatientInfoForm
+                      selectedService={selectedService}
+                      onSubmit={handlePatientInfoSubmit}
+                    />
                   )}
                 </div>
               )}
@@ -355,14 +372,18 @@ export function BookingPage() {
                   service={selectedService}
                   patientName={patientInfo?.fullName ?? ''}
                   patientPhone={patientInfo?.phone ?? ''}
-                  onPay={() => paymentMutation.mutate(createdTicket.bookingId)}
+                  onPay={() => {
+                    setError(null);
+                    paymentMutation.mutate(createdTicket.bookingId);
+                  }}
                   paying={paymentMutation.isPending}
+                  errorMessage={error}
                 />
               )}
 
               {step === 5 &&
                 (() => {
-                  const finalTicket = paidTicket ?? createdTicket;
+                  const finalTicket = createdTicket;
                   if (!finalTicket) return null;
 
                   return (
@@ -371,7 +392,9 @@ export function BookingPage() {
                         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-soft">
                           <span className="material-symbols-outlined text-3xl">check_circle</span>
                         </div>
-                        <h2 className="mt-4 text-xl font-bold text-slate-950">Đặt lịch thành công</h2>
+                        <h2 className="mt-4 text-xl font-bold text-slate-950">
+                          Đặt lịch thành công
+                        </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-500">
                           Lưu lại phiếu khám để check-in tại quầy tiếp nhận.
                         </p>

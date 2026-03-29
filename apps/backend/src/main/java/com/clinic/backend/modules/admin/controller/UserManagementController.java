@@ -1,6 +1,7 @@
 package com.clinic.backend.modules.admin.controller;
 
 import com.clinic.backend.modules.admin.dto.*;
+import com.clinic.backend.modules.doctor.dto.DoctorTotpSetupDto;
 import com.clinic.backend.modules.admin.service.UserManagementService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,14 @@ public class UserManagementController {
     @PostMapping("/doctors")
     public ResponseEntity<AdminDoctorDto> createDoctor(@Valid @RequestBody CreateDoctorRequest req) {
         return ResponseEntity.ok(userManagementService.createDoctor(req));
+    }
+
+    /** POST /api/v1/admin/doctors/{id}/totp/setup — view or regenerate doctor QR setup */
+    @PostMapping("/doctors/{id}/totp/setup")
+    public ResponseEntity<DoctorTotpSetupDto> issueDoctorTotpSetup(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "false") boolean regenerate) {
+        return ResponseEntity.ok(userManagementService.issueDoctorTotpSetup(id, regenerate));
     }
 
     /** PATCH /api/v1/admin/doctors/{id} — update display name / specialty / password */

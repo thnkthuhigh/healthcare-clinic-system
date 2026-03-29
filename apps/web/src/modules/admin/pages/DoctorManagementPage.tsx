@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import QRCode from 'react-qr-code';
 
 import { adminApi } from '../api';
 import type {
   AdminDoctorDto,
+  AdminDoctorTotpSetup,
   AdminServiceDto,
   CreateDoctorRequest,
   DepartmentDto,
@@ -91,6 +93,11 @@ export function DoctorManagementPage() {
   const [formError, setFormError] = useState('');
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [totpDoctor, setTotpDoctor] = useState<AdminDoctorDto | null>(null);
+  const [totpSetup, setTotpSetup] = useState<AdminDoctorTotpSetup | null>(null);
+  const [totpMessage, setTotpMessage] = useState('');
+  const [totpError, setTotpError] = useState('');
+  const [isTotpLoading, setIsTotpLoading] = useState(false);
 
   const { data: doctors = [], isLoading } = useQuery({
     queryKey: ['admin-doctors'],
@@ -114,10 +121,6 @@ export function DoctorManagementPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: CreateDoctorRequest) => adminApi.createDoctor(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
-      closeModal();
-    },
     onError: (e) => setFormError(e instanceof Error ? e.message : 'Lỗi tạo tài khoản'),
   });
 
@@ -144,6 +147,35 @@ export function DoctorManagementPage() {
     setForm(emptyDoctorForm());
     setShowCreatePassword(false);
     setShowNewPassword(false);
+  }
+
+  function closeTotpModal() {
+    setTotpDoctor(null);
+    setTotpSetup(null);
+    setTotpMessage('');
+    setTotpError('');
+    setIsTotpLoading(false);
+  }
+
+  async function openTotpModal(
+    doctor: AdminDoctorDto,
+    options?: { regenerate?: boolean; message?: string },
+  ) {
+    setTotpDoctor(doctor);
+    setTotpSetup(null);
+    setTotpError('');
+    setTotpMessage(options?.message ?? '');
+    setIsTotpLoading(true);
+
+    try {
+      const setup = await adminApi.issueDoctorTotpSetup(doctor.id, options?.regenerate ?? false);
+      setTotpSetup(setup);
+      await queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+    } catch (error) {
+      setTotpError(error instanceof Error ? error.message : 'Khong the tai QR xac thuc.');
+    } finally {
+      setIsTotpLoading(false);
+    }
   }
 
   function openCreateModal() {
@@ -226,7 +258,7 @@ export function DoctorManagementPage() {
     };
   }
 
-  function submitCreate(e: React.FormEvent<HTMLFormElement>) {
+  async function submitCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormError('');
 
@@ -246,7 +278,13 @@ export function DoctorManagementPage() {
       return;
     }
 
-    createMutation.mutate(buildCreatePayload());
+    try {
+      await createMutation.mutateAsync(buildCreatePayload());
+      await queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+      closeModal();
+    } catch {
+      // Error is surfaced by the mutation onError handler.
+    }
   }
 
   function submitUpdate(e: React.FormEvent<HTMLFormElement>) {
@@ -297,6 +335,7 @@ export function DoctorManagementPage() {
                 <th className="px-4 py-3 text-left font-medium text-slate-600">Chuyên khoa</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-600">Dịch vụ</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-600">SDT</th>
+                <th className="px-4 py-3 text-left font-medium text-slate-600">App xac thuc</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-600">Trạng thái</th>
                 <th className="px-4 py-3 text-right font-medium text-slate-600">Hành động</th>
               </tr>
@@ -326,6 +365,23 @@ export function DoctorManagementPage() {
                     <td className="px-4 py-3">
                       <span
                         className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                          doctor.totpConfirmed
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : doctor.totpProvisioned
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {doctor.totpConfirmed
+                          ? 'Da kich hoat'
+                          : doctor.totpProvisioned
+                            ? 'Da cap QR'
+                            : 'Chua cap QR'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
                           doctor.status === 'ACTIVE'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-red-100 text-red-700'
@@ -336,6 +392,15 @@ export function DoctorManagementPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openTotpModal(doctor)}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                          title="Xem QR app xac thuc"
+                        >
+                          <span className="material-symbols-outlined align-middle text-sm">
+                            qr_code_2
+                          </span>
+                        </button>
                         <button
                           onClick={() => openEditModal(doctor)}
                           className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
@@ -654,6 +719,126 @@ export function DoctorManagementPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {totpDoctor && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  QR app xac thuc cho bac si
+                </p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">{totpDoctor.displayName}</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Bac si quet QR nay vao app mat khau hoac Authenticator de dung ma 6 so khi quen
+                  mat khau.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    openTotpModal(totpDoctor, {
+                      regenerate: true,
+                      message:
+                        'Da cap lai QR moi. Bac si can quet lai trong app xac thuc truoc khi dung.',
+                    })
+                  }
+                  disabled={isTotpLoading}
+                  className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  Cap lai QR
+                </button>
+                <button
+                  type="button"
+                  onClick={closeTotpModal}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Dong
+                </button>
+              </div>
+            </div>
+
+            {totpMessage && (
+              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                {totpMessage}
+              </div>
+            )}
+
+            {totpError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {totpError}
+              </div>
+            )}
+
+            {isTotpLoading ? (
+              <div className="py-16 text-center text-sm text-slate-500">Dang tai QR...</div>
+            ) : totpSetup ? (
+              <div className="mt-6 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="rounded-2xl bg-white p-3">
+                    <QRCode value={totpSetup.otpAuthUri} size={176} className="h-auto w-full" />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        Trang thai
+                      </p>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          totpSetup.confirmed
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {totpSetup.confirmed ? 'Da kich hoat' : 'Cho xac minh lan dau'}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm text-slate-500">
+                      Neu day la tai khoan moi, bac si co the quet QR va dung ngay o flow "Quen mat
+                      khau". Lan xac minh thanh cong dau tien se tu dong kich hoat.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Manual entry key
+                    </p>
+                    <p className="mt-2 break-all font-mono text-sm text-slate-900">
+                      {totpSetup.manualEntryKey}
+                    </p>
+                    <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Issuer</p>
+                        <p className="mt-1 font-semibold text-slate-900">{totpSetup.issuer}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.12em] text-slate-400">
+                          Account
+                        </p>
+                        <p className="mt-1 font-semibold text-slate-900">{totpSetup.accountName}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                    <p>1. Admin hoac owner dua QR nay cho dung bac si.</p>
+                    <p className="mt-2">2. Bac si quet vao app xac thuc ben thu ba.</p>
+                    <p className="mt-2">
+                      3. Luc quen mat khau, bac si vao trang dang nhap, nhap so dien thoai va ma 6
+                      so trong app.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}

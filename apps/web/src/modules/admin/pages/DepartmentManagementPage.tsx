@@ -297,13 +297,13 @@ export function DepartmentManagementPage() {
               </div>
 
               <section>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Bác sĩ thuộc khoa
-                  </h3>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Bác sĩ thuộc khoa
+                </h3>
                 {selectedUsage.doctors.length === 0 ? (
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
-                      Không có bác sĩ nào
-                    </p>
+                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
+                    Không có bác sĩ nào
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {selectedUsage.doctors.map((doctor) => (
@@ -317,13 +317,13 @@ export function DepartmentManagementPage() {
               </section>
 
               <section>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Dịch vụ thuộc khoa
-                  </h3>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Dịch vụ thuộc khoa
+                </h3>
                 {selectedUsage.services.length === 0 ? (
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
-                      Không có dịch vụ nào
-                    </p>
+                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-400">
+                    Không có dịch vụ nào
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {selectedUsage.services.map((service) => (

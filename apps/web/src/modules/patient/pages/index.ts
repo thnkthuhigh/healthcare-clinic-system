@@ -1,4 +1,6 @@
 export { BookingPage } from './BookingPage';
+export { BookingPaymentResultPage } from './BookingPaymentResultPage';
+export { MockVnpayPage } from './MockVnpayPage';
 export { PatientHomePage } from './PatientHomePage';
 export { HealthProfilePage } from './HealthProfilePage';
 export { ProfilePage } from './ProfilePage';

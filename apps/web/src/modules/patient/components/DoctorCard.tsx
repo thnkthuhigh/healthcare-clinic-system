@@ -85,9 +85,7 @@ export function DoctorCard({ doctor, selected, onSelect }: DoctorCardProps) {
         <div
           data-testid={`patient-booking-doctor-state-${doctor.id}`}
           className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-3 text-xs font-semibold ${
-            selected
-              ? 'bg-primary text-white'
-              : 'border border-slate-200 bg-white text-slate-500'
+            selected ? 'bg-primary text-white' : 'border border-slate-200 bg-white text-slate-500'
           }`}
         >
           {selected ? 'Đã chọn' : 'Chọn'}
