@@ -1,9 +1,18 @@
 interface CashierPageHeaderProps {
   tab: 'consultation' | 'retail';
   onSwitchTab: (tab: 'consultation' | 'retail') => void;
+  unpaidCount: number;
+  paidCount: number;
+  totalRevenueLabel: string;
 }
 
-export function CashierPageHeader({ tab, onSwitchTab }: CashierPageHeaderProps) {
+export function CashierPageHeader({
+  tab,
+  onSwitchTab,
+  unpaidCount,
+  paidCount,
+  totalRevenueLabel,
+}: CashierPageHeaderProps) {
   return (
     <section className="rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.22),transparent_30%),linear-gradient(180deg,#ffffff,#f8fafc)] px-5 py-4 shadow-sm sm:px-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -17,6 +26,19 @@ export function CashierPageHeader({ tab, onSwitchTab }: CashierPageHeaderProps) 
           <p className="mt-1 text-sm leading-6 text-slate-600">
             Theo dõi bill trong ngày, mở VNPAY hoặc xác nhận thu tiền trực tiếp tại quầy.
           </p>
+          {tab === 'consultation' && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                Chờ thanh toán: {unpaidCount}
+              </span>
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                Đã thanh toán: {paidCount}
+              </span>
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                Doanh thu: {totalRevenueLabel}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="inline-flex rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm">

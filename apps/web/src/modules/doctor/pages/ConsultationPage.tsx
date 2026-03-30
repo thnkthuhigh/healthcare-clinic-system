@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { OpsPageHeader } from '../../../components/ClinicUI';
-import { formatDateUtc7, formatTimeUtc7, toIsoDateUtc7 } from '../../../lib/time';
-import { consultationApi } from '../api';
+import { addDaysToIsoDate, formatDateUtc7, formatTimeUtc7, toIsoDateUtc7 } from '../../../lib/time';
+import { consultationApi, doctorApi } from '../api';
 import type {
   FollowUpBooking,
   MedicalRecord,
@@ -186,6 +186,7 @@ export function ConsultationPage() {
   const [showSendToLabConfirm, setShowSendToLabConfirm] = useState(false);
   const [labTransferToast, setLabTransferToast] = useState<string | null>(null);
   const [followUpDate, setFollowUpDate] = useState(() => toIsoDateUtc7());
+  const [availableFollowUpDates, setAvailableFollowUpDates] = useState<string[]>([]);
   const [followUpNote, setFollowUpNote] = useState('');
   const [schedulingFollowUp, setSchedulingFollowUp] = useState(false);
   const [followUpResult, setFollowUpResult] = useState<FollowUpBooking | null>(null);
@@ -213,6 +214,8 @@ export function ConsultationPage() {
         setError(null);
 
         const bookingDetails = await consultationApi.getBookingDetails(bookingId);
+        const today = toIsoDateUtc7();
+        const followUpRangeEnd = addDaysToIsoDate(today, 30);
         setPatient(bookingDetails.patient);
         setWeightInput(
           bookingDetails.patient.weightKg !== null ? String(bookingDetails.patient.weightKg) : '',
@@ -221,11 +224,13 @@ export function ConsultationPage() {
           bookingDetails.patient.heightCm !== null ? String(bookingDetails.patient.heightCm) : '',
         );
 
-        const [historyResult, templatesResult, catalogResult] = await Promise.allSettled([
-          consultationApi.getPatientHistory(bookingDetails.patient.id),
-          consultationApi.getPrescriptionTemplates(),
-          consultationApi.searchMedications(),
-        ]);
+        const [historyResult, templatesResult, catalogResult, followUpScheduleResult] =
+          await Promise.allSettled([
+            consultationApi.getPatientHistory(bookingDetails.patient.id),
+            consultationApi.getPrescriptionTemplates(),
+            consultationApi.searchMedications(),
+            doctorApi.getSchedule(bookingDetails.doctor.id, today, followUpRangeEnd),
+          ]);
 
         if (historyResult.status === 'fulfilled') {
           const history = historyResult.value || [];
@@ -252,6 +257,28 @@ export function ConsultationPage() {
         } else {
           console.error('Failed to fetch medication catalog:', catalogResult.reason);
           setMedicationCatalog([]);
+        }
+
+        if (followUpScheduleResult.status === 'fulfilled') {
+          const openDates = Array.from(
+            new Set(
+              (followUpScheduleResult.value || [])
+                .filter((shift) => shift.status === 'OPEN')
+                .map((shift) => shift.date),
+            ),
+          ).sort((left, right) => left.localeCompare(right));
+
+          setAvailableFollowUpDates(openDates);
+          setFollowUpDate((current) => {
+            if (current && openDates.includes(current)) {
+              return current;
+            }
+            return openDates[0] ?? '';
+          });
+        } else {
+          console.error('Failed to fetch follow-up schedule:', followUpScheduleResult.reason);
+          setAvailableFollowUpDates([]);
+          setFollowUpDate('');
         }
 
         if (bookingDetails.medicalRecord) {
@@ -609,8 +636,16 @@ export function ConsultationPage() {
 
   const handleScheduleFollowUp = async () => {
     if (!bookingId) return;
+    if (availableFollowUpDates.length === 0) {
+      setError('Bác sĩ chưa có ca mở trong 30 ngày tới để hẹn tái khám.');
+      return;
+    }
     if (!followUpDate) {
       setError('Vui lòng chọn ngày tái khám.');
+      return;
+    }
+    if (!availableFollowUpDates.includes(followUpDate)) {
+      setError('Ngày đã chọn chưa có ca mở. Vui lòng chọn ngày khác.');
       return;
     }
 
@@ -1016,13 +1051,30 @@ export function ConsultationPage() {
                 <div className="mt-4 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
                   <div>
                     <label className="field-label text-xs">Ngày tái khám</label>
-                    <input
-                      type="date"
+                    <select
                       value={followUpDate}
                       onChange={(event) => setFollowUpDate(event.target.value)}
                       className="input-field"
-                      min={toIsoDateUtc7()}
-                    />
+                      disabled={availableFollowUpDates.length === 0}
+                    >
+                      {availableFollowUpDates.length === 0 ? (
+                        <option value="">Chưa có ngày có ca mở</option>
+                      ) : (
+                        availableFollowUpDates.map((date) => (
+                          <option key={date} value={date}>
+                            {formatDateUtc7(date, {
+                              weekday: 'short',
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Chỉ hiển thị ngày bác sĩ có ca khám mở trong 30 ngày tới.
+                    </p>
                   </div>
                   <div>
                     <label className="field-label text-xs">Ghi chú (tuỳ chọn)</label>

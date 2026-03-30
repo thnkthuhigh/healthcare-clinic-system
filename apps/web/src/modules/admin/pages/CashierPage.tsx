@@ -560,7 +560,13 @@ export function CashierPage() {
 
   return (
     <div className="space-y-4">
-      <CashierPageHeader tab={tab} onSwitchTab={switchTab} />
+      <CashierPageHeader
+        tab={tab}
+        onSwitchTab={switchTab}
+        unpaidCount={unpaidCount}
+        paidCount={paidCount}
+        totalRevenueLabel={formatMoney(totalRevenue)}
+      />
 
       <section className="hidden rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.28),transparent_32%),linear-gradient(180deg,#ffffff,#f8fafc)] p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -622,7 +628,6 @@ export function CashierPage() {
           isLoading={isLoading}
           unpaidCount={unpaidCount}
           paidCount={paidCount}
-          totalRevenue={totalRevenue}
           filterTab={filterTab}
           selectedBooking={selectedBooking}
           cashierFallbackLabel={cashierDisplayLabel}

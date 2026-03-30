@@ -147,10 +147,8 @@ function isCurrentShift(shift: Shift) {
   return now >= start && now <= end;
 }
 
-function getActionableCount(shift: Shift) {
-  const inFlowCount = shift.waitingCount + shift.checkedInCount + shift.inConsultationCount;
-  const bookedEstimate = Math.max(shift.totalPatients - shift.completedCount - inFlowCount, 0);
-  return inFlowCount + bookedEstimate;
+function getImmediateQueueCount(shift: Shift) {
+  return shift.waitingCount + shift.checkedInCount + shift.inConsultationCount;
 }
 
 function pickBestShift(shifts: Shift[]) {
@@ -159,10 +157,10 @@ function pickBestShift(shifts: Shift[]) {
   const candidates = openShifts.length > 0 ? openShifts : shifts;
 
   return [...candidates].sort((left, right) => {
-    const leftActionable = getActionableCount(left);
-    const rightActionable = getActionableCount(right);
-    if (leftActionable !== rightActionable) {
-      return rightActionable - leftActionable;
+    const leftImmediate = getImmediateQueueCount(left);
+    const rightImmediate = getImmediateQueueCount(right);
+    if (leftImmediate !== rightImmediate) {
+      return rightImmediate - leftImmediate;
     }
     const leftActiveScore = isCurrentShift(left) ? 1 : 0;
     const rightActiveScore = isCurrentShift(right) ? 1 : 0;
