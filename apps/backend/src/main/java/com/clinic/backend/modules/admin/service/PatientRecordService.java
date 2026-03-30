@@ -9,7 +9,12 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,7 +83,7 @@ public class PatientRecordService {
             visit.setNotes((String) row[7]);
             visit.setBookingStatus((String) row[8]);
             visit.setPaymentStatus((String) row[9]);
-            visit.setVisitDate(row[10] != null ? ((java.sql.Timestamp) row[10]).toInstant() : null);
+            visit.setVisitDate(toInstant(row[10]));
 
             // Load prescription for this booking
             UUID bookingId = visit.getBookingId();
@@ -101,5 +106,27 @@ public class PatientRecordService {
 
         dto.setRecords(records);
         return dto;
+    }
+
+    private Instant toInstant(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Instant instant) {
+            return instant;
+        }
+        if (value instanceof java.sql.Timestamp timestamp) {
+            return timestamp.toInstant();
+        }
+        if (value instanceof OffsetDateTime offsetDateTime) {
+            return offsetDateTime.toInstant();
+        }
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime.toInstant(ZoneOffset.UTC);
+        }
+        if (value instanceof Date date) {
+            return date.toInstant();
+        }
+        throw new IllegalStateException("Unsupported visit date type: " + value.getClass().getName());
     }
 }

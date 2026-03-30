@@ -11,7 +11,6 @@ interface CashierConsultationPanelProps {
   isLoading: boolean;
   unpaidCount: number;
   paidCount: number;
-  totalRevenue: number;
   filterTab: 'UNPAID' | 'PAID' | 'ALL';
   selectedBooking: CashierBooking | null;
   cashierFallbackLabel: string;
@@ -124,7 +123,6 @@ export function CashierConsultationPanel({
   isLoading,
   unpaidCount,
   paidCount,
-  totalRevenue,
   filterTab,
   selectedBooking,
   cashierFallbackLabel,
@@ -137,23 +135,9 @@ export function CashierConsultationPanel({
   onRemovePrescriptionItem,
 }: CashierConsultationPanelProps) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-      <aside className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-          <StatCard
-            title="Chờ thanh toán"
-            value={String(unpaidCount)}
-            detail="Các bill chưa thu đủ"
-          />
-          <StatCard title="Đã thanh toán" value={String(paidCount)} detail="Bill đã hoàn tất" />
-          <StatCard
-            title="Doanh thu trong ngày"
-            value={formatMoney(totalRevenue)}
-            detail="Từ bill đã thu"
-          />
-        </div>
-
-        <section className="rounded-[24px] border border-slate-200 bg-white p-3.5 shadow-sm">
+    <div className="grid min-h-0 gap-4 xl:h-[calc(100vh-15rem)] xl:grid-cols-[340px_minmax(0,1fr)]">
+      <aside className="min-h-0">
+        <section className="flex h-full min-h-0 flex-col rounded-[24px] border border-slate-200 bg-white p-3.5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-base font-semibold text-slate-950">Danh sách thanh toán</h3>
@@ -184,7 +168,7 @@ export function CashierConsultationPanel({
             ))}
           </div>
 
-          <div className="mt-3 max-h-[calc(100vh-21rem)] space-y-2 overflow-y-auto pr-1">
+          <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {isLoading && (
               <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
                 Đang tải danh sách thanh toán...
@@ -262,9 +246,9 @@ export function CashierConsultationPanel({
         </section>
       </aside>
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <section className="min-h-0 overflow-y-auto rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         {!selectedBooking ? (
-          <div className="flex min-h-[460px] items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/60 p-8">
+          <div className="flex h-full min-h-[460px] items-center justify-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/60 p-8">
             <div className="text-center text-slate-400">
               <span className="material-symbols-outlined text-5xl">receipt_long</span>
               <p className="mt-3 text-base font-medium text-slate-500">
@@ -447,16 +431,6 @@ export function CashierConsultationPanel({
           </div>
         )}
       </section>
-    </div>
-  );
-}
-
-function StatCard({ title, value, detail }: { title: string; value: string; detail: string }) {
-  return (
-    <div className="rounded-[22px] border border-slate-200 bg-white p-3.5 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{title}</p>
-      <p className="mt-1.5 text-2xl font-semibold text-slate-950">{value}</p>
-      <p className="mt-1.5 text-sm text-slate-500">{detail}</p>
     </div>
   );
 }

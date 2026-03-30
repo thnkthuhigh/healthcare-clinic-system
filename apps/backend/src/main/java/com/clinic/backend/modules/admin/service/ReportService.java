@@ -329,8 +329,8 @@ public class ReportService {
                   COALESCE(b.completed_at, b.check_in_at, b.created_at) AS invoice_at,
                   COALESCE(sv.price_cents, 0) AS service_amount,
                   COALESCE(b.lab_fee_cents, 0) AS lab_amount,
-                  COALESCE((
-                    SELECT SUM(pi.qty * pi.unit_price_cents)::BIGINT
+                                    COALESCE((
+                                        SELECT CAST(SUM(pi.qty * pi.unit_price_cents) AS BIGINT)
                     FROM prescriptions pr
                     JOIN prescription_items pi ON pi.prescription_id = pr.id
                     WHERE pr.booking_id = b.id
